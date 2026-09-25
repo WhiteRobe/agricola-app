@@ -27,6 +27,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* 页面不允许横向滚动：任何子元素意外超宽都被裁掉（clip 不产生滚动容器，不影响 sticky） */
+html, body { overflow-x: clip; }
 body {
   font-family: var(--font);
   color: var(--ink);

@@ -57,14 +57,18 @@
 }
 .col-card.is-current-turn::before,
 .farm-card.is-current-turn::before {
-  content: "👉 该他行动";
+  content: "该他行动";
   position: absolute;
   top: -10px; right: 12px;
-  background: var(--leaf);
+  background-color: var(--leaf);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><g fill='%23ffffff'><circle cx='30' cy='11' r='5.4'/><path d='M27 17l7 3 6-2c2-0.7 3.4 2 1.6 3.2L36 25l-6-2 2.5 8 5.5 7.5c1.4 2-1.4 4-3.1 2.3L28.5 33 25 26l-3.5 6-3.5 9c-0.8 2.2-4 1.4-3.6-0.9L18 30l4-9-4.5 1.5-4.5 5c-1.6 1.7-4.1-0.4-2.8-2.4l5.3-7c1-1.4 2.4-2.1 4-2.3z'/></g><g stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' opacity='0.75'><line x1='2' y1='16' x2='10' y2='16'/><line x1='1' y1='23' x2='8' y2='23'/><line x1='3' y1='30' x2='10' y2='30'/></g></svg>");
+  background-repeat: no-repeat;
+  background-position: 7px center;
+  background-size: 15px 15px;
   color: #fff;
   font-size: 11px;
   font-weight: 800;
-  padding: 2px 10px;
+  padding: 2px 10px 2px 26px;
   border-radius: 999px;
   box-shadow: 0 2px 6px rgba(92,141,78,.4);
   letter-spacing: 1px;
@@ -74,6 +78,55 @@
   0%, 100% { box-shadow: 0 0 0 4px rgba(92,141,78,0.18), var(--shadow-lg); }
   50%      { box-shadow: 0 0 0 8px rgba(92,141,78,0.28), 0 6px 24px rgba(92,141,78,0.22); }
 }
+
+/* ---- 「行动中」奔跑小人徽章（SVG 农夫 + 奔跑弹跳动画） ---- */
+.col-card h4 .turn,
+.turn-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.turn-runner {
+  padding: 3px 7px;
+  line-height: 1;
+}
+.turn-runner svg,
+.turn-badge svg {
+  display: block;
+  animation: runner-dash 0.9s ease-in-out infinite;
+  filter: drop-shadow(0 1px 1px rgba(30, 60, 20, 0.35));
+}
+@keyframes runner-dash {
+  0%   { transform: translateY(0) rotate(0deg); }
+  25%  { transform: translateY(-2px) rotate(-4deg); }
+  50%  { transform: translateY(0) rotate(0deg); }
+  75%  { transform: translateY(-1.5px) rotate(3deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-runner svg, .turn-badge svg { animation: none; }
+}
+
+/* ---- Buff 标注：职业加成/减免灰字小徽章（悬浮注明来源） ---- */
+.buff-chip {
+  display: inline-flex; align-items: center;
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(120, 120, 110, 0.12);
+  border: 1px dashed rgba(120, 120, 110, 0.45);
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: help;
+  vertical-align: middle;
+}
+.buff-chip.neg {
+  color: #2e7d32;
+  border-color: rgba(92, 141, 78, 0.55);
+  background: rgba(92, 141, 78, 0.10);
+}
+.stk .buff-chip { margin-left: 1px; font-size: 9.5px; padding: 0 3px; }
 
 /* ---- 资源面板网格（旧样式，保留给兼容） ---- */
 /* ---- 资源面板网格（紧凑 + 居中） ---- */

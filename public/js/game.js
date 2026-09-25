@@ -15,6 +15,7 @@ import {
   tokenSvg,
   animalSvg,
   meepleSvg,
+  runnerSvg,
   roomTileSvg,
   fieldContentSvg,
   actionWoodcutSvg,
@@ -152,6 +153,10 @@ function liveScorePlayer(p) {
   if ((p.improvements || []).includes("firewood") && (p.fuel || 0) > 0) {
     breakdown["柴火"] = p.fuel * 1;
   }
+  // 节气轮转：度假等季节行动累积的额外分
+  if ((p.seasonVP || 0) > 0) {
+    breakdown["节气"] = p.seasonVP;
+  }
 
   const stats = {
     fields, pastures, grain, veg,
@@ -169,7 +174,31 @@ function liveScores(g) {
 }
 
 // 季节：14 轮 → 春夏秋冬（1-4 春，5-7 夏，8-10 秋，11-14 冬）
+// 节气轮转 DLC：每轮一季，从随机起始季节开始循环（引擎 g.seasonStart）
+const TTS_ORDER = ["spring", "summer", "autumn", "winter"];
+/** 各季节「节气行动」格的说明（行动板展示用） */
+const TTS_SEASON_ACTION_DESC = {
+  spring: "春耕：立即繁殖一次（成对即 +1 幼崽），可顺带撒种",
+  summer: "度假：本轮已放置的每名家人（含本次）+1 节气分",
+  autumn: "秋收：立即田间阶段（每块作物田 +1），可再拿 1 菜",
+  winter: "家庭扩建：无需空房添 1 人（2 木 + 3 食物）",
+};
+/** 各季节效果摘要（头部徽章悬浮提示用） */
+const TTS_SEASON_HINT = {
+  spring: "节气·春：木材堆−1、石场+1；建栅栏最多 2 段免费（须付费≥1段）；节气行动=春耕（繁殖+可选撒种）",
+  summer: "节气·夏：陶坑+1、石场−1、钓鱼+1；建房附赠 1 马厩；日工额外 +1 谷；节气行动=度假（按本轮已放置家人数得分）",
+  autumn: "节气·秋：木材堆+1、芦苇滩+1；建大改进减 1 建材；节气行动=秋收（立即田间阶段+可选拿 1 菜）",
+  winter: "节气·冬：陶坑−1、芦苇滩−1；犁地需付 1 食物；鱼塘封冻（第 11 轮起解冻）；节气行动=家庭扩建（无需空房，2木+3食物）",
+};
+function ttsSeasonOf(g, r) {
+  if (!g || !g.dlc?.seasons) return null;
+  const start = typeof g.seasonStart === "number" ? g.seasonStart : 0;
+  return TTS_ORDER[(((start + r - 1) % 4) + 4) % 4];
+}
 function seasonOfRound(r) {
+  const g = typeof _state !== "undefined" && _state && _state.game;
+  const tts = ttsSeasonOf(g, r);
+  if (tts) return tts;
   if (r <= 4) return "spring";
   if (r <= 7) return "summer";
   if (r <= 10) return "autumn";
@@ -329,14 +358,14 @@ export function renderGame(root, s, me, conn) {
       <div class="row" style="gap:10px; align-items:center; min-width:0; flex-wrap:wrap">
         <span style="font-size:18px">🎲</span>
         <strong>第 ${g.round} / 14 轮</strong>
-        <span class="badge" style="background:${seasonInfo.tint};border-color:${seasonInfo.color};color:#5c4a2e">
-          ${seasonInfo.icon} ${seasonInfo.label}季
+        <span class="badge" style="background:${seasonInfo.tint};border-color:${seasonInfo.color};color:#5c4a2e" ${g.dlc?.seasons ? `data-tip="${escapeHtml(TTS_SEASON_HINT[ttsSeasonOf(g, g.round)] || "")}"` : ""}>
+          ${seasonInfo.icon} ${seasonInfo.label}季${g.dlc?.seasons ? " · 节气轮转" : ""}
         </span>
         <span class="badge gold">阶段 ${g.stage}</span>
         ${g.revealed.length ? `<span class="badge">可用回合卡：${g.revealed.map(spaceName).join(" · ")}</span>` : ""}
       </div>
       <div class="row" style="gap:8px; align-items:center">
-        ${myTurn && !me.spectator ? '<span class="badge green anim-my-turn" style="display:inline-block">👉 该你行动</span>' : me.spectator ? '<span class="badge">👀 旁观模式</span>' : '<span class="badge">等待中…</span>'}
+        ${myTurn && !me.spectator ? `<span class="badge green anim-my-turn turn-badge" style="display:inline-flex;align-items:center;gap:5px">${runnerSvg("#ffffff", 16)}该你行动</span>` : me.spectator ? '<span class="badge">👀 旁观模式</span>' : '<span class="badge">等待中…</span>'}
         ${myPlayer ? buildActionsLeft(g, myPlayer) : ""}
         ${buildGauge(g.round)}
       </div>
@@ -346,7 +375,7 @@ export function renderGame(root, s, me, conn) {
 
   // 顶栏「🎴 DLC 规则」按钮更新（开任意 DLC 时展示，位于顶部 title 教程与连接状态中间）
   const topDlcBtn = document.getElementById("topDlcBtn");
-  const hasDlc = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor));
+  const hasDlc = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor || g.dlc.seasons));
   if (topDlcBtn) {
     if (hasDlc) {
       topDlcBtn.classList.remove("hidden");
@@ -579,7 +608,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     }
     fuelFormula += `\n（沼泽农夫扩展：收获节缺少燃料将获得乞讨卡）`;
 
-    const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null) => {
+    const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null, buffHtml = "") => {
       const tipText = formulaTip ? `${name} · ${formulaTip}` : name;
       return `<div class="stk" data-key="${key}" data-name="${name}" data-tip="${escapeHtml(tipText)}">
          <span class="stk-ic">${ic}</span>
@@ -587,15 +616,18 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
            <b class="stk-v${isNum ? " resource-num" : ""}" data-key="${key}">${val}</b>
            ${costHint !== null ? `<span class="stk-cost-hint">(-${costHint})</span>` : ""}
          </div>
+         ${buffHtml}
        </div>`;
     };
+    // Buff 标注：取用对应行动格时职业加成（灰字 +1，悬浮注明来源）
+    const resBuff = (key) => buffChipHtml(p, RES_TO_SPACE[key]);
     const pScore = liveScorePlayer(p);
     card.innerHTML = `
       <h4>
         <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
         <span class="nm">${escapeHtml(p.name)}</span>
         ${isMe ? '<span class="badge green">你</span>' : ""}
-        ${isTurn ? '<span class="turn">行动中</span>' : ""}
+        ${isTurn ? `<span class="turn turn-runner" title="行动中">${runnerSvg("#ffffff", 15)}</span>` : ""}
         <button type="button" class="stock-score-badge" data-score-pid="${p.id}" data-tip="点击查看得分计算面板\n当前实时得分: ${pScore.total} 分">
           <span class="score-crown">👑</span>
           <span class="score-num">${pScore.total}</span>
@@ -603,7 +635,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       </h4>
       <div class="stock">
         <div class="stock-row stock-key">
-          ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula)}
+          ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula, resBuff("food"))}
           ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false)}
           ${stk("beggings", "🃏", p.beggings, "乞讨卡", false)}
         </div>
@@ -614,21 +646,21 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
         </div>` : ""}
         <div class="stock-label">建材</div>
         <div class="stock-row stock-mat">
-          ${stk("wood", tokenSvg("wood", 20), p.resources.wood, "木材")}
-          ${stk("clay", tokenSvg("clay", 20), p.resources.clay, "陶土")}
-          ${stk("reed", tokenSvg("reed", 20), p.resources.reed, "芦苇")}
-          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石头")}
+          ${stk("wood", tokenSvg("wood", 20), p.resources.wood, "木材", true, null, null, resBuff("wood"))}
+          ${stk("clay", tokenSvg("clay", 20), p.resources.clay, "陶土", true, null, null, resBuff("clay"))}
+          ${stk("reed", tokenSvg("reed", 20), p.resources.reed, "芦苇", true, null, null, resBuff("reed"))}
+          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石头", true, null, null, resBuff("stone"))}
         </div>
         <div class="stock-label">农产品</div>
         <div class="stock-row stock-crop">
-          ${stk("grain", tokenSvg("grain", 20), p.resources.grain, "谷物")}
-          ${stk("vegetable", tokenSvg("vegetable", 20), p.resources.vegetable, "蔬菜")}
+          ${stk("grain", tokenSvg("grain", 20), p.resources.grain, "谷物", true, null, null, resBuff("grain"))}
+          ${stk("vegetable", tokenSvg("vegetable", 20), p.resources.vegetable, "蔬菜", true, null, null, resBuff("vegetable"))}
         </div>
         <div class="stock-label">牲畜</div>
         <div class="stock-row stock-animal">
-          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "羊", false)}
-          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "猪", false)}
-          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false)}
+          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "羊", false, null, null, resBuff("sheep"))}
+          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "猪", false, null, null, resBuff("boar"))}
+          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false, null, null, resBuff("cattle"))}
         </div>
       </div>
       ${p.improvements.length ? `<div class="imp-tags">${p.improvements.map(impTagHTML).join("")}</div>` : ""}
@@ -1017,17 +1049,49 @@ function renderSpaces(container, g, p, myTurn, kind) {
     const canAct = myTurn && open && stock > 0 && !used;
     const card = document.createElement("div");
     card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "");
+    // Buff 标注：当前视角玩家在该格取用时有职业加成 → 灰字 +1（悬浮注明来源）
+    const buffChip = p && !used && open ? buffChipHtml(p, sp.id) : "";
     card.innerHTML = `
       ${workerSlotHtml}
       <div class="action-woodcut">${actionWoodcutSvg(sp.id, 28)}</div>
       <div class="name">${sp.name}</div>
-      <div class="meta">${desc}</div>
+      <div class="meta">${desc}${buffChip}</div>
       ${badge}
       ${isMeOccupant ? '<div class="mine">我的</div>' : ""}
     `;
     if (canAct) card.onclick = () => onSpaceClick(sp, p);
     container.appendChild(card);
   });
+
+  // DLC（节气轮转）：回合卡区末尾追加「节气行动」格（每轮一次，按当前季节变化）
+  if (kind === "round" && g.dlc?.seasons) {
+    const season = ttsSeasonOf(g, g.round) || "spring";
+    const info = SEASONS.find((x) => x.key === season) || SEASONS[0];
+    const seasonUsed = (g.usedSpaces || []).includes("Season");
+    const occId = g.spaceOccupants ? g.spaceOccupants["Season"] : null;
+    const occupant = occId ? g.players.find((pl) => pl.id === occId) : null;
+    const occupantName = occupant ? occupant.name : "";
+    const occColor = occupant ? (PLAYER_COLORS[occupant.seat] || "#8e2316") : "#8e2316";
+    const desc = TTS_SEASON_ACTION_DESC[season] || "";
+    let cardDesc = desc;
+    if (seasonUsed) cardDesc = occupantName ? `已被 ${occupantName} 占用` : "本轮已被占用 · 下轮再用";
+    const slotHtml = seasonUsed
+      ? `<div class="worker-slot occupied" title="已由 ${escapeHtml(occupantName || "玩家")} 占用">${meepleSvg(occColor, 20)}</div>`
+      : `<div class="worker-slot" title="空闲工人槽"></div>`;
+    const canAct = myTurn && !seasonUsed;
+    const card = document.createElement("div");
+    card.className = "space space-season" + (canAct ? " actable" : " disabled") + (seasonUsed ? " is-used" : "");
+    card.style.borderColor = info.color;
+    card.innerHTML = `
+      ${slotHtml}
+      <div class="action-woodcut">${info.icon}</div>
+      <div class="name">节气 · ${info.label}季</div>
+      <div class="meta">${cardDesc}</div>
+      ${occId && occupant && p && occId === p.id ? '<div class="mine">我的</div>' : ""}
+    `;
+    if (canAct) card.onclick = () => openSeasonModal(g, p);
+    container.appendChild(card);
+  }
 }
 
 /**
@@ -1323,20 +1387,30 @@ function onSpaceClick(sp, p) {
     // 进入栅栏编辑模式：不弹遮挡棋盘的模态，直接在棋盘上点选
     _selFences.clear();
     setFenceMode(true);
-    toast("点击棋盘上的虚线格边来围牧场，选好后点「确认建造」");
+    let fenceTip = "点击棋盘上的虚线格边来围牧场，选好后点「确认建造」";
+    if (p.occupation?.id === "hedgeKeeper") fenceTip += "\n「栅栏工」职业：建成后返还 2 木";
+    if (p.occupation?.id === "stableArchitect") fenceTip += "\n「圈舍建造师」职业：建成后返还 1 木";
+    toast(fenceTip);
     return;
   }
   if (sp.id === "BuildRoom") {
     const rooms = p.rooms;
-    const okCost = canAfford(p, ROOM_COST_BY_TYPE[p.roomType]);
+    const baseCost = ROOM_COST_BY_TYPE[p.roomType];
+    const { cost: effCost, notes } = roomBuildCost(p);
+    const hasDiscount = JSON.stringify(baseCost) !== JSON.stringify(effCost);
+    const okCost = canAfford(p, effCost);
     openModal("🏠 建房间", `
       <p class="muted" style="margin-top:0">点击棋盘上 <b>紧邻现有房间</b> 的空格来建造。</p>
       <div class="kb-card" style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13px;line-height:1.9">
-        <div><b>每建 1 间${houseLabel(p.roomType)}房</b>：${costLine(ROOM_COST_BY_TYPE[p.roomType])}</div>
+        <div><b>每建 1 间${houseLabel(p.roomType)}房</b>：${annotatedCostLine(baseCost, effCost, notes)}</div>
+        ${hasDiscount ? `<div class="muted" style="font-size:12px">实付 ${costLine(effCost)}（职业减免）</div>` : ""}
         <div class="muted">你现在 ${rooms} 间房 · ${p.family} 名家人 · ${Math.max(0, rooms - p.family)} 间空房</div>
         <div style="color:${okCost ? "var(--leaf-dark)" : "var(--barn)"}">
-          ${okCost ? "✅ 资源充足，可以建" : `❌ 资源不足（缺 ${shortfall(p, ROOM_COST_BY_TYPE[p.roomType])}）`}
+          ${okCost ? "✅ 资源充足，可以建" : `❌ 资源不足（缺 ${shortfall(p, effCost)}）`}
         </div>
+        ${notes.length ? `<div class="muted" style="font-size:11.5px">💡 ${notes.map(escapeHtml).join("；")}</div>` : ""}
+        ${(p.occupation?.id === "masterBuilder") ? `<div class="muted" style="font-size:11.5px">💡 「建筑工长」职业：每建 1 间房返还 1 木</div>` : ""}
+        ${(p.occupation?.id === "surveyor") ? `<div class="muted" style="font-size:11.5px">💡 「宅地测量员」职业：房间数 ≥3 后每建 1 间房 +2 食物</div>` : ""}
       </div>
       <p class="muted">你的资源：🪵 ${p.resources.wood} 木 · 🧱 ${p.resources.clay} 陶 · 🎋 ${p.resources.reed} 芦苇 · ⛏ ${p.resources.stone} 石</p>
       <p class="muted">提示：每间房 +1 个家人居住位，空房才能「添丁」。</p>
@@ -1359,33 +1433,36 @@ function onSpaceClick(sp, p) {
   }
   if (sp.id === "Renovate") {
     const rooms = p.rooms;
-    // 规则：翻修按每间房计费
-    const cClay = { clay: rooms, reed: rooms };
-    const cStone = { stone: rooms, reed: rooms };
+    // 规则：翻修按每间房计费；职业减免与引擎同步
+    const r1 = renovateCost(p, "woodToClay");
+    const r2 = renovateCost(p, "clayToStone");
+    const base1 = { clay: rooms, reed: rooms };
+    const base2 = { stone: rooms, reed: rooms };
     const can = (cost) => Object.entries(cost).every(([k, v]) => (p.resources[k] || 0) >= v);
-    const ok1 = p.roomType === "wood" && can(cClay);
-    const ok2 = p.roomType === "clay" && can(cStone);
-    const costLine = (cost) => Object.entries(cost).map(([k, v]) => `${v} ${resZh(k)}`).join(" + ");
+    const ok1 = p.roomType === "wood" && can(r1.cost);
+    const ok2 = p.roomType === "clay" && can(r2.cost);
+    const notesAll = [...r1.notes, ...r2.notes];
     openModal("🔨 翻修", `
       <p class="muted" style="margin-top:0">
         翻修是 <b>整栋一起翻</b>，按房间数量计费（你现在 <b>${rooms} 间</b>房）。
       </p>
       <div class="kb-card" style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0">
         <div style="font-size:13px;line-height:1.9">
-          <div><b>木屋 → 陶屋</b>：${costLine(cClay)}
+          <div><b>木屋 → 陶屋</b>：${annotatedCostLine(base1, r1.cost, r1.notes)}
             <span style="color:${ok1 ? "var(--leaf-dark)" : "var(--barn)"}">
-              ${p.roomType !== "wood" ? "（当前不是木屋）" : can(cClay) ? "✅ 可以翻" : `❌ 资源不足（缺 ${shortfall(p, cClay)}）`}
+              ${p.roomType !== "wood" ? "（当前不是木屋）" : can(r1.cost) ? "✅ 可以翻" : `❌ 资源不足（缺 ${shortfall(p, r1.cost)}）`}
             </span>
             <span class="muted"> · 翻后每间 +1 分</span>
           </div>
-          <div><b>陶屋 → 石屋</b>：${costLine(cStone)}
+          <div><b>陶屋 → 石屋</b>：${annotatedCostLine(base2, r2.cost, r2.notes)}
             <span style="color:${ok2 ? "var(--leaf-dark)" : "var(--barn)"}">
-              ${p.roomType !== "clay" ? "（当前不是陶屋）" : can(cStone) ? "✅ 可以翻" : `❌ 资源不足（缺 ${shortfall(p, cStone)}）`}
+              ${p.roomType !== "clay" ? "（当前不是陶屋）" : can(r2.cost) ? "✅ 可以翻" : `❌ 资源不足（缺 ${shortfall(p, r2.cost)}）`}
             </span>
             <span class="muted"> · 翻后每间 +2 分</span>
           </div>
         </div>
       </div>
+      ${notesAll.length ? `<div class="muted" style="font-size:11.5px;margin-top:6px">💡 ${notesAll.map(escapeHtml).join("；")}</div>` : ""}
       <p class="muted">你的资源：🪵 ${p.resources.wood} 木 · 🧱 ${p.resources.clay} 陶 · 🎋 ${p.resources.reed} 芦苇 · ⛏ ${p.resources.stone} 石</p>
       <div class="row mt8">
         <button class="btn" id="mR1" ${ok1 ? "" : "disabled"}>木 → 陶</button>
@@ -1434,12 +1511,16 @@ function onSpaceClick(sp, p) {
       );
       grid.innerHTML = list.map(([k, name, cost, vp, eff]) => {
         const built = p.improvements.includes(k);
-        const costObj = MAJOR_COST[k] || {};
+        const baseObj = MAJOR_COST[k] || {};
+        // 职业减免：箍桶匠 −1 木 / 铁匠 −1 石 / 窑炉大师 −1 陶（与引擎同步）
+        const { cost: costObj, notes } = majorBuildCost(p, baseObj);
+        const hasDiscount = notes.length > 0;
         const ok = canAfford(p, costObj);
         const disabled = built || !ok;
+        const costHtml = hasDiscount ? annotatedCostLine(baseObj, costObj, notes) : cost;
         return `<button class="imp-item${built ? " built" : ""}${!built && !ok ? " poor" : ""}" data-i="${k}" ${disabled ? "disabled" : ""}>
           <div class="imp-line1"><b>${built ? "✓ " : ""}${name}</b><span class="vp-seal">${vp}</span></div>
-          <div class="imp-line2">${cost}${!built && !ok ? ` <span style="color:var(--barn)">（缺 ${shortfall(p, costObj)}）</span>` : ""}</div>
+          <div class="imp-line2">${costHtml}${!built && !ok ? ` <span style="color:var(--barn)">（缺 ${shortfall(p, costObj)}）</span>` : ""}</div>
           <div class="imp-line3">${eff}</div>
         </button>`;
       }).join("");
@@ -1617,6 +1698,7 @@ function openScoreBreakdownModal(pid, g) {
     { name: "🔧 改进设施", count: `${(st.improvements || []).length} 项`, score: s.breakdown["改进"], rule: "主要/次要发展卡卡面胜利点" },
     ...(s.breakdown["职业"] ? [{ name: "🎴 职业加成", count: p.occupation ? p.occupation.name : "职业", score: s.breakdown["职业"], rule: "职业终局达成条件加成" }] : []),
     ...(s.breakdown["柴火"] ? [{ name: "🪵 柴火得分", count: `${p.fuel || 0} 份燃料`, score: s.breakdown["柴火"], rule: "柴火棚大改进终局燃料折算分" }] : []),
+    ...(s.breakdown["节气"] ? [{ name: "📅 节气加分", count: `${p.seasonVP} 分`, score: s.breakdown["节气"], rule: "节气轮转：度假等季节行动累积的额外分" }] : []),
   ];
 
   const html = `
@@ -1668,6 +1750,116 @@ function openScoreBreakdownModal(pid, g) {
         openLeaderboard(g);
       };
     }
+  });
+}
+
+/**
+ * DLC（节气轮转）：打开当前季节的「节气行动」模态。
+ * 春耕（繁殖+可选撒种）/ 度假（得分）/ 秋收（田间阶段+可选拿菜）/ 家庭扩建（无需空房）。
+ */
+function openSeasonModal(g, p) {
+  if (!g || !p) return;
+  const season = ttsSeasonOf(g, g.round) || "spring";
+  const info = SEASONS.find((x) => x.key === season) || SEASONS[0];
+  const title = `📅 节气行动 · ${info.label}季 ${info.icon}`;
+
+  if (season === "spring") {
+    const pairs = (["sheep", "boar", "cattle"]).filter((t) => p.animals[t] >= 2)
+      .map((t) => `${({ sheep: "羊", boar: "猪", cattle: "牛" })[t]}×${p.animals[t]}`).join("、");
+    const emptyFields = [];
+    p.grid.forEach((row, y) => row.forEach((c, x) => {
+      if (c.kind === "field" && !c.crop) emptyFields.push({ x, y });
+    }));
+    const canSow = emptyFields.length > 0 && (p.resources.grain > 0 || p.resources.vegetable > 0);
+    const fieldBtns = canSow ? emptyFields.map((f) => `
+      <div class="row" style="gap:6px;align-items:center;margin-bottom:6px">
+        <span class="muted" style="min-width:56px">田 (${f.x},${f.y})</span>
+        ${p.resources.grain > 0 ? `<button class="btn small" data-season-sow="grain" data-x="${f.x}" data-y="${f.y}">🌾 撒谷</button>` : ""}
+        ${p.resources.vegetable > 0 ? `<button class="btn small" data-season-sow="vegetable" data-x="${f.x}" data-y="${f.y}">🥕 撒菜</button>` : ""}
+      </div>`).join("") : `<p class="muted">没有空田或种子，本次只繁殖。</p>`;
+    openModal(title, `
+      <div class="tip-box" style="margin-top:0;margin-bottom:12px">
+        立即执行一次<b>繁殖阶段</b>：同类动物成对（≥2 只）即 +1 只幼崽（需牧场有容量）。
+        ${pairs ? `<br>当前成对：${escapeHtml(pairs)}` : `<br>当前没有成对的动物，繁殖不会产出。`}
+      </div>
+      <h4 style="margin:10px 0 6px">可选：顺带撒种一块田</h4>
+      ${fieldBtns}
+      <div class="row mt8">
+        <button class="btn big" id="mSeasonSpringBreed">🌸 只繁殖</button>
+      </div>
+    `, (root) => {
+      root.querySelector("#mSeasonSpringBreed").onclick = () => {
+        doWithLoading("season-spring", "春耕…", () => sendAction({ type: "SeasonSpring" }));
+        closeModal(true);
+      };
+      root.querySelectorAll("[data-season-sow]").forEach((b) => {
+        b.onclick = () => {
+          doWithLoading("season-spring", "春耕…", () => sendAction({ type: "SeasonSpring", crop: b.dataset.seasonSow, x: +b.dataset.x, y: +b.dataset.y }));
+          closeModal(true);
+        };
+      });
+    });
+    return;
+  }
+
+  if (season === "summer") {
+    const placed = (g.placedThisRound || []).filter((x) => x === p.id).length + 1;
+    openModal(title, `
+      <div class="tip-box" style="margin-top:0;margin-bottom:12px">
+        带全家<b>度假</b>：本轮<b>已放置的每名家人</b>（含本次放置这名工人）各 +1 <b>节气分</b>（终局计入总分）。<br>
+        你本轮已放置 <b>${(g.placedThisRound || []).filter((x) => x === p.id).length}</b> 名家人，本次行动将获得 <b>+${placed} 分</b>。
+      </div>
+      <p class="muted">提示：越晚度假越划算 —— 先把家里人都派出去干活再度假。</p>
+      <button class="btn big" id="mSeasonSummerGo">☀️ 度假（+${placed} 节气分）</button>
+    `, (root) => {
+      root.querySelector("#mSeasonSummerGo").onclick = () => {
+        doWithLoading("season-summer", "度假…", () => sendAction({ type: "SeasonSummer" }));
+        closeModal(true);
+      };
+    });
+    return;
+  }
+
+  if (season === "autumn") {
+    const sown = [];
+    p.grid.forEach((row, y) => row.forEach((c, x) => {
+      if (c.kind === "field" && c.crop && c.markers) sown.push({ x, y, crop: c.crop, markers: c.markers });
+    }));
+    openModal(title, `
+      <div class="tip-box" style="margin-top:0;margin-bottom:12px">
+        立即执行一次<b>田间阶段</b>：每块有作物的田收 1 个谷/菜（marker −1）。当前有 <b>${sown.length}</b> 块作物田。
+      </div>
+      <div class="row mt8" style="flex-wrap:wrap">
+        <button class="btn" id="mSeasonAutumnGo">🍂 秋收${sown.length ? `（预计 +${sown.length} 作物）` : ""}</button>
+        <button class="btn" id="mSeasonAutumnVeg">🍂 秋收 + 🥕 拿 1 菜</button>
+      </div>
+    `, (root) => {
+      root.querySelector("#mSeasonAutumnGo").onclick = () => {
+        doWithLoading("season-autumn", "秋收…", () => sendAction({ type: "SeasonAutumn" }));
+        closeModal(true);
+      };
+      root.querySelector("#mSeasonAutumnVeg").onclick = () => {
+        doWithLoading("season-autumn", "秋收…", () => sendAction({ type: "SeasonAutumn", takeVeg: true }));
+        closeModal(true);
+      };
+    });
+    return;
+  }
+
+  // winter
+  openModal(title, `
+    <div class="tip-box" style="margin-top:0;margin-bottom:12px">
+      <b>家庭扩建</b>：寒冬室内施工 —— <b>无需空房</b>直接添 1 名家人（本轮出生不干活，下次收获起正常吃饭）。<br>
+      成本：<b>2 木 + 3 食物</b>（你现有 ${p.resources.wood} 木 · ${p.food} 食物 · ${p.family} 名家人）。
+    </div>
+    <button class="btn big" id="mSeasonWinterGo" ${p.resources.wood >= 2 && p.food >= 3 && p.family < 5 ? "" : "disabled"}>❄️ 扩建添丁（−2木 −3食物）</button>
+    ${(p.resources.wood < 2 || p.food < 3) ? '<p class="muted" style="color:var(--barn)">资源不足，无法扩建。</p>' : ""}
+  `, (root) => {
+    const btn = root.querySelector("#mSeasonWinterGo");
+    if (btn) btn.onclick = () => {
+      doWithLoading("season-winter", "扩建…", () => sendAction({ type: "SeasonWinter" }));
+      closeModal(true);
+    };
   });
 }
 
@@ -1844,6 +2036,116 @@ function shortfall(p, cost) {
   return lack.length ? lack.join("、") : "无";
 }
 
+// ============================================================
+// Buff 标注系统：职业 / 小发展卡对「资源多拿」与「成本减免」的统一标注
+// 灰字小徽章 (+1 / −1)，悬浮 data-tip 注明效果来源（哪张职业卡）
+// ============================================================
+/** 取用行动格 → 职业额外收益表（与引擎 handleTake 钩子一一对应） */
+const TAKE_BUFF_TABLE = {
+  Wood: [
+    { occ: "lumberjack", label: "柴夫", extra: "额外 +1 木" },
+    { occ: "forestCustodian", label: "护林员", extra: "额外 +1 芦苇" },
+    { occ: "mushroomCollector", label: "蘑菇采摘人", extra: "额外 +1 食物" },
+    { occ: "hunter", label: "猎人", extra: "额外 +1 食物" },
+    { occ: "trapper", label: "野味设阱师", extra: "额外 +1 食物" },
+    { occ: "silviculturist", label: "林农", extra: "取走 ≥3 木时额外 +1 食物" },
+    { occ: "charcoalBurner", label: "炭烧工", extra: "额外 +1 燃料（无沼泽扩展时 +1 食物）" },
+  ],
+  Clay: [
+    { occ: "clayCarrier", label: "运泥工", extra: "额外 +1 陶" },
+    { occ: "miner", label: "矿工", extra: "额外 +1 陶" },
+    { occ: "gravelCarrier", label: "砾石搬运工", extra: "额外 +1 石" },
+    { occ: "peatCutter", label: "泥炭割工", extra: "额外 +1 燃料（无沼泽扩展时 +1 食物）" },
+  ],
+  Reed: [
+    { occ: "reedCollector", label: "割苇人", extra: "额外 +1 芦苇" },
+  ],
+  Stone: [
+    { occ: "quarryman", label: "采石工", extra: "额外 +1 石" },
+    { occ: "miner", label: "矿工", extra: "额外 +1 石" },
+  ],
+  Grain: [
+    { occ: "seedMerchant", label: "种子商人", extra: "额外 +1 谷" },
+    { occ: "grainInspector", label: "谷物检验员", extra: "额外 +1 谷" },
+  ],
+  Vegetable: [
+    { occ: "seedMerchant", label: "种子商人", extra: "额外 +1 菜" },
+  ],
+  Fishing: [
+    { occ: "fisher", label: "渔夫", extra: "额外 +1 食物" },
+    { occ: "hunter", label: "猎人", extra: "额外 +1 食物" },
+    { occ: "fishBuyer", label: "鱼贩", extra: "额外 +1 食物" },
+  ],
+  DayLaborer: [
+    { occ: "dayLaborer", label: "打工达人", extra: "额外 +1 食物（共 3 食物）" },
+    { occ: "oddJobMan", label: "杂务工", extra: "额外 +1 木" },
+    { occ: "laborBroker", label: "劳工经纪", extra: "额外 +1 陶" },
+  ],
+  Sheep: [{ occ: "shepherd", label: "牧羊人", extra: "额外 +1 只羊" }],
+  Boar: [{ occ: "swineherd", label: "养猪人", extra: "额外 +1 只猪" }],
+  Cattle: [{ occ: "cattleFarmer", label: "牧牛人", extra: "额外 +1 只牛" }],
+};
+const RES_TO_SPACE = { wood: "Wood", clay: "Clay", reed: "Reed", stone: "Stone", grain: "Grain", vegetable: "Vegetable", food: "Fishing", sheep: "Sheep", boar: "Boar", cattle: "Cattle" };
+/** 该玩家在某个行动格取用时的职业加成列表 */
+function takeBuffsFor(p, spaceId) {
+  if (!p) return [];
+  return (TAKE_BUFF_TABLE[spaceId] || []).filter((r) => r.occ === p.occupation?.id);
+}
+/** 灰字加成徽章（悬浮注明来源职业） */
+function buffChipHtml(p, spaceId) {
+  const buffs = takeBuffsFor(p, spaceId);
+  if (!buffs.length) return "";
+  const tip = buffs.map((b) => `「${b.label}」职业：取用${spaceName(spaceId)}时${b.extra}`).join("\n");
+  return `<span class="buff-chip" data-tip="${escapeHtml(tip)}">+1</span>`;
+}
+/** 建房间实付费用（与引擎 buildRoom 折扣规则一致） */
+function roomBuildCost(p) {
+  const cost = { ...ROOM_COST_BY_TYPE[p.roomType] };
+  const notes = [];
+  if (p.occupation?.id === "carpenter" && p.roomType === "wood" && cost.wood) {
+    cost.wood -= 1; notes.push("「木匠」职业：建木屋 −1 木");
+  }
+  if (p.occupation?.id === "bricklayer" && p.roomType === "clay" && cost.clay) {
+    cost.clay -= 1; notes.push("「砌砖工」职业：建陶屋 −1 陶");
+  }
+  if ((p.occupation?.id === "wainwright" || p.occupation?.id === "thatcher") && cost.reed) {
+    cost.reed -= 1; notes.push(`「${p.occupation.id === "wainwright" ? "车匠" : "盖顶工"}」职业：建房 −1 芦苇`);
+  }
+  return { cost, notes };
+}
+/** 翻修实付费用（与引擎 renovate 折扣规则一致） */
+function renovateCost(p, direction) {
+  const perRoom = direction === "woodToClay" ? { clay: 1, reed: 1 } : { stone: 1, reed: 1 };
+  const cost = {};
+  for (const k of Object.keys(perRoom)) cost[k] = perRoom[k] * p.rooms;
+  const notes = [];
+  if (p.occupation?.id === "renovator" && cost.reed) { cost.reed = 0; notes.push("「翻修工」职业：翻修免芦苇"); }
+  if (p.occupation?.id === "thatcher" && cost.reed) { cost.reed -= 1; notes.push("「盖顶工」职业：翻修 −1 芦苇"); }
+  if (p.occupation?.id === "bricklayer" && cost.clay) { cost.clay -= 1; notes.push("「砌砖工」职业：翻修 −1 陶"); }
+  if (p.occupation?.id === "masterMason" && direction === "clayToStone" && cost.stone) { cost.stone -= 1; notes.push("「石工大师」职业：翻修石屋 −1 石"); }
+  return { cost, notes };
+}
+/** 大改进实付费用（与引擎 buildMajor 折扣规则一致） */
+function majorBuildCost(p, costObj) {
+  const cost = { ...(costObj || {}) };
+  const notes = [];
+  if (p.occupation?.id === "cooper" && cost.wood) { cost.wood -= 1; notes.push("「箍桶匠」职业：建改进 −1 木"); }
+  if (p.occupation?.id === "blacksmith" && cost.stone) { cost.stone -= 1; notes.push("「铁匠」职业：建改进 −1 石"); }
+  if (p.occupation?.id === "kilnMaster" && cost.clay) { cost.clay -= 1; notes.push("「窑炉大师」职业：建改进 −1 陶"); }
+  return { cost, notes };
+}
+/** 带减免徽章的费用行：如 "5 木 −1木 + 2 芦苇"，悬浮注明来源职业 */
+function annotatedCostLine(base, disc, notes) {
+  return Object.entries(base).map(([k, v]) => {
+    const d = disc[k] ?? v;
+    const diff = d - v;
+    const chip = diff < 0
+      ? `<span class="buff-chip neg" data-tip="${escapeHtml((notes || []).join("\n") || "职业减免")}">−${-diff} ${resZh(k)}</span>`
+      : "";
+    return `${v} ${resZh(k)}${chip}`;
+  }).join(" + ");
+}
+
 // 调试挂载：开发期从 console 调
 if (typeof window !== "undefined") {
   window.__gameDebug = {
@@ -1880,7 +2182,7 @@ function ensureFab(g) {
   const fab = document.createElement("div");
   fab.id = "gameFab";
   fab.className = "fab" + (wasOpen ? " open" : "");
-  const dlcOn = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor));
+  const dlcOn = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor || g.dlc.seasons));
   fab.innerHTML = `
     <div class="fab-menu">
       <button class="fab-item" data-fab="leaderboard">
@@ -2211,6 +2513,8 @@ function donutSlice(cx, cy, rO, rI, startDeg, endDeg) {
 }
 
 function applySeasonTheme(round) {
+  const g = _state && _state.game;
+  const isTts = !!(g && g.dlc?.seasons);
   const season = seasonOfRound(round);
   document.body.dataset.season = season;
 
@@ -2226,9 +2530,18 @@ function applySeasonTheme(round) {
   let slices = "";
   let harvestBadges = "";
 
-  // 14 个轮次扇区
+  // 14 个轮次扇区（节气轮转 DLC：每轮按轮转季节着色）
   for (let r = 1; r <= 14; r++) {
-    const s = SEASONS.find((x) => r >= x.from && r <= x.to);
+    const s = isTts
+      ? SEASONS.find((x) => x.key === ttsSeasonOf(g, r)) || SEASONS[0]
+      : SEASONS.find((x) => r >= x.from && r <= x.to);
+    // 节气轮转：在扇区内叠加季节小图标
+    const seasonIconSvg = isTts
+      ? (() => {
+          const [ix2, iy2] = polarPt(cx, cy, rI + 22, (r - 1) * step + step / 2 - 90);
+          return `<text x="${ix2}" y="${iy2}" text-anchor="middle" dominant-baseline="central" font-size="13" opacity="${r === round ? 1 : 0.5}">${s.icon}</text>`;
+        })()
+      : "";
     const a0 = (r - 1) * step - 90 + 0.6;
     const a1 = r * step - 90 - 0.6;
     const isNow = r === round;
@@ -2238,6 +2551,7 @@ function applySeasonTheme(round) {
     slices += `<path d="${donutSlice(cx, cy, rO, rI, a0, a1)}"
                  fill="${fill}" fill-opacity="${op}"
                  stroke="${isNow ? '#d4af37' : '#e6d8b8'}" stroke-width="${isNow ? 2.5 : 1}"/>`;
+    slices += seasonIconSvg;
 
     // 轮次罗马数字与阿拉伯数字结合
     const [tx, ty] = polarPt(cx, cy, (rO + rI) / 2, (r - 1) * step + step / 2 - 90);
@@ -2258,16 +2572,18 @@ function applySeasonTheme(round) {
     }
   }
 
-  // 四季标签（在外圈外侧）
+  // 四季标签（在外圈外侧）；节气轮转 DLC 下季节随轮转循环，改用扇区图标，不画固定标签
   let seasonLabels = "";
-  SEASONS.forEach((s) => {
-    const mid = ((s.from - 1 + s.to - 1) / 2) * step + step / 2 - 90;
-    const [lx, ly] = polarPt(cx, cy, rO + 30, mid);
-    const isNow = s.key === season;
-    seasonLabels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central"
-                       font-size="${isNow ? 20 : 16}" font-weight="800"
-                       fill="${s.color}" fill-opacity="${isNow ? 0.95 : 0.45}">${s.label}季</text>`;
-  });
+  if (!isTts) {
+    SEASONS.forEach((s) => {
+      const mid = ((s.from - 1 + s.to - 1) / 2) * step + step / 2 - 90;
+      const [lx, ly] = polarPt(cx, cy, rO + 30, mid);
+      const isNow = s.key === season;
+      seasonLabels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central"
+                         font-size="${isNow ? 20 : 16}" font-weight="800"
+                         fill="${s.color}" fill-opacity="${isNow ? 0.95 : 0.45}">${s.label}季</text>`;
+    });
+  }
 
   // 浑天仪黄铜刻度细圈与刻度线
   let astrolabeTicks = "";

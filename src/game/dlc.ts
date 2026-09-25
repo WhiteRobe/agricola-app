@@ -7,16 +7,18 @@
 //   后续可按数据驱动的形式扩充更多卡
 // ============================================================
 
-export type DlcKey = "occupations" | "minorImprovements" | "moor";
+export type DlcKey = "occupations" | "minorImprovements" | "moor" | "seasons";
 
 export interface DlcConfig {
   occupations: boolean;
   minorImprovements: boolean;
   /** Farmers of the Moor：燃料/干草/沼泽资源 + 收获阶段 2 步 + 公有沼泽板 */
   moor: boolean;
+  /** Through the Seasons：节气轮转（每轮一季 + 季节行动格 + 季节特殊规则） */
+  seasons: boolean;
 }
 
-export const DEFAULT_DLC: DlcConfig = { occupations: false, minorImprovements: false, moor: false };
+export const DEFAULT_DLC: DlcConfig = { occupations: false, minorImprovements: false, moor: false, seasons: false };
 
 /** 单张职业卡：玩家起始时从手牌（7 张里）选 1 张获得，从此生效 */
 export interface Occupation {

@@ -42,7 +42,7 @@ export default {
     try {
       // ---- 主持：创建房间（全局公共池，最多 10 间）----
       if (url.pathname === "/api/host/create" && request.method === "POST") {
-        const body = await readJson<{ dlc?: { occupations?: boolean; minorImprovements?: boolean; moor?: boolean } }>(request);
+        const body = await readJson<{ dlc?: { occupations?: boolean; minorImprovements?: boolean; moor?: boolean; seasons?: boolean } }>(request);
         const dlc = (body && typeof body === "object" && "dlc" in body && body.dlc && typeof body.dlc === "object")
           ? (body.dlc as any)
           : undefined;

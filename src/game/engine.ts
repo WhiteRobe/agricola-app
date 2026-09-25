@@ -8,7 +8,7 @@ const ACTION_NAME_ZH: Record<string, string> = {
   BuildRoom: "建房间", PlowField: "犁地", SowOrBake: "撒种/烤面包",
   Fences: "建栅栏", FamilyGrowth: "添丁", Renovate: "翻修", BuildMajor: "大改进",
   GatherFuel: "收集燃料", CutMeadow: "割草甸", ReclaimMoor: "沼泽拓荒", SowMoor: "沼泽撒种",
-  Ore: "采矿",
+  Ore: "采矿", Season: "节气行动",
 };
 const ANIMAL_ZH: Record<string, string> = { sheep: "羊", boar: "猪", cattle: "牛", vegetable: "菜" };
 function zhAction(id: string): string { return ACTION_NAME_ZH[id] || id; }
@@ -73,6 +73,8 @@ export interface PlayerState {
   occupationHand?: { id: string; name: string; icon: string; effect: string }[];
   /** DLC：玩家已拥有的 minor improvements（id 集合） */
   minorImprovements: string[];
+  /** DLC（节气轮转）：假期行动累积的额外胜利点（终局计入总分） */
+  seasonVP: number;
   log: { t: number; msg: string }[];
 }
 
@@ -115,6 +117,11 @@ export interface GameState {
   scores?: { id: string; name: string; total: number; breakdown: Record<string, number> }[];
   /** DLC 配置：开局从主持人勾选项带入 */
   dlc: DlcConfig;
+  // ===== Through the Seasons（仅 dlc.seasons=true 时使用） =====
+  /** 起始季节在四季序列中的偏移（0=春 1=夏 2=秋 3=冬），开局随机；第 r 轮的季节 = (seasonStart + r - 1) % 4 */
+  seasonStart: number;
+  /** 当前轮的季节（每轮 startRound 时刷新；"none" 表示未启用节气 DLC） */
+  season: "spring" | "summer" | "autumn" | "winter" | "none";
   // ===== Farmers of the Moor（仅 dlc.moor=true 时使用） =====
   /** 公有沼泽板：每格记录是否开垦、当前作物与撒种者 */
   moorBoard: { x: number; y: number; crop?: "grain" | "vegetable"; markers?: number; sownBy?: string }[];
@@ -175,6 +182,7 @@ export function createGame(
       // DLC：每名玩家一张 7 张的「职业候选手牌」；开局阶段让玩家从 7 选 1
       occupationHand: dlc.occupations ? handByPlayer[p.id] : [],
       minorImprovements: [],
+      seasonVP: 0,
       // Farmers of the Moor：fuel/hay/moorFields 仅在 moor=true 时使用，0 默认
       fuel: 0,
       hay: 0,
@@ -202,6 +210,9 @@ export function createGame(
     log: [],
     finished: false,
     dlc,
+    // Through the Seasons：随机起始季节（0=春 1=夏 2=秋 3=冬）
+    seasonStart: dlc.seasons ? Math.floor(Math.random() * 4) : 0,
+    season: "none",
     minorImprovementCards: dlc.minorImprovements ? minorCards : [],
     spaceOccupants: {},
     // Farmers of the Moor：默认空板 + 累积堆 0；startRound 中按 dlc.moor 决定是否累积
@@ -214,6 +225,20 @@ export function createGame(
 }
 
 // ---------- 阶段 ----------
+/** Through the Seasons：四季序列与中文名 */
+const TTS_ORDER = ["spring", "summer", "autumn", "winter"] as const;
+type TtsSeason = (typeof TTS_ORDER)[number];
+const TTS_ZH: Record<TtsSeason, string> = { spring: "春", summer: "夏", autumn: "秋", winter: "冬" };
+/** 当前轮的季节（未启用节气 DLC 返回 null） */
+function seasonOf(g: GameState): TtsSeason | null {
+  if (!g.dlc?.seasons) return null;
+  const idx = (((g.seasonStart + g.round - 1) % 4) + 4) % 4;
+  return TTS_ORDER[idx];
+}
+function isSeason(g: GameState, s: TtsSeason): boolean {
+  return seasonOf(g) === s;
+}
+
 function startRound(g: GameState) {
   g.round += 1;
   g.stage = STAGE_OF_ROUND[g.round - 1];
@@ -221,6 +246,8 @@ function startRound(g: GameState) {
   g.usedSpaces = [];
   g.spaceOccupants = {};
   g.players.forEach((p) => (p.babiesThisRound = 0));
+  // 节气轮转：刷新当前季节
+  g.season = seasonOf(g) || "none";
   // ★ 回合卡一经揭示就永久留在版图上（不随回合消失），因此这里不清空 g.revealed
 
   // 补充阶段：各行动格累积堆 +1（★ 起手为空，取用时拿走全部）
@@ -244,6 +271,21 @@ function startRound(g: GameState) {
   if (g.dlc?.moor) {
     g.moorFuelPile += 1;
     g.moorHayPile += 1;
+  }
+
+  // Through the Seasons：季节修正累积堆（春 木−1 石+1 / 夏 陶+1 石−1 钓+1 / 秋 木+1 苇+1 / 冬 陶−1 苇−1）
+  if (g.dlc?.seasons && g.season !== "none") {
+    const mod: Partial<Record<keyof GameState["piles"], number>> =
+      g.season === "spring" ? { Wood: -1, Stone: 1 } :
+      g.season === "summer" ? { Clay: 1, Stone: -1, Fishing: 1 } :
+      g.season === "autumn" ? { Wood: 1, Reed: 1 } :
+      { Clay: -1, Reed: -1 };
+    for (const [k, v] of Object.entries(mod)) {
+      const key = k as keyof GameState["piles"];
+      // 石场第 4 轮才开放，未开放时不做增减
+      if (key === "Stone" && g.round < LEFT_BOARD.stoneQuarry.appearsRound) continue;
+      g.piles[key] = Math.max(0, g.piles[key] + (v as number));
+    }
   }
 
   // 水井：建成后的 5 轮，每轮开始 +1 食物
@@ -325,6 +367,18 @@ function startRound(g: GameState) {
     }
   });
   pushLog(g, `📢 第 ${g.round} 轮 · 阶段 ${g.stage}${newlyRevealed.length ? " · 新揭示：" + newlyRevealed.map(zhAction).join("、") : ""}${openings.length ? " · ★ " + openings.join("、") : ""}`);
+  // 节气轮转：播报本季效果
+  if (g.dlc?.seasons && g.season !== "none") {
+    const s = g.season as TtsSeason;
+    const desc = s === "spring"
+      ? "木材堆−1、石场+1；建栅栏最多 2 段免费（须付费 ≥1 段）；节气行动：春耕（立即繁殖 + 可撒种）"
+      : s === "summer"
+        ? "陶坑+1、石场−1、钓鱼+1；建房附赠 1 马厩；日工额外 +1 谷；节气行动：度假（按本轮已放置家人数得分）"
+        : s === "autumn"
+          ? "木材堆+1、芦苇滩+1；建大改进减 1 建材；节气行动：秋收（立即田间阶段 + 可拿 1 菜）"
+          : "陶坑−1、芦苇滩−1；犁地需付 1 食物；鱼塘封冻（第 11 轮起解冻）；节气行动：家庭扩建（无需空房，2 木 + 3 食物）";
+    pushLog(g, `📅 节气 · ${TTS_ZH[s]}季：${desc}`);
+  }
 }
 
 function orderByStart(g: GameState): string[] {
@@ -417,6 +471,11 @@ function spaceOfAction(a: EngineAction): string | null {
     case "CutMeadow": return "CutMeadow";
     case "ReclaimMoor": return "ReclaimMoor";
     case "SowMoor": return "SowMoor";
+    // Through the Seasons：四个季节行动共用「节气行动」格（每轮一次）
+    case "SeasonSpring": return "Season";
+    case "SeasonSummer": return "Season";
+    case "SeasonAutumn": return "Season";
+    case "SeasonWinter": return "Season";
     default: return null; // Cook / HarvestMoor 等不占行动格
   }
 }
@@ -486,6 +545,20 @@ function hasLegalSpace(g: GameState, p: PlayerState): boolean {
       if ((g.moorBoard || []).length < MOOR_W * MOOR_H && p.resources.wood >= 1 && p.resources.reed >= 1) return true;
     }
     if (open("SowMoor") && (g.moorBoard || []).some((c) => !c.crop) && (p.resources.grain > 0 || p.resources.vegetable > 0)) return true;
+  }
+  // Through the Seasons：节气行动格（每轮一次）
+  if (g.dlc?.seasons && !used.includes("Season")) {
+    const s = seasonOf(g);
+    if (s === "summer" || s === "autumn") return true;
+    if (s === "spring") {
+      const hasPair = (["sheep", "boar", "cattle"] as AnimalType[]).some((t) => p.animals[t] >= 2);
+      const emptyField = p.grid.some((row) => row.some((c) => c.kind === "field" && !c.crop));
+      const hasSeed = p.resources.grain > 0 || p.resources.vegetable > 0;
+      if (hasPair || (emptyField && hasSeed)) return true;
+    }
+    if (s === "winter") {
+      if (p.resources.wood >= 2 && p.food >= 3 && p.family < MAX_FAMILY) return true;
+    }
   }
   return false;
 }
@@ -564,6 +637,11 @@ function dispatchAction(g: GameState, p: PlayerState, a: EngineAction): ActionRe
     case "ReclaimMoor": return reclaimMoor(g, p, a);
     case "SowMoor": return sowMoor(g, p, a);
     case "HarvestMoor": return harvestMoor(g, p);
+    // Through the Seasons：季节行动（共用「节气行动」格）
+    case "SeasonSpring": return advance(g, p, "Season", seasonSpring(g, p, a));
+    case "SeasonSummer": return advance(g, p, "Season", seasonSummer(g, p));
+    case "SeasonAutumn": return advance(g, p, "Season", seasonAutumn(g, p, a));
+    case "SeasonWinter": return advance(g, p, "Season", seasonWinter(g, p));
     default: return { ok: false, msg: "未知行动" };
   }
 }
@@ -642,6 +720,10 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
     return { ok: true };
   }
   if (space === "Fishing") {
+    // 节气轮转：冬季鱼塘封冻，第 11 轮起解冻
+    if (isSeason(g, "winter") && g.round < 11) {
+      return { ok: false, msg: "冬季鱼塘封冻，无法钓鱼（第 11 轮起解冻）" };
+    }
     const got = g.piles.Fishing;
     if (got <= 0) return { ok: false, msg: "鱼塘是空的（每轮 +1）" };
     p.food += got;
@@ -655,6 +737,11 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
   if (space === "DayLaborer") {
     p.food += LEFT_BOARD.dayLaborer.food;
     pushLog(g, `🛠 「${p.name}」日工 +${LEFT_BOARD.dayLaborer.food} 食物（无须成本，但用掉 1 名家人）`);
+    // 节气轮转：夏季日工额外 +1 谷
+    if (isSeason(g, "summer")) {
+      p.resources.grain += 1;
+      pushLog(g, `☀️ 「${p.name}」夏季日工雇主管饭，额外 +1 谷`);
+    }
     if (p.occupation?.id === "dayLaborer") { p.food += 1; pushLog(g, `🛠 「${p.name}」打工达人额外 +1 食物（共 3 食物）`); }
     if (p.occupation?.id === "oddJobMan") { p.resources.wood += 1; pushLog(g, `🧹 「${p.name}」杂务工额外 +1 木材`); }
     if (p.occupation?.id === "laborBroker") { p.resources.clay += 1; pushLog(g, `💼 「${p.name}」劳工经纪额外 +1 陶土`); }
@@ -728,6 +815,11 @@ function buildRoom(g: GameState, p: PlayerState, a: EngineAction): ActionResult 
   p.grid[y][x] = { kind: "room" as const };
   p.rooms += 1;
   pushLog(g, `🏠 「${p.name}」建了一间${houseLabel(p.roomType)}房 (${x},${y})`);
+  // 节气轮转：夏季建房附赠 1 马厩
+  if (isSeason(g, "summer") && p.stables < MAX_STABLES) {
+    p.stables += 1;
+    pushLog(g, `☀️ 夏季建房附赠 1 马厩（共 ${p.stables} 个）`);
+  }
   if (p.occupation?.id === "masterBuilder") {
     p.resources.wood += 1;
     pushLog(g, `🏗️ 「${p.name}」建筑工长回收余料 +1 木材`);
@@ -747,6 +839,12 @@ function plowField(g: GameState, p: PlayerState, a: EngineAction): ActionResult 
   // 必须与现有田正交相邻（无田时任意）
   const fields = collectFields(p);
   if (fields.length > 0 && !orthAdjacentToAny(p, x, y, fields)) return { ok: false, msg: "新田必须与现有田正交相邻" };
+  // 节气轮转：冬季犁地冻土坚硬，需付 1 食物
+  if (isSeason(g, "winter")) {
+    if (p.food < 1) return { ok: false, msg: "冬季犁地需要 1 食物（节气严冬）" };
+    p.food -= 1;
+    pushLog(g, `❄️ 「${p.name}」冬季犁地消耗 1 食物`);
+  }
   // 简化：犁地 1 块需 0 资源（原版无额外费用）
   p.grid[y][x] = { kind: "field" as const };
   pushLog(g, `🌱 「${p.name}」犁地 (${x},${y})`);
@@ -804,7 +902,12 @@ function buildFences(g: GameState, p: PlayerState, a: EngineAction): ActionResul
   if (totalAfter > FENCE_MAX) return { ok: false, msg: `栅栏总数 ${FENCE_MAX} 段上限` };
   // 选中的段全部已经建好 → 不能白烧一次行动（栅栏不可拆除，也没有新段可加）
   if (added.length === 0) return { ok: false, msg: "这些栅栏段已经建好了，请选择虚线格边" };
-  const cost = added.length * FENCE_COST_WOOD;
+  // 节气轮转：春季建栅栏最多 2 段免费（须至少付费 1 段）
+  let freeSegs = 0;
+  if (isSeason(g, "spring") && added.length >= 2) {
+    freeSegs = Math.min(2, added.length - 1);
+  }
+  const cost = (added.length - freeSegs) * FENCE_COST_WOOD;
   if (p.resources.wood < cost) return { ok: false, msg: `需要 ${cost} 木头` };
   // 验证：必须是围出矩形牧场
   const v = validateEnclosure(FARM_W, FARM_H, baseEdges, added.map((e) => edgeId(e.kind, e.x, e.y)));
@@ -814,6 +917,7 @@ function buildFences(g: GameState, p: PlayerState, a: EngineAction): ActionResul
   g.supply.wood += cost;
   p.edges = baseEdges;
   rebuildPastures(p);
+  if (freeSegs > 0) pushLog(g, `🌸 春季优惠：${freeSegs} 段栅栏免费`);
   // 现有牧场中若动物被新栅栏切出区域，逃跑（按原版：动物永远在原地，栅栏拆除/围错导致杀退 → 简化：仅当牧场消失/不可容纳时动物逃跑）
   for (const id of Object.keys(p.pastureAnimalCells)) {
     if (!p.pastures.find((x) => x.id === id)) delete p.pastureAnimalCells[id];
@@ -927,6 +1031,17 @@ function buildMajor(g: GameState, p: PlayerState, a: EngineAction): ActionResult
   if (p.occupation?.id === "cooper" && cost.wood) cost.wood = Math.max(0, cost.wood - 1);
   if (p.occupation?.id === "blacksmith" && cost.stone) cost.stone = Math.max(0, cost.stone - 1);
   if (p.occupation?.id === "kilnMaster" && cost.clay) cost.clay = Math.max(0, cost.clay - 1);
+  // 节气轮转：秋季建大改进减 1 建材（优先减最贵的一项 木/陶/石）
+  if (isSeason(g, "autumn")) {
+    const cands = (["wood", "clay", "stone"] as const)
+      .filter((k) => (cost[k] || 0) > 0)
+      .sort((x, y2) => (cost[y2] || 0) - (cost[x] || 0));
+    if (cands.length) {
+      const pick = cands[0];
+      cost[pick] -= 1;
+      pushLog(g, `🍂 秋季优惠：建大改进 −1 ${resZh(pick)}`);
+    }
+  }
   if (!pay(g, p, cost)) return { ok: false, msg: "资源不足" };
   p.improvements.push(name);
   // 水井：建成起 5 轮，每轮开始 +1 食物
@@ -1194,6 +1309,87 @@ function harvestMoor(g: GameState, p: PlayerState): ActionResult {
     }
   }
   if (gainedG || gainedV) pushLog(g, `🌾 「${p.name}」收获沼泽 +${gainedG} 谷 +${gainedV} 蔬菜`);
+  return { ok: true };
+}
+
+// ============================================================
+// Through the Seasons：节气轮转 —— 四季行动（共用「节气行动」格）
+// ============================================================
+
+/** 校验房间启用了节气 DLC 且当前正是该季节；返回错误对象或 null（通过） */
+function seasonGuard(g: GameState, expected: TtsSeason): ActionResult | null {
+  if (!g.dlc?.seasons) return { ok: false, msg: "本房间未启用节气轮转 DLC" };
+  if (seasonOf(g) !== expected) return { ok: false, msg: `当前不是${TTS_ZH[expected]}季，无法执行该节气行动` };
+  return null;
+}
+
+/** 春耕：立即执行一次繁殖阶段（同类成对即 +1 幼崽），并可选撒种一块田 */
+function seasonSpring(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
+  const guard = seasonGuard(g, "spring");
+  if (guard) return guard;
+  let bred = 0;
+  for (const t of ["sheep", "boar", "cattle"] as AnimalType[]) {
+    if (p.animals[t] >= 2 && addAnimal(g, p, t)) {
+      bred += 1;
+      pushLog(g, `🌸 「${p.name}」春耕繁殖，${labelAnimal(t)} +1 只`);
+    }
+  }
+  if (a.crop) {
+    const r = sow(g, p, a);
+    if (!r.ok) return r;
+  }
+  pushLog(g, `🌸 「${p.name}」春耕忙作${bred ? `（繁殖 ${bred} 只幼崽）` : ""}`);
+  return { ok: true };
+}
+
+/** 度假（夏）：本轮已放置的每名家人（含本次）+1 节气分 */
+function seasonSummer(g: GameState, p: PlayerState): ActionResult {
+  const guard = seasonGuard(g, "summer");
+  if (guard) return guard;
+  const placed = g.placedThisRound.filter((x) => x === p.id).length + 1; // 含本次放置的工人
+  p.seasonVP += placed;
+  pushLog(g, `☀️ 「${p.name}」带全家度假：本轮已放置 ${placed} 名家人 → +${placed} 节气分`);
+  return { ok: true };
+}
+
+/** 秋收：立即执行一次田间阶段（所有带作物田各收 1），并可选再拿 1 蔬菜 */
+function seasonAutumn(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
+  const guard = seasonGuard(g, "autumn");
+  if (guard) return guard;
+  let gainedG = 0, gainedV = 0;
+  for (let y = 0; y < FARM_H; y++) for (let x = 0; x < FARM_W; x++) {
+    const cell = p.grid[y][x];
+    if (cell.kind !== "field" || !cell.crop || !cell.markers) continue;
+    if (cell.crop === "grain") { p.resources.grain += 1; gainedG += 1; }
+    else { p.resources.vegetable += 1; gainedV += 1; }
+    cell.markers -= 1;
+    if (cell.markers <= 0) { cell.crop = undefined; cell.markers = 0; }
+  }
+  if (gainedG || gainedV) pushLog(g, `🍂 「${p.name}」秋收田间阶段：+${gainedG} 谷 +${gainedV} 蔬菜`);
+  if (a.takeVeg) {
+    p.resources.vegetable += 1;
+    pushLog(g, `🥕 「${p.name}」秋收额外拿 1 蔬菜`);
+  }
+  if (!gainedG && !gainedV && !a.takeVeg) {
+    // 空转也允许（玩家自选），但给个日志便于理解
+    pushLog(g, `🍂 「${p.name}」秋收：没有可收获的田，也没有拿蔬菜`);
+  }
+  return { ok: true };
+}
+
+/** 家庭扩建（冬）：无需空房添丁，花 2 木 + 3 食物 */
+function seasonWinter(g: GameState, p: PlayerState): ActionResult {
+  const guard = seasonGuard(g, "winter");
+  if (guard) return guard;
+  if (p.family >= MAX_FAMILY) return { ok: false, msg: "家里最多 5 人" };
+  if (p.resources.wood < 2) return { ok: false, msg: "冬季扩建需要 2 木" };
+  if (p.food < 3) return { ok: false, msg: "冬季扩建需要 3 食物" };
+  p.resources.wood -= 2;
+  g.supply.wood += 2;
+  p.food -= 3;
+  p.family += 1;
+  p.babiesThisRound += 1;
+  pushLog(g, `❄️ 「${p.name}」冬季扩建：无需空房，花费 2 木 + 3 食物添 1 名家人`);
   return { ok: true };
 }
 
@@ -1612,6 +1808,10 @@ export function scorePlayer(p: PlayerState): { id: string; name: string; total: 
   // 「柴火棚」大改进（Moor）：终局按剩余燃料每份 +1 分
   if (p.improvements.includes("firewood") && (p.fuel || 0) > 0) {
     breakdown["柴火"] = p.fuel * (MAJOR_IMPROVEMENTS.firewood.fuelScore || 1);
+  }
+  // 节气轮转：假期等季节行动累积的额外胜利点
+  if ((p.seasonVP || 0) > 0) {
+    breakdown["节气"] = p.seasonVP;
   }
   const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
   return { id: p.id, name: p.name, total, breakdown, place: 0 };

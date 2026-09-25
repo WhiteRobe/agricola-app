@@ -165,11 +165,11 @@ function openRoomConfigModal() {
             <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/撒种/收获）+ 4 张新大发展卡。收获阶段新增燃料取暖与喂干草，带来更拟真的农耕开拓体验。可与职业扩展自由叠加。</div>
           </div>
         </label>
-        <label class="dlc-opt dlc-opt-dis">
-          <input type="checkbox" disabled>
+        <label class="dlc-opt">
+          <input type="checkbox" id="roomCfgSeasons">
           <div>
-            <div class="dlc-title">📅 节气轮转（Through the Seasons 扩展）<span class="muted" style="font-size:12px">（待开发）</span></div>
-            <div class="muted" style="font-size:12px">改终局按轮数阶梯计分。</div>
+            <div class="dlc-title">📅 节气轮转（Through the Seasons 扩展）</div>
+            <div class="muted" style="font-size:12px">每一轮代表一个季节（春→夏→秋→冬循环轮转）：季节改变资源产量与部分行动（冬季犁地要 1 食物、鱼塘封冻；春季栅栏免费段；夏季建房送马厩、度假得分；秋季大改进减建材），并新增一个「节气行动」格。与其他 DLC 自由叠加。</div>
           </div>
         </label>
       </div>
@@ -211,10 +211,12 @@ function cancelRoomConfig() {
 async function confirmRoomConfig() {
   const occ = !!_dlcModalMask?.querySelector("#roomCfgOcc")?.checked;
   const moor = !!_dlcModalMask?.querySelector("#roomCfgMoor")?.checked;
+  const seasons = !!_dlcModalMask?.querySelector("#roomCfgSeasons")?.checked;
   const dlc = {
     occupations: occ,
     minorImprovements: occ, // 与职业同开关（同一分组）
     moor,
+    seasons,
   };
   // 关弹窗 + 异步建房间
   cancelRoomConfig();
@@ -227,7 +229,7 @@ let _dlcModalEscKeyFn = null;
 // createRoom 只接受显式参数（由配置弹窗传入）；不再有"上次配置"记忆，弹窗自带默认值
 async function createRoom(opts) {
   const btn = $("btnCreate");
-  const dlc = opts?.dlc || { occupations: false, minorImprovements: false, moor: false };
+  const dlc = opts?.dlc || { occupations: false, minorImprovements: false, moor: false, seasons: false };
 
   try {
     await run(btn, "⏳ 创建中…", async () => {
@@ -241,7 +243,9 @@ async function createRoom(opts) {
         toast(data.msg || "创建失败", true);
         throw new Error("create_failed");
       }
-      const tag = dlc.occupations || dlc.moor ? `（${dlc.occupations ? "职业 DLC " : ""}${dlc.moor ? "沼泽农夫" : ""}）` : "";
+      const tag = dlc.occupations || dlc.moor || dlc.seasons
+        ? `（${dlc.occupations ? "职业 DLC " : ""}${dlc.moor ? "沼泽农夫 " : ""}${dlc.seasons ? "节气轮转" : ""}）`
+        : "";
       toast(`已创建房间 ${data.roomCode}${tag}`.replace(/\s+/g, " "));
       await refresh();
       openManage(data.roomCode);

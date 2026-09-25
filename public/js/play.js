@@ -127,12 +127,12 @@ function render(s) {
   // 顶栏「🎴 DLC 规则」按钮更新（开任意 DLC 时展示，位于教程与连接状态之间）
   const topDlcBtn = document.getElementById("topDlcBtn");
   const dlcConfig = s.game?.dlc || s.dlc;
-  const hasDlc = !!(dlcConfig && (dlcConfig.occupations || dlcConfig.minorImprovements || dlcConfig.moor));
+  const hasDlc = !!(dlcConfig && (dlcConfig.occupations || dlcConfig.minorImprovements || dlcConfig.moor || dlcConfig.seasons));
   if (topDlcBtn) {
     if (hasDlc) {
       topDlcBtn.classList.remove("hidden");
       topDlcBtn.onclick = () => {
-        import("/js/tutorial.js").then((m) => m.openDlcRuleDrawer(dlcConfig));
+        import("/js/tutorial.js").then((m) => m.openDlcDrawer(dlcConfig));
       };
     } else {
       topDlcBtn.classList.add("hidden");

@@ -53,7 +53,7 @@ export interface RoomState {
   closed: boolean;
   closedReason?: string;
   /** 主持人创建房间时勾选的 DLC */
-  dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean };
+  dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean; seasons: boolean };
 }
 
 export const PLAYER_COLORS = ["#e05d44", "#3f9d55", "#3d7ea6", "#d9932f"];
@@ -238,7 +238,7 @@ export class Room {
         code: string;
         specCode: string;
         hostToken: string;
-        dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean };
+        dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean; seasons: boolean };
       };
       const existing = await this.state.storage.get<RoomState>("room");
       if (!existing) {
@@ -254,7 +254,7 @@ export class Room {
           log: [{ t: Date.now(), msg: "房间已创建，等待玩家加入…" }],
           closed: false,
           // dlc：可选；不传或非真值时全部关闭
-          dlc: { occupations: !!dlc?.occupations, minorImprovements: !!dlc?.minorImprovements, moor: !!dlc?.moor },
+          dlc: { occupations: !!dlc?.occupations, minorImprovements: !!dlc?.minorImprovements, moor: !!dlc?.moor, seasons: !!dlc?.seasons },
         };
         await this.state.storage.put("room", room);
       }
@@ -282,7 +282,7 @@ export class Room {
         specCode: room.specCode,
         phase: room.phase,
         players: room.players.map((p) => ({ name: p.name, connected: p.connected, seat: p.seat })),
-        dlc: room.dlc || { occupations: false, minorImprovements: false, moor: false },
+        dlc: room.dlc || { occupations: false, minorImprovements: false, moor: false, seasons: false },
       });
     }
 

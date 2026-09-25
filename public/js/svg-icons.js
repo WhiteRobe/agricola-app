@@ -368,6 +368,94 @@ export function animalSvg(type, size = 30) {
 }
 
 /**
+ * 奔跑的小人 (Running Farmer Meeple) —— 「行动中」回合指示
+ * 木雕质感的奔跑农夫剪影 + 速度线，配合 CSS .runner-anim 呈现奔跑弹跳
+ * @param {string} colorHex 主体色（默认叶绿 var(--leaf) 色系 #5c8d4e）
+ * @param {number} size 尺寸 (px)
+ */
+export function runnerSvg(colorHex = "#5c8d4e", size = 18) {
+  const s = size;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" class="agri-runner" aria-label="奔跑的农夫" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="runnerLight_${s}" cx="35%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45"/>
+        <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <g>
+      <!-- 速度线（奔跑动感） -->
+      <line x1="2" y1="16" x2="10" y2="16" stroke="${colorHex}" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+      <line x1="1" y1="23" x2="8" y2="23" stroke="${colorHex}" stroke-width="2.4" stroke-linecap="round" opacity="0.75"/>
+      <line x1="3" y1="30" x2="10" y2="30" stroke="${colorHex}" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+      <!-- 木雕农夫奔跑剪影 -->
+      <path d="
+        M 30 6
+        C 33 6, 35.4 8.4, 35.4 11.4
+        C 35.4 13.4, 34.3 15.1, 32.8 16
+        L 36.5 18.5
+        L 43.5 16.5
+        C 45.6 16, 46.6 18.8, 44.8 19.9
+        L 37.5 24
+        L 32 21.5
+        L 34.5 30
+        L 40 37.5
+        C 41.4 39.6, 38.6 41.6, 36.9 39.8
+        L 30.5 32.5
+        L 27.5 25
+        L 24 32
+        L 20.5 41
+        C 19.7 43.2, 16.5 42.4, 16.9 40.1
+        L 20.5 30
+        L 24.5 21
+        L 20 22.5
+        L 15.5 27.5
+        C 13.9 29.2, 11.4 27.1, 12.7 25.1
+        L 18 18
+        C 19 16.6, 20.4 15.9, 22 15.7
+        L 28.2 14.8
+        C 27.4 13.9, 26.9 12.7, 26.9 11.4
+        C 26.9 8.4, 27.4 6, 30 6 Z"
+        fill="${colorHex}"
+        stroke="rgba(40,20,5,0.55)"
+        stroke-width="1.2"
+        stroke-linejoin="round"/>
+      <path d="
+        M 30 6
+        C 33 6, 35.4 8.4, 35.4 11.4
+        C 35.4 13.4, 34.3 15.1, 32.8 16
+        L 36.5 18.5
+        L 43.5 16.5
+        C 45.6 16, 46.6 18.8, 44.8 19.9
+        L 37.5 24
+        L 32 21.5
+        L 34.5 30
+        L 40 37.5
+        C 41.4 39.6, 38.6 41.6, 36.9 39.8
+        L 30.5 32.5
+        L 27.5 25
+        L 24 32
+        L 20.5 41
+        C 19.7 43.2, 16.5 42.4, 16.9 40.1
+        L 20.5 30
+        L 24.5 21
+        L 20 22.5
+        L 15.5 27.5
+        C 13.9 29.2, 11.4 27.1, 12.7 25.1
+        L 18 18
+        C 19 16.6, 20.4 15.9, 22 15.7
+        L 28.2 14.8
+        C 27.4 13.9, 26.9 12.7, 26.9 11.4
+        C 26.9 8.4, 27.4 6, 30 6 Z"
+        fill="url(#runnerLight_${s})"/>
+      <!-- 扬起的尘土 -->
+      <circle cx="8" cy="40" r="1.6" fill="${colorHex}" opacity="0.4"/>
+      <circle cx="12.5" cy="43" r="1.1" fill="${colorHex}" opacity="0.3"/>
+      <circle cx="5" cy="43.5" r="0.9" fill="${colorHex}" opacity="0.25"/>
+    </g>
+  </svg>`;
+}
+
+/**
  * 经典木质农夫工人体块 (Player Farmer Meeple)
  * 用于行动格落座、玩家卡槽位与当前回合指示
  * @param {string} colorHex 玩家专属色 (#c0392b 砖红, #5c8d4e 苔绿, #2980b9 河蓝, #d4a017 暖金)

@@ -23,8 +23,8 @@
   后续扩卡时改 `dlc.ts` 一处，运行 `node scripts/sync-dlc.js` 自动重生成 JS 副本。
 - **协议动作**：`ChooseOccupation` / `TakeMinorImprovement` / `UseMinorImprovement`
   都是新的 WS action type，引擎 `dispatchGame` 在 switch 里分发。
-- **全局类 DLC**（如 Through the Seasons 改终局计分）会动 `scorePlayer` 这类共享路径，
-  风险高于房间级；列入「待讨论」一档。
+- **全局类 DLC**（如 Through the Seasons 会动 `startRound` 补充阶段与 `scorePlayer`）
+  会碰共享路径，风险高于房间级；实现时用 `dlc.seasons` 开关严格隔离。
 - **改动成本估算表**中的 ★ 是按这个口径打的。
 
 ---
@@ -36,7 +36,7 @@
 | 1 | 🎴 职业（Occupations）+ 小发展卡（Minor Improvements） | 卡牌（房间级） | 开局发 7 选 1 张职业；场上抽 1 张小发展卡可抢 | ★ | ✅ **已上线**（v`994a2dfd`） |
 | 2 | 🌍 World Championship Deck / Gamers' Deck | 卡牌（房间级） | 8 套预组职业 / 8 套预组小发展卡 | ★ | ⏳ 占位 |
 | 3 | 🌲 沼泽农夫（荒野之地） | 机制（房间级） | 燃料 / 干草 / 沼泽 + 4 张新大改进 + 收获阶段 2 步 | ★★★ | ✅ **已上线** |
-| 4 | 📅 Through the Seasons（节气） | 全局终局 | 改终局按轮数阶梯计分 | ★★ | ⏳ 占位 |
+| 4 | 📅 Through the Seasons（节气） | 全局机制 | 每轮一季轮转：季节资源增减 + 季节行动格 + 季节特殊规则 + 度假得分 | ★★ | ✅ **已上线** |
 | 5 | 🎨 Decorated Farms / Christmas | 主题装饰 | 装饰卡 / 农场主题背景 / 边框 | ★ | ⏳ 占位 |
 | 6 | Family A / B / C / D 变体 | 全局预设 | 季节 / 永久卡 / 起始资源等基调切换 | ★★★ | 待讨论 |
 | 7 | Anniversary Edition | 整合包 | 把 Moor + 卡组 + 装饰合一 | 取决于 2+3+5 | 待讨论 |
@@ -263,20 +263,36 @@
 ---
 
 
-## 5. 待落地：DLC #4（Through the Seasons 节气）
+## 5. 已落地：DLC #4（Through the Seasons 节气轮转）
 
-**玩法**
+**规则来源（调研修正）**：Through the Seasons 是 Lookout 2008 年的迷你扩展
+（Julian Steindorfer & Uwe Rosenberg）。它**不是**「终局按轮数阶梯计分」——
+早期调研有误。真实规则是：**每一轮代表一个季节**，开局随机选定起始季节，
+按 春 → 夏 → 秋 → 冬 循环，直到 14 轮结束。每季带来资源增减、特殊规则与
+一个「节气行动」格。度假（Holidays）给的额外分是唯一的计分增量。
 
-终局按玩家「进入收获阶段的次数」阶梯计分，越早被强制收获（无食物）越亏。
+**实现（dlc.seasons 开关，全部严格隔离）**
 
-**改动成本 ★★**
+1. `GameState.seasonStart`（0..3 开局随机）+ `GameState.season`（每轮刷新）
+   季节 = `(seasonStart + round - 1) % 4`；`PlayerState.seasonVP` 累积节气分
+2. **资源增减**（补充阶段，min 0）：春 木−1/石+1；夏 陶+1/石−1/钓+1；
+   秋 木+1/苇+1；冬 陶−1/苇−1（石场第 4 轮开放前不做增减）
+3. **节气行动格**（回合卡区，每轮一次，共用 space id `Season`）：
+   - 春耕 `SeasonSpring`：立即繁殖一次（成对即 +1 幼崽）+ 可选撒种一块田
+   - 度假 `SeasonSummer`：本轮已放置家人数（含本次）×1 节气分
+   - 秋收 `SeasonAutumn`：立即田间阶段（每块作物田 +1）+ 可选拿 1 菜
+   - 家庭扩建 `SeasonWinter`：无需空房添 1 人，花 2 木 + 3 食物
+4. **季节特殊规则**：
+   - 冬：犁地付 1 食物；鱼塘封冻（第 11 轮起解冻）
+   - 春：建栅栏最多 2 段免费（须至少付费 1 段）
+   - 夏：建房附赠 1 马厩；日工额外 +1 谷
+   - 秋：建大改进减 1 建材（优先减最贵的 木/陶/石）
+5. **计分**：`scorePlayer` 新增「节气」项（seasonVP > 0 时）；前端
+   得分计算面板同步单列一行；背景时间轮按轮转季节着色（扇区季节图标，
+   取消固定四季外标）；头部季节徽章悬浮显示当季效果摘要
 
-1. PlayerState 加 `harvestCount: number`
-2. `runHarvest` 入口 +1
-3. `scorePlayer` 加 season 计分项（需要查具体表，BGA 有）
-4. UI：排行榜加 season 分项
-
-**风险**：动 `scorePlayer`（全局），可能与 #5 冲突。
+**UI**：主持建房勾选「📅 节气轮转」；顶栏 DLC 规则抽屉含节气章节；
+「节气行动」格在回合卡区末尾，按季节变色变文案，点击弹出季节行动模态。
 
 ---
 

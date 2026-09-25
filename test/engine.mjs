@@ -760,5 +760,148 @@ console.log("\n🎴 职业卡系统测试（88张全量卡池与流派钩子）"
   ok(scPasture.breakdown.职业 === 3, `牧场伯爵 ≥3 牧场终局加分生效（${scPasture.breakdown.职业} 分）`);
 }
 
+
+// ============================================================
+// 📅 Through the Seasons（节气轮转）测试
+// ============================================================
+console.log("");
+console.log("📅 Through the Seasons（节气轮转）");
+{
+  // 自动推进工具：每次让 waitingFor[0] 尝试多个可用累积格（与 14 轮稳定性测试同策略）
+  const TTS_OPTS = ["DayLaborer", "Fishing", "Grain"]; // 不动建材堆，保证 delta 断言确定性
+  const drainTo = (g, target) => {
+    let guard = 0;
+    while (g.round < target && !g.finished && guard++ < 600) {
+      const pid = g.waitingFor[0];
+      if (!pid) break;
+      let acted = false;
+      for (const sp of TTS_OPTS) {
+        const rr = act(g, pid, { type: "Take", space: sp });
+        if (rr.ok) { acted = true; break; }
+      }
+      if (!acted) {
+        // 无可用累积格（如冬季鱼塘封冻）：用 EndTurn 强制收工，让轮次推进
+        const rr2 = act(g, pid, { type: "EndTurn" });
+        if (!rr2.ok) break;
+      }
+    }
+  };
+
+  // 1) 默认关闭 + 开启后季节轮转
+  const g0 = engine.createGame([{ id: "a", name: "A", seat: 0 }]);
+  ok(g0.dlc.seasons === false, "默认 seasons 关闭");
+
+  const gs = engine.createGame([{ id: "a", name: "A", seat: 0 }, { id: "b", name: "B", seat: 1 }], { dlc: { occupations: false, minorImprovements: false, moor: false, seasons: true } });
+  ok(gs.dlc.seasons === true, "seasons 已启用");
+  ok(Number.isInteger(gs.seasonStart) && gs.seasonStart >= 0 && gs.seasonStart <= 3, `seasonStart 随机在 0..3（实际 ${gs.seasonStart}）`);
+  const order = ["spring", "summer", "autumn", "winter"];
+  ok(gs.season === order[gs.seasonStart % 4], `第 1 轮季节正确（${gs.season}）`);
+
+  // 固定 seasonStart=0：第 2 轮=夏、第 3 轮=秋、第 4 轮=冬、第 5 轮=春（第 1 轮已用随机季节结算）
+  gs.seasonStart = 0;
+  drainTo(gs, 3);
+  ok(gs.round === 3 && gs.season === "autumn", `推进到第 3 轮（round=${gs.round} season=${gs.season}）`);
+
+  // 2) 秋→冬 转换的资源增减：冬 陶/苇 不+1（delta 0），木正常 +1
+  const snap3 = { Wood: gs.piles.Wood, Clay: gs.piles.Clay, Reed: gs.piles.Reed };
+  drainTo(gs, 4);
+  ok(gs.round === 4 && gs.season === "winter", `第 4 轮为冬季（season=${gs.season}）`);
+  ok(gs.piles.Wood === snap3.Wood + 1, `木堆正常 +1（${snap3.Wood} → ${gs.piles.Wood}）`);
+  ok(gs.piles.Clay === snap3.Clay, `冬季陶坑少 +1（${snap3.Clay} → ${gs.piles.Clay}）`);
+  ok(gs.piles.Reed === snap3.Reed, `冬季芦苇滩少 +1（${snap3.Reed} → ${gs.piles.Reed}）`);
+
+  // 3) 冬季钓鱼封冻
+  gs.piles.Fishing = 2;
+  const rFish = act(gs, "a", { type: "Take", space: "Fishing" });
+  ok(!rFish.ok, `冬季钓鱼被拒（msg=${rFish.msg}）`);
+  ok(gs.piles.Fishing === 2, "鱼塘未被取走");
+
+  // 4) 冬季犁地需 1 食物
+  const pa = gs.players.find((p) => p.id === "a");
+  pa.food = 0;
+  const rPlow0 = act(gs, "a", { type: "PlowField", x: 0, y: 0 });
+  ok(!rPlow0.ok, `无食物冬季犁地被拒（msg=${rPlow0.msg}）`);
+  pa.food = 3;
+  const rPlow = act(gs, "a", { type: "PlowField", x: 0, y: 0 });
+  ok(rPlow.ok, "有食物冬季犁地成功");
+  ok(pa.food === 2, `犁地扣 1 食物（3 → 2，实际 ${pa.food}）`);
+
+  // 5) 冬季家庭扩建（无需空房，2 木 + 3 食物）
+  const pb = gs.players.find((p) => p.id === "b");
+  pb.resources.wood = 5;
+  pb.food = 6;
+  const roomsBefore = pb.rooms;
+  const rWin = act(gs, "b", { type: "SeasonWinter" });
+  ok(rWin.ok, `冬季扩建成功（msg=${rWin.msg}）`);
+  ok(pb.family === 3, `无需空房家人 +1（2 → 3，实际 ${pb.family}）`);
+  ok(pb.rooms === roomsBefore, `房间数不变（仍 ${pb.rooms} 间）`);
+  ok(pb.babiesThisRound === 1, "本轮出生不干活（babiesThisRound=1）");
+  ok(pb.resources.wood === 3 && pb.food === 3, `扣 2 木 3 食（wood=${pb.resources.wood} food=${pb.food}）`);
+
+  // 6) 冬→春 转换：春 木不+1（delta 0）、石 +2（基础 1 + 春季 1）
+  const snap4 = { Wood: gs.piles.Wood, Stone: gs.piles.Stone };
+  drainTo(gs, 5);
+  ok(gs.round === 5 && gs.season === "spring", `第 5 轮为春季（season=${gs.season}）`);
+  ok(gs.piles.Wood === snap4.Wood, `春季木堆少 +1（${snap4.Wood} → ${gs.piles.Wood}）`);
+  ok(gs.piles.Stone === snap4.Stone + 2, `春季石场多 +1（${snap4.Stone} → ${gs.piles.Stone}）`);
+
+  // 7) 春季建栅栏：6 段只付 4 木（最多 2 段免费，须至少付 1 段）
+  const a2 = pa;
+  a2.resources.wood = 10;
+  const rFence = act(gs, "a", { type: "BuildFences", edges: ["h2,0", "h2,5", "v2,0", "v2,1", "v2,2", "v2,3", "v2,4"] });
+  ok(rFence.ok, `春季建栅栏成功（msg=${rFence.msg}）`);
+  ok(a2.resources.wood === 5, `春季 7 段栅栏只付 5 木（10 → ${a2.resources.wood}）`);
+  ok(a2.pastures.length === 1, "围出 1 块牧场");
+
+  // 8) 夏季度假得分 + 日工 +1 谷（第 6 轮 = summer）
+  drainTo(gs, 6);
+  ok(gs.round === 6 && gs.season === "summer", `第 6 轮为夏季（season=${gs.season}）`);
+  // b 先打日工：验证夏季日工额外 +1 谷（日工格每轮全局一次，b 先用）
+  const pbX = gs.players.find((p) => p.id === "b");
+  const pbBeforeGrain = pbX.resources.grain;
+  const rDL = act(gs, "b", { type: "Take", space: "DayLaborer" });
+  ok(rDL.ok, `b 夏季日工成功（msg=${rDL.msg}）`);
+  ok(pbX.resources.grain === pbBeforeGrain + 1, `夏季日工额外 +1 谷（实际 +${pbX.resources.grain - pbBeforeGrain}）`);
+  // a 度假：本轮已放置 0 人 + 本次 1 = +1 节气分
+  const rHol = act(gs, "a", { type: "SeasonSummer" });
+  ok(rHol.ok, `度假成功（msg=${rHol.msg}）`);
+  ok(a2.seasonVP === 1, `度假 +1 节气分（实际 ${a2.seasonVP}）`);
+  const scHol = engine.scorePlayer(a2);
+  ok(scHol.breakdown.节气 === 1, `终局计分含节气项（${scHol.breakdown.节气}）`);
+
+  // 10) 秋收（第 7 轮 = autumn）：立即田间阶段 + 可选拿 1 菜
+  drainTo(gs, 7);
+  ok(gs.round === 7 && gs.season === "autumn", `第 7 轮为秋季（season=${gs.season}）`);
+  a2.grid[0][1] = { kind: "field", crop: "grain", markers: 3 };
+  a2.resources.grain = 0;
+  const vegBefore = a2.resources.vegetable;
+  const rAut = act(gs, "a", { type: "SeasonAutumn", takeVeg: true });
+  ok(rAut.ok, `秋收成功（msg=${rAut.msg}）`);
+  ok(a2.resources.grain === 1, `秋收田间阶段 +1 谷（实际 ${a2.resources.grain}）`);
+  ok(a2.grid[0][1].markers === 2, `田 marker −1（3 → 2，实际 ${a2.grid[0][1].markers}）`);
+  ok(a2.resources.vegetable === vegBefore + 1, "秋收额外拿 1 菜");
+
+  // 11) 春耕（第 9 轮 = spring，四季每 4 轮循环）：繁殖 + 撒种
+  drainTo(gs, 9);
+  ok(gs.round === 9 && gs.season === "spring", `第 9 轮为春季（round=${gs.round} season=${gs.season}）`);
+  // 11.5) 错季拒绝：春季执行冬季行动（b 先试，节气格未被占用）
+  const rWrong = act(gs, "b", { type: "SeasonWinter" });
+  ok(!rWrong.ok && (rWrong.msg || "").includes("不是冬季"), `春季执行冬季行动被拒（msg=${rWrong.msg}）`);
+  a2.animals.sheep = 2;
+  a2.grid[1][0] = { kind: "field" };
+  a2.resources.grain = 1;
+  const rSpr = act(gs, "a", { type: "SeasonSpring", crop: "grain", x: 0, y: 1 });
+  ok(rSpr.ok, `春耕成功（msg=${rSpr.msg}）`);
+  ok(a2.animals.sheep === 3, `春耕繁殖羊 +1（2 → 3，实际 ${a2.animals.sheep}）`);
+  ok(a2.grid[1][0].crop === "grain" && a2.grid[1][0].markers === 3, "春耕顺带撒谷成功（marker=3）");
+  ok(a2.resources.grain === 0, "撒谷扣 1 谷种");
+
+  // 12) 未启用 seasons 的房间拒绝季节行动
+  const gns = engine.createGame([{ id: "z", name: "Z", seat: 0 }]);
+  const rNo = act(gns, "z", { type: "SeasonSummer" });
+  ok(!rNo.ok, `未启用 seasons 时拒绝（msg=${rNo.msg}）`);
+
+}
+
 console.log(`\n${fail === 0 ? "🎉" : "💥"} ${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

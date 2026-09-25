@@ -241,7 +241,8 @@ export function openDlcDrawer(dlc) {
   const occupations = !!(dlc && dlc.occupations);
   const minorImprovements = !!(dlc && dlc.minorImprovements);
   const moor = !!(dlc && dlc.moor);
-  if (!occupations && !minorImprovements && !moor) {
+  const seasons = !!(dlc && dlc.seasons);
+  if (!occupations && !minorImprovements && !moor && !seasons) {
     // 没启用任何 DLC —— 不应进入这里（按钮已经隐藏）
     return;
   }
@@ -303,6 +304,28 @@ export function openDlcDrawer(dlc) {
       </div>
     `);
   }
+  if (seasons) {
+    sections.push(`
+      <h3>📅 节气轮转（Through the Seasons）</h3>
+      <div class="kb-card">
+        <p><b>每一轮代表一个季节</b>：开局随机从一个季节起跑，按 <b>春 → 夏 → 秋 → 冬</b> 循环轮转，直到 14 轮结束。季节会改变资源产量、开放/关闭部分行动，并在回合卡区多出一个<b>「节气行动」格</b>（每轮限 1 人）。</p>
+        <h4 style="margin:10px 0 6px">四季效果</h4>
+        <ul style="margin:6px 0;padding-left:20px;line-height:1.8">
+          <li><b>🌸 春</b>：木材堆 −1、石场 +1；<b>建栅栏最多 2 段免费</b>（须至少付费 1 段）；节气行动 = <b>春耕</b>（立即繁殖一次，可顺带撒种一块田）</li>
+          <li><b>☀️ 夏</b>：陶坑 +1、石场 −1、钓鱼 +1；<b>建房附赠 1 马厩</b>；日工额外 +1 谷；节气行动 = <b>度假</b>（本轮已放置的每名家人含本次各 +1 节气分，终局计入总分）</li>
+          <li><b>🍂 秋</b>：木材堆 +1、芦苇滩 +1；<b>建大改进减 1 建材</b>；节气行动 = <b>秋收</b>（立即执行一次田间阶段，可再拿 1 蔬菜）</li>
+          <li><b>❄️ 冬</b>：陶坑 −1、芦苇滩 −1；<b>犁地需付 1 食物</b>；鱼塘封冻（第 11 轮起解冻）；节气行动 = <b>家庭扩建</b>（无需空房添 1 人，花 2 木 + 3 食物）</li>
+        </ul>
+        <h4 style="margin:10px 0 6px">怎么打</h4>
+        <ul style="margin:6px 0;padding-left:20px;line-height:1.7">
+          <li>开局看<b>头部季节徽章</b>与背景轮盘确认当前季节，提前囤受短缺影响的资源（如冬季抢囤陶与芦苇）</li>
+          <li><b>春季</b>集中围大牧场（免费栅栏），<b>夏季</b>尽早建房拿马厩、把工人都派出去后再度假</li>
+          <li><b>秋季</b>是建大改进的黄金窗口（−1 建材），<b>冬季</b>记得犁地要留 1 食物、靠「家庭扩建」突破空房限制</li>
+        </ul>
+        <p class="muted" style="font-size:12px">💡 与其他 DLC 可叠加勾选；度假所得的「节气分」在得分计算面板中单列一行。</p>
+      </div>
+    `);
+  }
 
   _dlcBackdropEl = document.createElement("div");
   _dlcBackdropEl.className = "tut-backdrop";
@@ -323,7 +346,8 @@ export function openDlcDrawer(dlc) {
           ${occupations ? "<li>🎴 职业</li>" : ""}
           ${minorImprovements ? "<li>🎴 小发展卡</li>" : ""}
           ${moor ? "<li>🌲 沼泽农夫（荒野之地）</li>" : ""}
-          ${(!occupations && !minorImprovements && !moor) ? '<li class="muted">（未启用任何 DLC）</li>' : ""}
+          ${seasons ? "<li>📅 节气轮转（Through the Seasons）</li>" : ""}
+          ${(!occupations && !minorImprovements && !moor && !seasons) ? '<li class="muted">（未启用任何 DLC）</li>' : ""}
         </ul>
         <p class="muted" style="font-size:12px;margin-top:8px">
           由本房间主持人在创建房间时勾选。

@@ -30,8 +30,15 @@ function ok(c, n) { c ? (console.log(`  ✅ ${n}`), pass++) : (console.log(`  �
  * 生产环境下 dispatchGame 会校验 waitingFor[0] === pid
  */
 function act(g, pid, action) {
-  const list = Array.isArray(g.waitingFor) ? g.waitingFor : [];
-  g.waitingFor = [pid, ...list.filter((x) => x !== pid)];
+  if (Array.isArray(g.waitingFor)) {
+    const idx = g.waitingFor.indexOf(pid);
+    if (idx > 0) {
+      g.waitingFor.splice(idx, 1);
+      g.waitingFor.unshift(pid);
+    } else if (idx < 0) {
+      g.waitingFor.unshift(pid);
+    }
+  }
   return engine.dispatchGame(g, pid, action);
 }
 
@@ -105,14 +112,14 @@ g.players[0].resources.grain = 1;
 r = act(g, "a", { type: "Sow", x: 2, y: 1, crop: "grain" });
 ok(r.ok && g.players[0].grid[1][2].markers === 3, "A 撒谷种，田标记 3");
 
-// 翻修：木→陶（按每间房计费：3 间房 → 3 陶 + 3 芦苇）
+// 翻修：木→陶（按规则：3 间房 → 3 陶 + 1 芦苇）
 g.revealed.push("Renovate"); // 模拟第 5 轮翻修卡已揭示
 g.players[0].resources.clay = 3;
-g.players[0].resources.reed = 3;
+g.players[0].resources.reed = 1;
 g.players[0].family = 10; // 工人充足
 r = act(g, "a", { type: "Renovate", direction: "woodToClay" });
-ok(r.ok && g.players[0].roomType === "clay", `A 翻修为陶屋（3 间房 = 3 陶 + 3 芦苇，r=${JSON.stringify(r)}）`);
-ok(g.players[0].resources.clay === 0 && g.players[0].resources.reed === 0, "翻修按房间数扣费（3 陶 + 3 芦苇）");
+ok(r.ok && g.players[0].roomType === "clay", `A 翻修为陶屋（3 间房 = 3 陶 + 1 芦苇，r=${JSON.stringify(r)}）`);
+ok(g.players[0].resources.clay === 0 && g.players[0].resources.reed === 0, "翻修扣费（每间房 1 陶 + 全屋共 1 芦苇）");
 
 // 重大改进
 g.revealed.push("BuildMajor"); // 模拟第 3 轮大改进卡已揭示
@@ -141,18 +148,17 @@ const placedAfter = g.placedThisRound.filter((x) => x === "a").length;
 ok(r.ok && placedAfter === placedBefore + 1, "烤面包消耗 1 名工人（属工人行动）");
 
 // 而壁炉/烹饪灶的「随时烹饪」不占工人
-// 修订版壁炉：2 羊 → 1 食物（ratio=2）
+// 修订版壁炉：1 羊 → 2 食物
 const placedB2 = g.placedThisRound.filter((x) => x === "a").length;
-g.players[0].animals.sheep = 4;
+g.players[0].animals.sheep = 2;
 const foodBeforeCook = g.players[0].food;
-r = act(g, "a", { type: "Cook", improvement: "fireplace", used: { sheep: 2 } });
+r = act(g, "a", { type: "Cook", improvement: "fireplace", used: { sheep: 1 } });
 const placedA2 = g.placedThisRound.filter((x) => x === "a").length;
-ok(r.ok && placedA2 === placedB2 && g.players[0].food === foodBeforeCook + 1,
-  `烹饪（壁炉）不消耗工人 + 2 羊换 1 食物（r=${JSON.stringify(r)}, food=${g.players[0].food}）`);
-// 1 羊不够换 1 食物 → 被拒
-g.players[0].animals.sheep = 1;
-const rc1 = act(g, "a", { type: "Cook", improvement: "fireplace", used: { sheep: 1 } });
-ok(!rc1.ok, `1 羊不足以烹饪（修订版 2 羊 = 1 食物）`);
+ok(r.ok && placedA2 === placedB2 && g.players[0].food === foodBeforeCook + 2,
+  `烹饪（壁炉）不消耗工人 + 1 羊换 2 食物（r=${JSON.stringify(r)}, food=${g.players[0].food}）`);
+// 0 羊被拒
+const rc0 = act(g, "a", { type: "Cook", improvement: "fireplace", used: { sheep: 0 } });
+ok(!rc0.ok, `0 羊被拒`);
 
 // ---- 测试 3：栅栏建牧场 + 动物市场（累积格，取走全部且免费）----
 console.log("\n🐑 栅栏 + 动物市场测试");
@@ -161,6 +167,7 @@ console.log("\n🐑 栅栏 + 动物市场测试");
   gf.players[0].family = 15; gf.players[1].family = 5;
   gf.waitingFor = Array.from({ length: 40 }, () => 'a');
   gf.round = 5;
+  gf.revealed.push("Fences", "Sheep");
   gf.players[0].resources.wood = 10;
   // 右列整列 5 格 → 容量 5×2 = 10 只（下边/右边靠棋盘边界）
   r = act(gf, "a", { type: "BuildFences", edges: ["h2,0", "v2,0", "v2,1", "v2,2", "v2,3", "v2,4"] });
@@ -175,18 +182,19 @@ console.log("\n🐑 栅栏 + 动物市场测试");
   ok(gf.players[0].food === foodBefore, `取动物不花食物（${foodBefore} → ${gf.players[0].food}）`);
   ok(gf.piles.Sheep === 0, "该格清空（拿全部）");
 
-  // 超出容量的部分跑掉：已有 3 只，容量 10 → 只能再收 7 只，供应区剩 20-7=13
+  // 超出容量的部分跑掉：牧场 10 只 + 室内宠物 1 只 = 总容量 11 只
+  // 已有 3 只，总容量 11 → 只能再收 8 只，供应区剩 20-8=12
   gf.usedSpaces = []; // 模拟进入下一轮（动物市场每轮只能用一次）
   gf.piles.Sheep = 20;
   r = act(gf, "a", { type: "Take", space: "Sheep" });
-  ok(r.ok && gf.players[0].animals.sheep === 10, `容量上限 10 只（实际 ${gf.players[0].animals.sheep}）`);
-  ok(gf.piles.Sheep === 13, `只收下 7 只，该格剩 13（实际 ${gf.piles.Sheep}）`);
+  ok(r.ok && gf.players[0].animals.sheep === 11, `容量上限 11 只（含 1 室内宠物，实际 ${gf.players[0].animals.sheep}）`);
+  ok(gf.piles.Sheep === 12, `只收下 8 只，该格剩 12（实际 ${gf.piles.Sheep}）`);
 
   // 未开放的动物市场不能取（修订版：猪市第 8 轮起开放）
   gf.round = 5;
   gf.piles.Boar = 3;
   r = act(gf, "a", { type: "Take", space: "Boar" });
-  ok(!r.ok && /第 8 轮/.test(r.msg || ""), `猪市第 8 轮才开放（msg=${r.msg}）`);
+  ok(!r.ok && (/尚未揭示/.test(r.msg || "") || /第 8 轮/.test(r.msg || "")), `猪市未揭示不可取（msg=${r.msg}）`);
 }
 
 // ---- 测试 3c：日工 2 食物（手册值）----
@@ -204,6 +212,7 @@ console.log("\n🛠 日工收益");
 console.log("\n🪵 靠棋盘边界的栅栏（UI 场景）");
 {
   const gg = engine.createGame([{ id: "u", name: "U", seat: 0 }]);
+  gg.revealed.push("Fences");
   gg.players[0].resources.wood = 15;
   // UI 只渲染 3x5 的「上边 + 左边」，下边与右边靠棋盘边界
   const rr = engine.dispatchGame(gg, "u", { type: "BuildFences", edges: ["h2,0", "v2,0", "v2,1", "v2,2", "v2,3", "v2,4"] });
@@ -213,23 +222,26 @@ console.log("\n🪵 靠棋盘边界的栅栏（UI 场景）");
   ok(gg.players[0].resources.wood === 9, `扣 6 木（15 → ${gg.players[0].resources.wood}）`);
 }
 
-// ---- 测试 3d：累积格机制（每轮 +1、取走全部、清零）----
+// ---- 测试 3d：累积格机制（树林每轮 +3、陶坑/芦苇每轮 +1、取走全部、清零）----
 console.log("\n📦 累积格机制");
 {
   const ga = engine.createGame([{ id: "x", name: "X", seat: 0 }, { id: "y", name: "Y", seat: 1 }]);
-  ok(ga.piles.Wood === 1, `第 1 轮补充后木堆 = 1（实际 ${ga.piles.Wood}，起手为空 + 每轮 +1）`);
+  ok(ga.piles.Wood === 3, `第 1 轮补充后木堆 = 3（实际 ${ga.piles.Wood}，树林每轮 +3）`);
   ok(ga.piles.Clay === 1 && ga.piles.Reed === 1, "陶坑 / 芦苇滩 各 1");
-  ok(ga.piles.Stone === 0, "石场第 9 轮前不累积");
-  ok(ga.piles.Vegetable === 0, "菜地第 8 轮前不累积");
+  ok(ga.piles.Stone === 0, "石场第 4 轮前不累积");
 
   // 拿一次：拿走全部并清零
   let rr = engine.dispatchGame(ga, "x", { type: "Take", space: "Wood" });
-  ok(rr.ok && ga.players[0].resources.wood === 1, `拿走木堆全部 1 木（实际 ${ga.players[0].resources.wood}）`);
+  ok(rr.ok && ga.players[0].resources.wood === 3, `拿走木堆全部 3 木（实际 ${ga.players[0].resources.wood}）`);
   ok(ga.piles.Wood === 0, "木堆清零");
 
   // 空堆不能拿
   rr = engine.dispatchGame(ga, "y", { type: "Take", space: "Wood" });
   ok(!rr.ok, "空堆不能再拿");
+
+  // 谷物与蔬菜是固定获取格（非累积）
+  rr = act(ga, "y", { type: "Take", space: "Grain" });
+  ok(rr.ok && ga.players[1].resources.grain === 1, "固定拿 1 谷物");
 
   // 空过 N 轮后堆变大，一次拿走全部（每轮重置占用，模拟 startRound）
   ga.round = 4;
@@ -332,16 +344,17 @@ console.log("\n🍞 收获喂养扣食测试");
 console.log("\n🚧 行动格占用（每格每轮一次）");
 {
   const g5 = engine.createGame([{ id: "m", name: "M", seat: 0 }, { id: "n", name: "N", seat: 1 }]);
-  const food0 = g5.players[0].food;
-  const r1 = act(g5, "m", { type: "Take", space: "StartPlayer" });
-  ok(r1.ok, "第 1 次拿起始玩家成功");
+  // m 是初始起始玩家，已持有起始玩家标记不能重复拿
+  const rM = act(g5, "m", { type: "Take", space: "StartPlayer" });
+  ok(!rM.ok, `已持有起始玩家标记不能重复拿（msg=${rM.msg}）`);
+  // n 不是起始玩家，可以拿
+  const food0 = g5.players[1].food;
+  const r1 = act(g5, "n", { type: "Take", space: "StartPlayer" });
+  ok(r1.ok, "后手玩家第 1 次拿起始玩家成功");
   ok(g5.usedSpaces.includes("StartPlayer"), "起始玩家格已标记为占用");
-  // m 还有第 2 个工人，再想拿同一格应被拒
-  const r2 = act(g5, "m", { type: "Take", space: "StartPlayer" });
-  ok(!r2.ok, `同一轮不能重复拿起始玩家（msg=${r2.msg}）`);
-  ok(g5.players[0].food === food0 + 1, `食物只 +1（${food0} → ${g5.players[0].food}）`);
-  // 对手也不能拿（不在自己回合且已被占用）
-  const r3 = act(g5, "n", { type: "Take", space: "StartPlayer" });
+  ok(g5.players[1].food === food0 + 1, `食物只 +1（${food0} → ${g5.players[1].food}）`);
+  // 占用了之后，同一轮对手不能再拿
+  const r3 = act(g5, "m", { type: "Take", space: "StartPlayer" });
   ok(!r3.ok, "对手同一轮也不能拿已被占用的格");
   // 日工同样每轮一次
   ok(act(g5, "m", { type: "Take", space: "DayLaborer" }).ok, "日工第一次可用");
@@ -368,6 +381,9 @@ console.log("\n🚧 行动格占用（每格每轮一次）");
 console.log("\n🎴 回合卡永久保留");
 {
   const g8 = engine.createGame([{ id: "k", name: "K", seat: 0 }]);
+  // 固定 roundDeck 以保证测试确定性
+  g8.roundDeck = ["Fences", "BuildMajor", "Sheep", "SowOrBake", "Stone", "Renovate", "FamilyGrowth", "Boar", "Vegetable", "Cattle", "EasternQuarry", "PlowAndSow", "UrgentGrowth", "RenovateFences"];
+  g8.revealed = ["Fences"];
   ok(g8.revealed.includes("Fences"), `第 1 轮揭示「建栅栏」（revealed=${JSON.stringify(g8.revealed)}）`);
 
   // 推进轮次：每个工人用不同的免费格（行动格每轮一次）
@@ -421,7 +437,7 @@ console.log("\n🎴 DLC 职业 / 小发展卡");
   const firstId = gx1.players[0].occupationHand[2].id;
   const r1 = engine.dispatchGame(gx1, "p1", { type: "ChooseOccupation", id: firstId });
   ok(r1.ok && gx1.players[0].occupation && gx1.players[0].occupation.id === firstId, "选职业成功");
-  ok(gx1.log.some((e) => /选了职业/.test(e.msg)), "选了职业有日志");
+  ok(gx1.log.some((e) => /打出职业/.test(e.msg)), "选了职业有日志");
 
   const r2 = engine.dispatchGame(gx1, "p1", { type: "ChooseOccupation", id: firstId });
   ok(!r2.ok, `重复选同一张被拒（${r2.msg}）`);
@@ -626,6 +642,7 @@ console.log("\n⚙️ 效果结算（水井 / 小发展卡 / Moor 改进 / 建�
   ok(p.resources.wood === wood0 + 1, `柴堆每轮 +1 木（${wood0} → ${p.resources.wood}）`);
   // 羊圈：围牧场 → 买羊 +1
   p.resources.wood = 15;
+  gm.revealed.push("Fences", "Sheep");
   engine.dispatchGame(gm, "p1", { type: "BuildFences", edges: ["h2,0", "v2,0", "v2,1", "v2,2", "v2,3", "v2,4"] });
   gm.usedSpaces = [];
   gm.piles.Sheep = 2;
@@ -726,7 +743,7 @@ console.log("\n🎴 职业卡系统测试（88张全量卡池与流派钩子）"
   p1.food = 0;
   const rCook = engine.dispatchGame(gOcc, "p1", { type: "Cook", improvement: "fireplace", used: { sheep: 2 } });
   ok(rCook.ok, `熏肉师傅烹饪成功`);
-  ok(p1.food === 1 + 2, `壁炉 2 羊出 1 食物 + 熏肉师傅额外 +2 食物（实际：${p1.food}）`);
+  ok(p1.food === 2 * 2 + 2, `壁炉 2 羊出 4 食物 + 熏肉师傅额外 +2 食物（实际：${p1.food}）`);
 
   // 6. 终局加分验证（学者导师、育种大师、慈善家、农艺学者、牧场伯爵）
   p1.occupation = { id: "tutor", name: "学者导师", icon: "📜", effect: "拥有 ≥3 项改进额外 +3 分" };
@@ -802,11 +819,11 @@ console.log("📅 Through the Seasons（节气轮转）");
   drainTo(gs, 3);
   ok(gs.round === 3 && gs.season === "autumn", `推进到第 3 轮（round=${gs.round} season=${gs.season}）`);
 
-  // 2) 秋→冬 转换的资源增减：冬 陶/苇 不+1（delta 0），木正常 +1
+  // 2) 秋→冬 转换的资源增减：冬 陶/苇 不+1（delta 0），木基础+3
   const snap3 = { Wood: gs.piles.Wood, Clay: gs.piles.Clay, Reed: gs.piles.Reed };
   drainTo(gs, 4);
   ok(gs.round === 4 && gs.season === "winter", `第 4 轮为冬季（season=${gs.season}）`);
-  ok(gs.piles.Wood === snap3.Wood + 1, `木堆正常 +1（${snap3.Wood} → ${gs.piles.Wood}）`);
+  ok(gs.piles.Wood === snap3.Wood + 3, `木堆正常 +3（${snap3.Wood} → ${gs.piles.Wood}）`);
   ok(gs.piles.Clay === snap3.Clay, `冬季陶坑少 +1（${snap3.Clay} → ${gs.piles.Clay}）`);
   ok(gs.piles.Reed === snap3.Reed, `冬季芦苇滩少 +1（${snap3.Reed} → ${gs.piles.Reed}）`);
 
@@ -838,11 +855,11 @@ console.log("📅 Through the Seasons（节气轮转）");
   ok(pb.babiesThisRound === 1, "本轮出生不干活（babiesThisRound=1）");
   ok(pb.resources.wood === 3 && pb.food === 3, `扣 2 木 3 食（wood=${pb.resources.wood} food=${pb.food}）`);
 
-  // 6) 冬→春 转换：春 木不+1（delta 0）、石 +2（基础 1 + 春季 1）
+  // 6) 冬→春 转换：春 木+2（基础 3 - 春季 1）、石 +2（基础 1 + 春季 1）
   const snap4 = { Wood: gs.piles.Wood, Stone: gs.piles.Stone };
   drainTo(gs, 5);
   ok(gs.round === 5 && gs.season === "spring", `第 5 轮为春季（season=${gs.season}）`);
-  ok(gs.piles.Wood === snap4.Wood, `春季木堆少 +1（${snap4.Wood} → ${gs.piles.Wood}）`);
+  ok(gs.piles.Wood === snap4.Wood + 2, `春季木堆 +2（基础 3 − 1）（${snap4.Wood} → ${gs.piles.Wood}）`);
   ok(gs.piles.Stone === snap4.Stone + 2, `春季石场多 +1（${snap4.Stone} → ${gs.piles.Stone}）`);
 
   // 7) 春季建栅栏：6 段只付 4 木（最多 2 段免费，须至少付 1 段）
@@ -901,6 +918,63 @@ console.log("📅 Through the Seasons（节气轮转）");
   const rNo = act(gns, "z", { type: "SeasonSummer" });
   ok(!rNo.ok, `未启用 seasons 时拒绝（msg=${rNo.msg}）`);
 
+}
+
+// ============================================================
+// 测试 13：起始玩家规则与顺时针轮转
+// ============================================================
+console.log("\n🚜 起始玩家与顺时针轮转测试");
+{
+  // 3 人局：P0(seat 0), P1(seat 1), P2(seat 2)
+  const g3 = engine.createGame([
+    { id: "p0", name: "P0", seat: 0 },
+    { id: "p1", name: "P1", seat: 1 },
+    { id: "p2", name: "P2", seat: 2 },
+  ]);
+
+  ok(g3.startPlayerId === "p0", "第 1 轮默认 P0 是起始玩家");
+  ok(g3.players[0].startingPlayer === true && !g3.players[1].startingPlayer && !g3.players[2].startingPlayer, "P0 具有 startingPlayer 标记");
+
+  // 第 1 轮工人放置顺序验证：顺时针 P0 -> P1 -> P2 -> P0 -> P1 -> P2
+  ok(g3.waitingFor.slice(0, 3).join(",") === "p0,p1,p2", "第 1 轮第 1 批工人顺时针：P0 -> P1 -> P2");
+  ok(g3.waitingFor.slice(3, 6).join(",") === "p0,p1,p2", "第 1 轮第 2 批工人顺时针：P0 -> P1 -> P2");
+
+  // P0 作为起始玩家，不能再次拿起始玩家格
+  const rP0 = engine.dispatchGame(g3, "p0", { type: "Take", space: "StartPlayer" });
+  ok(!rP0.ok && rP0.msg.includes("已持有"), `P0 已是起始玩家不能拿取（msg=${rP0.msg}）`);
+
+  // P0 选日工
+  ok(engine.dispatchGame(g3, "p0", { type: "Take", space: "DayLaborer" }).ok, "P0 执行日工");
+  ok(g3.waitingFor[0] === "p1", "P0 行动后下一位是 P1（交替轮转，非连续行动）");
+
+  // P1 抢拿起始玩家
+  const rP1 = engine.dispatchGame(g3, "p1", { type: "Take", space: "StartPlayer" });
+  ok(rP1.ok, "P1 抢拿起始玩家成功");
+  ok(g3.startPlayerId === "p1", "起始玩家标记转移给 P1");
+  ok(g3.players[1].startingPlayer === true && !g3.players[0].startingPlayer, "P1 标记为 true，P0 标记为 false");
+  ok(g3.waitingFor[0] === "p2", "P1 行动后下一位是 P2");
+
+  // P2 拿谷物
+  ok(engine.dispatchGame(g3, "p2", { type: "Take", space: "Grain" }).ok, "P2 拿谷物");
+  ok(g3.waitingFor[0] === "p0", "P2 行动后下一轮到 P0 第 2 名工人");
+
+  // 完成第 1 轮剩余工人
+  ok(engine.dispatchGame(g3, "p0", { type: "Take", space: "Fishing" }).ok, "P0 钓鱼");
+  ok(engine.dispatchGame(g3, "p1", { type: "Take", space: "Clay" }).ok, "P1 拿陶土");
+  ok(engine.dispatchGame(g3, "p2", { type: "Take", space: "Reed" }).ok, "P2 拿芦苇");
+
+  // 进入第 2 轮
+  ok(g3.round === 2, "进入第 2 轮");
+  ok(g3.startPlayerId === "p1", "第 2 轮起始玩家仍是 P1");
+  ok(g3.players[1].startingPlayer === true, "P1 保持 startingPlayer tag");
+
+  // 第 2 轮顺时针顺序应为：P1 (seat 1) -> P2 (seat 2) -> P0 (seat 0)
+  ok(g3.waitingFor.slice(0, 3).join(",") === "p1,p2,p0", "第 2 轮按顺时针轮转：P1 (seat 1) -> P2 (seat 2) -> P0 (seat 0)");
+  ok(g3.waitingFor.slice(3, 6).join(",") === "p1,p2,p0", "第 2 轮第 2 批工人同样顺时针：P1 -> P2 -> P0");
+
+  // P1 已经持有起始玩家，不能拿起始玩家
+  const rP1Again = engine.dispatchGame(g3, "p1", { type: "Take", space: "StartPlayer" });
+  ok(!rP1Again.ok && rP1Again.msg.includes("已持有"), "P1 在第 2 轮已持有标记同样不能重复拿");
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "💥"} ${pass} 通过 / ${fail} 失败`);

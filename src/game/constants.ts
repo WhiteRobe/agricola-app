@@ -35,7 +35,28 @@ export const RENO_COST: Record<string, Record<string, number>> = {
   woodToClay:  { clay: 1, reed: 1 },
   clayToStone: { stone: 1, reed: 1 },
 };
-export const STABLE_COST_WOOD = 1;
+export const STABLE_COST_WOOD = 2; // 官方规则：每座马厩消耗 2 木材
+export const PET_CAPACITY = 1;      // 官方规则：农舍内可免费养 1 只任意宠物
+export const UNFENCED_STABLE_CAPACITY = 1; // 官方规则：空地上每个独立马厩可养 1 只任意牲畜
+export const PASTURE_STABLE_MULTIPLIER = 2; // 官方规则：圈地内只要有马厩，该牧场容量翻倍（2只/格 → 4只/格）
+
+// ---- 多人局专属动态行动格（3人局 +4 格，4人局 +6 格）----
+export const SCALING_BOARD_SPACES: Record<number, { id: string; name: string; icon: string; type: "acc" | "fixed" | "action"; res?: string; acc?: number; fixed?: Record<string, number> }[]> = {
+  3: [
+    { id: "Copse3P", name: "灌木林 (3人)", icon: "🪵", type: "acc", res: "wood", acc: 2 },
+    { id: "ClayDeposit3P", name: "陶土矿 (3人)", icon: "🧱", type: "acc", res: "clay", acc: 2 },
+    { id: "ResourceMarket3P", name: "资源市场 (3人)", icon: "⚖️", type: "fixed", fixed: { food: 1, reed: 1, stone: 1 } },
+    { id: "Lessons3P", name: "职业 (3人)", icon: "🎓", type: "action" },
+  ],
+  4: [
+    { id: "Grove4P", name: "小树林 (4人)", icon: "🪵", type: "acc", res: "wood", acc: 1 },
+    { id: "Copse4P", name: "灌木林 (4人)", icon: "🪵", type: "acc", res: "wood", acc: 2 },
+    { id: "ClayDeposit4P", name: "陶土矿 (4人)", icon: "🧱", type: "acc", res: "clay", acc: 2 },
+    { id: "ReedBank4P", name: "芦苇滩 (4人)", icon: "🎋", type: "acc", res: "reed", acc: 1 },
+    { id: "ResourceMarket4P", name: "资源市场 (4人)", icon: "⚖️", type: "fixed", fixed: { food: 1, reed: 1, stone: 1 } },
+    { id: "Lessons4P", name: "课程 (4人)", icon: "🎓", type: "action" },
+  ],
+};
 
 // ---- 栅栏 ----
 export const FENCE_COST_WOOD = 1;
@@ -64,15 +85,14 @@ export const HARVEST_AFTER: number[] = [4, 7, 9, 11, 13, 14];
 //   - Start Player：拿走标记 +1 食物
 //   - 「Traveling / 取建材」格在修订版已删除（仅经典版有）
 export const LEFT_BOARD: any = {
-  forest: { acc: 1 },
+  forest: { acc: 3 },
   clayPit: { acc: 1 },
   reedBank: { acc: 1 },
   fishing: { acc: 1 },
-  // ★ 修订版：日工固定 +2 食物（旧版才是 +1 食物 +1 建材）
   dayLaborer: { food: 2 },
   stoneQuarry: { appearsRound: 4, acc: 1 },   // 修订版：第 4 轮起开放
-  vegetable: { appearsRound: 4, acc: 1 },    // 修订版：第 4 轮起开放（菜地）
-  grainPile: { acc: 1 },                     // 谷堆每轮 +1
+  grain: { amount: 1 },                      // 固定拿 1 谷物（非累积格）
+  vegetable: { appearsRound: 4, amount: 1 }, // 固定拿 1 蔬菜（非累积格）
 };
 
 // ---- 动物市场 ----
@@ -88,21 +108,22 @@ export const ANIMAL_MARKET: Record<AnimalType, { appearsRound: number }> = {
 
 // ---- 重大改进（修订版固定 10 个 + Farmers of the Moor 5 个）----
 //  cost: 建造费用 | vp: 游戏结束得分 | cook/bake: 转换能力 | moor: 仅 Moor 房间
+//  cook 中的数值代表 1 单位该物品转换得多少食物（产出乘数）
 export const MAJOR_IMPROVEMENTS: Record<string, any> = {
-  fireplace:     { cost: { clay: 2 },  vp: 1, cook: { grain: 2, vegetable: 2, sheep: 2, boar: 2, cattle: 3 }, zh: "壁炉（2 陶土）" },
-  fireplaceBig:  { cost: { clay: 3 },  vp: 1, cook: { grain: 2, vegetable: 2, sheep: 2, boar: 2, cattle: 3 }, zh: "大壁炉（3 陶土）" },
-  cookingHearth: { cost: { clay: 4 },  vp: 1, cook: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 }, zh: "烹饪灶（4 陶土）" },
-  cookingHearthBig: { cost: { clay: 5 }, vp: 1, cook: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 }, zh: "大烹饪灶（5 陶土）" },
+  fireplace:     { cost: { clay: 2 },  vp: 1, cook: { vegetable: 2, sheep: 2, boar: 2, cattle: 3 }, bake: { maxGrain: Infinity, foodPerGrain: 2 }, zh: "壁炉（2 陶土）" },
+  fireplaceBig:  { cost: { clay: 3 },  vp: 1, cook: { vegetable: 2, sheep: 2, boar: 2, cattle: 3 }, bake: { maxGrain: Infinity, foodPerGrain: 2 }, zh: "大壁炉（3 陶土）" },
+  cookingHearth: { cost: { clay: 4 },  vp: 1, cook: { vegetable: 3, sheep: 2, boar: 3, cattle: 4 }, bake: { maxGrain: Infinity, foodPerGrain: 3 }, zh: "烹饪灶（4 陶土）" },
+  cookingHearthBig: { cost: { clay: 5 }, vp: 1, cook: { vegetable: 3, sheep: 2, boar: 3, cattle: 4 }, bake: { maxGrain: Infinity, foodPerGrain: 3 }, zh: "大烹饪灶（5 陶土）" },
   clayOven:      { cost: { clay: 3, stone: 1 }, vp: 2, bake: { maxGrain: 1, foodPerGrain: 5 }, zh: "陶土烤炉（3 陶土 + 1 石材）" },
   stoneOven:     { cost: { stone: 3, clay: 1 }, vp: 3, bake: { maxGrain: 2, foodPerGrain: 4 }, zh: "石头烤炉（3 石材 + 1 陶土）" },
   well:          { cost: { stone: 3, wood: 1 }, vp: 4, wellFood: true, zh: "水井（3 石材 + 1 木材）· 建成后 5 轮每轮开始 +1 食物" },
-  joinery:       { cost: { stone: 2, wood: 2 }, vp: 2, cook: { wood: 0.5 }, zh: "木工坊（2 石材 + 2 木材）· 每次收获阶段 1 木材 → 2 食物" },
-  pottery:       { cost: { stone: 2, clay: 2 }, vp: 2, cook: { clay: 0.5 }, zh: "陶器坊（2 石材 + 2 陶土）· 每次收获阶段 1 陶土 → 2 食物" },
-  basket:        { cost: { stone: 2, reed: 2 }, vp: 2, cook: { reed: 1 / 3 }, zh: "编筐坊（2 石材 + 2 芦苇）· 每次收获阶段 1 芦苇 → 3 食物" },
+  joinery:       { cost: { stone: 2, wood: 2 }, vp: 2, cook: { wood: 2 }, workshopBonus: "wood", zh: "木工坊（2 石材 + 2 木材）· 每次收获阶段 1 木材 → 2 食物" },
+  pottery:       { cost: { stone: 2, clay: 2 }, vp: 2, cook: { clay: 2 }, workshopBonus: "clay", zh: "陶器坊（2 石材 + 2 陶土）· 每次收获阶段 1 陶土 → 2 食物" },
+  basket:        { cost: { stone: 2, reed: 2 }, vp: 2, cook: { reed: 3 }, workshopBonus: "reed", zh: "编筐坊（2 石材 + 2 芦苇）· 每次收获阶段 1 芦苇 → 3 食物" },
   // ---- Farmers of the Moor 专属大改进（仅 dlc.moor=true 时大改进池才包含）----
   heatingStove:  { cost: { stone: 3, wood: 2 }, vp: 2, moor: true, fuelOnlyOne: true, zh: "取暖炉（3 石材 + 2 木材）· 收获阶段全家仅消耗 1 燃料" },
   peatKiln:      { cost: { clay: 2, wood: 1 }, vp: 2, moor: true, harvestFuelBonus: 1, zh: "泥炭窑（2 陶土 + 1 木材）· 每次收获阶段 +1 燃料" },
-  moorCook:      { cost: { stone: 2, wood: 1 }, vp: 3, moor: true, cook: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 }, zh: "沼泽灶（2 石材 + 1 木材）· 随时烹饪无需壁炉" },
+  moorCook:      { cost: { stone: 2, wood: 1 }, vp: 3, moor: true, cook: { vegetable: 3, sheep: 2, boar: 3, cattle: 4 }, zh: "沼泽灶（2 石材 + 1 木材）· 随时烹饪无需壁炉" },
   tileOven:      { cost: { stone: 3, clay: 2 }, vp: 3, moor: true, bake: { maxGrain: 2, foodPerGrain: 4, moorTile: true }, zh: "瓷砖烤炉（3 石材 + 2 陶土）· 烤面包每次额外 +1 谷物容量" },
   firewood:      { cost: { stone: 2, reed: 2 }, vp: 2, moor: true, fuelScore: 1, zh: "柴火棚（2 石材 + 2 芦苇）· 终局按剩余燃料折算胜利点" },
 };

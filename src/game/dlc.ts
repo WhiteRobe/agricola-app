@@ -39,12 +39,21 @@ export interface Occupation {
   hook?: "firstBuilding" | "firstHarvest" | "buildRoom" | "renovate" | "familyGrowth" | "sow";
 }
 
-/** 单张小发展卡：在游戏开始时从牌库抽 1 张加入永久行动板（任何人可使用） */
+/** 单张小发展卡 */
 export interface MinorImprovement {
   id: string;
   name: string;
   icon: string;
   effect: string;
+  /** 建造费用 */
+  cost?: Partial<Record<"wood" | "clay" | "reed" | "stone" | "grain" | "vegetable" | "food", number>>;
+  /** 前置门槛要求 */
+  prereq?: {
+    minOccupations?: number;
+    minRooms?: number;
+    minFields?: number;
+    minPastures?: number;
+  };
   /** 一次性触发（用掉即弃）。true 表示只能使用一次后清出；false 表示永久加成 */
   oneShot?: boolean;
 }
@@ -168,20 +177,32 @@ export const OCCUPATIONS: Occupation[] = [
   { id: "philanthropist", name: "慈善家", icon: "💖", category: "scoring", categoryZh: "终局声望", effect: "终局计分：食物储备 ≥5 且无乞讨额外 +3 分", flavor: "富足康宁慷慨济贫的大善之家" },
 ];
 
-// ---- 小发展卡：12 张，涵盖永久加成 / 一次性奖励 / 永久扣资源 ----
+// ---- 小发展卡：24 张官方经典子集，涵盖永久加成 / 一次性奖励 / 基础构筑 ----
 export const MINOR_IMPROVEMENTS: MinorImprovement[] = [
-  { id: "mi.well", name: "井", icon: "🪣", effect: "一次性：立即 +1 食物", oneShot: true },
-  { id: "mi.beehive", name: "蜂箱", icon: "🍯", effect: "永久：收获阶段额外 +1 食物" },
-  { id: "mi.firewood", name: "柴堆", icon: "🪵", effect: "永久：每轮额外 +1 木材" },
-  { id: "mi.spinning", name: "纺车", icon: "🧶", effect: "永久：每轮额外 +1 芦苇" },
-  { id: "mi.brick", name: "砖块", icon: "🧱", effect: "永久：每轮额外 +1 陶土" },
-  { id: "mi.stoneHeap", name: "石堆", icon: "⛏", effect: "永久：每轮额外 +1 石材" },
-  { id: "mi.market", name: "市集", icon: "🛒", effect: "一次性：立刻 +3 食物", oneShot: true },
-  { id: "mi.sheepPen", name: "羊圈", icon: "🐏", effect: "永久：羊市行动额外 +1 只绵羊" },
-  { id: "mi.boarPen", name: "猪圈", icon: "🐖", effect: "永久：猪市行动额外 +1 只野猪" },
-  { id: "mi.cowPen", name: "牛圈", icon: "🐄", effect: "永久：牛市行动额外 +1 只黄牛" },
-  { id: "mi.bigBarn", name: "大谷仓", icon: "🏚", effect: "一次性：立即 +1 谷物 +1 蔬菜", oneShot: true },
-  { id: "mi.cookHelper", name: "厨助", icon: "🥣", effect: "一次性：立刻 +2 食物", oneShot: true },
+  { id: "mi.well", name: "微型井", icon: "🪣", effect: "一次性：立刻获得 1 食物", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.beehive", name: "蜂箱", icon: "🍯", effect: "永久：每次收获阶段额外 +1 食物", cost: { wood: 1, reed: 1 } },
+  { id: "mi.firewood", name: "柴堆", icon: "🪵", effect: "永久：每轮额外 +1 木材", cost: { clay: 1 } },
+  { id: "mi.spinning", name: "纺车", icon: "🧶", effect: "永久：每轮额外 +1 芦苇", cost: { wood: 1 } },
+  { id: "mi.brick", name: "砖块堆", icon: "🧱", effect: "永久：每轮额外 +1 陶土", cost: { wood: 1 } },
+  { id: "mi.stoneHeap", name: "石堆", icon: "⛏", effect: "永久：每轮额外 +1 石材", cost: { wood: 1 } },
+  { id: "mi.market", name: "市集货摊", icon: "🛒", effect: "一次性：立刻获得 3 食物", cost: { grain: 1 }, oneShot: true },
+  { id: "mi.sheepPen", name: "羊圈", icon: "🐏", effect: "永久：羊市行动额外多得 1 只绵羊", cost: { wood: 1 } },
+  { id: "mi.boarPen", name: "猪圈", icon: "🐖", effect: "永久：猪市行动额外多得 1 只野猪", cost: { wood: 1 } },
+  { id: "mi.cowPen", name: "牛圈", icon: "🐄", effect: "永久：牛市行动额外多得 1 只黄牛", cost: { wood: 1 } },
+  { id: "mi.bigBarn", name: "大谷仓", icon: "🏚", effect: "一次性：立即获得 1 谷物 + 1 蔬菜", cost: { wood: 2 }, oneShot: true },
+  { id: "mi.cookHelper", name: "简易炊具", icon: "🥣", effect: "一次性：立刻获得 2 食物", cost: { clay: 1 }, oneShot: true },
+  { id: "mi.clayHut", name: "陶土工具棚", icon: "🛖", effect: "一次性：立即获得 2 陶土", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.woodCart", name: "运木手推车", icon: "🛒", effect: "一次性：立即获得 2 木材", cost: { reed: 1 }, oneShot: true },
+  { id: "mi.reedPond", name: "芦苇池", icon: "🎋", effect: "一次性：立即获得 2 芦苇", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.cornStore", name: "小粮仓", icon: "🌾", effect: "一次性：立即获得 2 谷物", cost: { wood: 1, reed: 1 }, oneShot: true },
+  { id: "mi.vegGarden", name: "菜园苗床", icon: "🥕", effect: "一次性：立即获得 1 蔬菜", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.drinkingTrough", name: "饮水槽", icon: "🪵", effect: "一次性：立即获得 2 食物并额外容纳 1 牲畜", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.woodenHutExtension", name: "木棚披屋", icon: "🏠", effect: "一次性：立刻获得 1 间木屋空间（不计入空房翻修）", cost: { wood: 2, reed: 1 }, prereq: { minOccupations: 1 }, oneShot: true },
+  { id: "mi.stoneAxe", name: "石斧", icon: "🪓", effect: "永久：每次拿木材行动额外 +1 木材", cost: { stone: 1 }, prereq: { minOccupations: 1 } },
+  { id: "mi.hardwoodPlow", name: "硬木犁", icon: "🚜", effect: "永久：犁地行动可连续多犁 1 块田", cost: { wood: 2 }, prereq: { minOccupations: 2 } },
+  { id: "mi.spade", name: "铁锹", icon: "⛏️", effect: "一次性：立刻免费犁 1 块田", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.woolBlanket", name: "羊毛毯", icon: "🧣", effect: "一次性：若拥有 ≥1 绵羊获得 3 食物", cost: { reed: 1 }, oneShot: true },
+  { id: "mi.manure", name: "堆肥", icon: "🍂", effect: "一次性：若至少有 2 种牲畜，立即获得 1 谷物 + 1 蔬菜", cost: {}, oneShot: true },
 ];
 
 /** 抽 n 张不重复的卡（Fisher-Yates，引擎内使用） */

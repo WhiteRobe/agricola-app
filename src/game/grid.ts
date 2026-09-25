@@ -170,8 +170,8 @@ export function isSingleRectangle(cells: string[]): boolean {
 }
 
 /** 栅栏合法性校验：
- *  1. 每个围合出的空格区域必须是矩形；
- *  2. 每一段新增栅栏必须贴着某个围合区域的边界（不许有悬空的栅栏段）。 */
+ *  1. 每一段新增栅栏必须贴着某个围合区域的边界（不许有悬空的栅栏段）；
+ *  2. 官方规则：牧场只要由栅栏（及农场地界）完全围闭，可以是任意形状（矩形、L型、T型、多边形等）。 */
 export function validateEnclosure(W: number, H: number, edges: FenceEdges, addedIds: string[]): { ok: boolean; reason?: string } {
   const pastures = computePastures(W, H, edges, new Set());
 
@@ -193,9 +193,6 @@ export function validateEnclosure(W: number, H: number, edges: FenceEdges, added
 
   for (const id of addedIds) {
     if (!boundary.has(id)) return { ok: false, reason: "栅栏必须围成完整的牧场，不能有悬空段" };
-  }
-  for (const p of pastures) {
-    if (!p.rects) return { ok: false, reason: "每个牧场必须是一个完整的矩形" };
   }
   return { ok: true };
 }

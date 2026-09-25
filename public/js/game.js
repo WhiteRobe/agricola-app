@@ -34,12 +34,12 @@ function minorEffectById(id) { return MINOR_LOOKUP[id] ? MINOR_LOOKUP[id].effect
 // 资源/行动图标 + 中文标签
 const SPACES = [
   // 永远可用（累积型）
-  { id: "Wood",      name: "木材",     icon: "🪵", desc: "每轮累积 +1 木材，取走全部", pool: "wood", always: true },
+  { id: "Wood",      name: "木材",     icon: "🪵", desc: "每轮累积 +3 木材，取走全部", pool: "wood", always: true },
   { id: "Clay",      name: "陶土",     icon: "🧱", desc: "每轮累积 +1 陶土，取走全部", pool: "clay", always: true },
   { id: "Reed",      name: "芦苇",     icon: "🎋", desc: "每轮累积 +1 芦苇，取走全部", pool: "reed", always: true },
   { id: "Stone",     name: "石材",     icon: "⛏", desc: "第 4 轮起每轮累积 +1 石材，取走全部", pool: "stone", fromRound: 4 },
-  { id: "Grain",     name: "谷物",     icon: "🌾", desc: "每轮累积 +1 谷物，取走全部", pool: "grain", always: true },
-  { id: "Vegetable", name: "蔬菜",     icon: "🥕", desc: "第 4 轮起每轮累积 +1 蔬菜，取走全部", pool: "vegetable", fromRound: 4 },
+  { id: "Grain",     name: "谷物",     icon: "🌾", desc: "固定拿取 1 谷物", pool: "grain", always: true },
+  { id: "Vegetable", name: "蔬菜",     icon: "🥕", desc: "第 4 轮起固定拿取 1 蔬菜", pool: "vegetable", fromRound: 4 },
   { id: "Fishing",   name: "钓鱼",     icon: "🐟", desc: "每轮累积 +1 食物，取走全部", pool: "food", always: true },
   { id: "DayLaborer",name: "日工",     icon: "🛠", desc: "打零工立即获得 2 食物（占用 1 名工人）", pool: "special", always: true },
   // 动物市场
@@ -48,14 +48,29 @@ const SPACES = [
   { id: "Cattle",    name: "牛市",     icon: "🐄", desc: "第 12 轮开放 · 免费牵走格内全部黄牛", pool: "cattle", fromRound: 12 },
   // ---- 常规行动：第 1 轮起永久可用 ----
   { id: "PlowField",     name: "犁地",       icon: "🌱", desc: "开垦一块新农田（须与现有农田相邻）", alwaysAction: true },
-  { id: "SowOrBake",     name: "播种/烤面包", icon: "🌾", desc: "在农田播种谷物/蔬菜，或用烤炉将谷物烤成面包", alwaysAction: true },
-  { id: "BuildRoom",     name: "建房间",     icon: "🏠", desc: "扩建房间（每间消耗 5 木材/陶土/石材 + 2 芦苇）", alwaysAction: true },
+  { id: "SowOrBake",     name: "播种/烤面包", icon: "🌾", desc: "在农田批量播种谷物/蔬菜，或用烤炉将谷物烤成面包", alwaysAction: true },
+  { id: "BuildRoom",     name: "建房/马厩",   icon: "🏠", desc: "扩建房间（5建材+2芦苇）及/或建造马厩（每座2木材）", alwaysAction: true },
   { id: "StartPlayer",   name: "起始玩家",   icon: "🚜", desc: "拿走起始玩家标记，下轮先动并立即 +1 食物", alwaysAction: true },
   // ---- 回合卡行动：按轮次揭示 ----
-  { id: "Fences",        name: "建栅栏",     icon: "🪵", desc: "围出封闭矩形牧场（每段栅栏消耗 1 木材）", roundCard: true },
-  { id: "FamilyGrowth",  name: "添丁",       icon: "👶", desc: "消耗 2 食物扩充 1 名家庭成员（需有空房间）", roundCard: true },
-  { id: "Renovate",      name: "翻修",       icon: "🔨", desc: "整栋房屋升级（每间消耗 1 陶土/石材 + 1 芦苇）", roundCard: true },
+  { id: "Fences",        name: "建栅栏",     icon: "🪵", desc: "围出封闭牧场（每段栅栏消耗 1 木材）", roundCard: true },
+  { id: "FamilyGrowth",  name: "添丁",       icon: "👶", desc: "家庭添丁增添 1 名成员（需有空房间，0食物消耗）", roundCard: true },
+  { id: "Renovate",      name: "翻修",       icon: "🔨", desc: "整栋房屋升级（每间消耗 1 陶土/石材 + 全屋共 1 芦苇）", roundCard: true },
   { id: "BuildMajor",    name: "大改进",     icon: "🔧", desc: "建造重大改进设施（壁炉、烤炉、水井等）", roundCard: true },
+  { id: "EasternQuarry", name: "东采石场",   icon: "⛏", desc: "每轮累积 +1 石材，取走全部", roundCard: true },
+  { id: "PlowAndSow",    name: "犁田及/或撒种", icon: "🚜", desc: "开垦一块农田，并可立即对空田撒种", roundCard: true },
+  { id: "UrgentGrowth",  name: "急迫添丁",   icon: "👶", desc: "急迫添丁扩充家庭（即使没有空房也可添丁）", roundCard: true },
+  { id: "RenovateFences",name: "翻修及/或栅栏", icon: "🏰", desc: "翻修农舍，并可立即建造栅栏", roundCard: true },
+  // ---- 3人 / 4人 动态行动格 ----
+  { id: "Copse3P",       name: "灌木林 (3人)", icon: "🪵", desc: "每轮累积 +2 木材", pool: "wood", scaling: 3 },
+  { id: "ClayDeposit3P", name: "陶土矿 (3人)", icon: "🧱", desc: "每轮累积 +2 陶土", pool: "clay", scaling: 3 },
+  { id: "ResourceMarket3P", name: "资源市场 (3人)", icon: "⚖️", desc: "固定拿 1 食物 + 1 芦苇 + 1 石头", pool: "special", scaling: 3 },
+  { id: "Lessons3P",     name: "职业 (3人)", icon: "🎓", desc: "打出 1 张职业卡（第1张免费，第2张起1食物）", pool: "special", scaling: 3 },
+  { id: "Grove4P",       name: "小树林 (4人)", icon: "🪵", desc: "每轮累积 +1 木材", pool: "wood", scaling: 4 },
+  { id: "Copse4P",       name: "灌木林 (4人)", icon: "🪵", desc: "每轮累积 +2 木材", pool: "wood", scaling: 4 },
+  { id: "ClayDeposit4P", name: "陶土矿 (4人)", icon: "🧱", desc: "每轮累积 +2 陶土", pool: "clay", scaling: 4 },
+  { id: "ReedBank4P",    name: "芦苇滩 (4人)", icon: "🎋", desc: "每轮累积 +1 芦苇", pool: "reed", scaling: 4 },
+  { id: "ResourceMarket4P", name: "资源市场 (4人)", icon: "⚖️", desc: "固定拿 1 食物 + 1 芦苇 + 1 石头", pool: "special", scaling: 4 },
+  { id: "Lessons4P",     name: "课程 (4人)", icon: "🎓", desc: "打出 1 张职业卡（第1张免费，第2张起1食物）", pool: "special", scaling: 4 },
 ];
 
 // id → 中文名；用于把服务端揭示的英文 token 渲染成中文
@@ -110,9 +125,29 @@ function liveScorePlayer(p) {
       else if (c.crop === "vegetable") veg += c.markers;
     }
   });
-  const used = p.grid.flat().filter(c => c.kind === "field" || c.kind === "room").length + p.stables
-    + p.pastures.reduce((s, ps) => s + ps.cells.length, 0);
+
+  // 统计牧场格子集合，防重计算未利用空地
+  const pastureCells = new Set();
+  let fencedStables = 0;
+  p.pastures.forEach(pst => {
+    pst.cells.forEach(c => {
+      pastureCells.add(c);
+      const [x, y] = c.split(",").map(Number);
+      if (p.grid[y]?.[x]?.stable) fencedStables += 1;
+    });
+  });
+
+  let used = 0;
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 3; x++) {
+      const cell = p.grid[y][x];
+      if (cell.kind === "field" || cell.kind === "room" || pastureCells.has(`${x},${y}`) || cell.stable) {
+        used += 1;
+      }
+    }
+  }
   const unusedSpaces = Math.max(0, 15 - used);
+
   const breakdown = {
     "田块": SCORE_T.fields[Math.min(5, fields)],
     "牧场": SCORE_T.pastures[Math.min(4, pastures)],
@@ -121,13 +156,14 @@ function liveScorePlayer(p) {
     "羊": animalScoreT("sheep", p.animals.sheep),
     "猪": animalScoreT("boar", p.animals.boar),
     "牛": animalScoreT("cattle", p.animals.cattle),
+    "圈地马厩": fencedStables * SCORE_T.fencedStable,
     "陶屋": (p.roomType === "clay" ? p.rooms : 0) * SCORE_T.clayRoom,
     "石屋": (p.roomType === "stone" ? p.rooms : 0) * SCORE_T.stoneRoom,
     "木屋": (p.roomType === "wood" ? p.rooms : 0) * SCORE_T.woodRoom,
     "家人": p.family * SCORE_T.familyMember,
     "空地": unusedSpaces * SCORE_T.unusedYard,
-    "乞讨": p.beggings * SCORE_T.begging,
-    "改进": (p.improvements || []).reduce((sum, k) => sum + (MAJOR_VP_MAP[k] || 0), 0),
+    "乞讨": (p.beggings || 0) * SCORE_T.begging,
+    "改进": (p.improvements || []).reduce((s, k) => s + (MAJOR_VP_MAP[k] || 0), 0),
   };
   // 职业终局加成
   let occBonus = 0;
@@ -646,6 +682,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
         <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
         <span class="nm">${escapeHtml(p.name)}</span>
         ${isMe ? '<span class="badge green">你</span>' : ""}
+        ${(p.id === _state.game?.startPlayerId || p.startingPlayer) ? '<span class="badge" style="background:#b45309;color:#ffffff;font-weight:700;padding:2px 7px;border-radius:10px;font-size:11px" title="起始玩家标记：在每轮首先行动">🚜 起始玩家</span>' : ""}
         ${isTurn ? `<span class="turn turn-runner" title="行动中">${runnerSvg("#ffffff", 15)}</span>` : ""}
         <button type="button" class="stock-score-badge" data-score-pid="${p.id}" data-tip="点击查看得分计算面板\n当前实时得分: ${pScore.total} 分">
           <span class="score-crown">👑</span>
@@ -685,6 +722,9 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       ${(() => {
         // 改进 / 职业 / 小发展卡统一放进一个 flex-wrap 容器：能放就往后排，放不下才换行
         const tags = [];
+        if (p.id === _state.game?.startPlayerId || p.startingPlayer) {
+          tags.push(`<span class="imp-tag starter-tag" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;font-weight:700" data-tip="起始玩家标记：在每轮首先放置工人行动">🚜 起始玩家</span>`);
+        }
         tags.push(...p.improvements.map(impTagHTML));
         if (p.occupation) tags.push(`<span class="imp-tag occ-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span>`);
         if (p.minorImprovements && p.minorImprovements.length) {
@@ -1018,11 +1058,14 @@ function getCellSize() {
 function renderSpaces(container, g, p, myTurn, kind) {
   container.innerHTML = "";
   SPACES.forEach((sp) => {
+    // 多人局动态伸缩行动格校验
+    if (sp.scaling && sp.scaling !== g.numPlayers) return;
+
     const isAnimal = ["Sheep", "Boar", "Cattle"].includes(sp.id);
     if (kind === "animal") { if (!isAnimal) return; }
-    else if (kind === "action") { if (!sp.alwaysAction) return; }
+    else if (kind === "action") { if (!sp.alwaysAction && !sp.scaling) return; }
     else if (kind === "round") { if (!sp.roundCard) return; if (!g.revealed.includes(sp.id)) return; }
-    else { if (sp.roundCard || sp.alwaysAction || isAnimal) return; }
+    else { if (sp.roundCard || sp.alwaysAction || sp.scaling || isAnimal) return; }
 
     let desc = sp.desc;
     let badge = "";
@@ -1031,21 +1074,34 @@ function renderSpaces(container, g, p, myTurn, kind) {
     // ★ 行动格每轮只能被使用一次
     const used = (g.usedSpaces || []).includes(sp.id);
 
-    if (kind === "resource" && PILE_KEY[sp.id]) {
-      const n = (g.piles && g.piles[PILE_KEY[sp.id]]) || 0;
+    if (kind === "resource" && (PILE_KEY[sp.id] || sp.id === "EasternQuarry" || (sp.scaling && sp.pool))) {
+      const n = (g.piles && g.piles[sp.id]) || 0;
       open = sp.fromRound ? g.round >= sp.fromRound : true;
       stock = n;
       desc = open
-        ? (n > 0 ? `取走全部 ${n} 个` : "空着 · 每轮 +1")
+        ? (n > 0 ? `取走全部 ${n} 个` : "空着 · 每轮累积")
         : `第 ${sp.fromRound} 轮开放`;
       if (open && n > 0) badge = `<span class="stock-badge">${n}</span>`;
+    } else if (sp.id === "Grain" || sp.id === "Vegetable") {
+      open = sp.fromRound ? g.round >= sp.fromRound : true;
+      desc = open ? `固定拿取 1 ${sp.name}` : `第 ${sp.fromRound} 轮开放`;
+      stock = 1;
     } else if (sp.id === "DayLaborer") {
       desc = "打日工 +2 食物";
+      stock = 1;
+    } else if (sp.id === "StartPlayer") {
+      const isStarter = p && (g.startPlayerId === p.id || p.startingPlayer);
+      const holder = g.players.find(pl => pl.id === g.startPlayerId || pl.startingPlayer);
+      desc = isStarter
+        ? "🚜 你当前已持有标记（下轮先动）"
+        : holder
+          ? `拿走标记下轮先动（当前：${escapeHtml(holder.name)}）+1 食物`
+          : "拿走起始玩家标记，下轮先动并立即 +1 食物";
       stock = 1;
     } else if (isAnimal) {
       const t = sp.id === "Sheep" ? "sheep" : sp.id === "Boar" ? "boar" : "cattle";
       const openRound = ANIMAL_OPEN_ROUND[t];
-      open = g.round >= openRound;
+      open = g.round >= openRound || (g.revealed && g.revealed.includes(sp.id));
       stock = (g.piles && g.piles[sp.id]) || 0;
       desc = open
         ? (stock > 0 ? `取走全部 ${stock} 只` : "空着 · 每轮 +1")
@@ -1245,7 +1301,46 @@ function bindMoorActions(g, p, myTurn) {
   sowVBtn.onclick  = () => sel && sendAction({ type: "SowMoor",     x: sel.x, y: sel.y, crop: "vegetable" });
 }
 
-/** DLC：渲染场上当前可抢的小发展卡（任何玩家 1 名工人可抢一次） */
+/** 打开手牌抽屉查看职业卡与小发展卡 */
+function openHandDrawer(tab = "occupation") {
+  const me = _state.game?.players?.find(p => p.id === _myId);
+  if (!me) return;
+  const occs = me.occupationHand || [];
+  const minors = me.minorHand || [];
+
+  const occHtml = occs.length > 0 ? occs.map((o) => `
+    <div class="card p8 mb8" style="background:var(--panel-2);border:1px solid var(--line);border-radius:8px">
+      <div class="row items-center justify-between">
+        <b>${o.icon} ${escapeHtml(o.name)}</b>
+        <button class="btn small" onclick="doWithLoading('play-occ-${o.id}','打出…',() => { sendAction({ type: 'PlayOccupation', id: '${o.id}' }); closeModal(); })">打出职业</button>
+      </div>
+      <div class="muted mt4" style="font-size:12px">${escapeHtml(o.effect)}</div>
+    </div>
+  `).join("") : '<div class="muted p12">手里没有职业卡了</div>';
+
+  const minorHtml = minors.length > 0 ? minors.map((m) => `
+    <div class="card p8 mb8" style="background:var(--panel-2);border:1px solid var(--line);border-radius:8px">
+      <div class="row items-center justify-between">
+        <b>${m.icon} ${escapeHtml(m.name)}</b>
+        <button class="btn small" onclick="doWithLoading('play-minor-${m.id}','建造…',() => { sendAction({ type: 'PlayMinor', id: '${m.id}' }); closeModal(); })">建造小发展</button>
+      </div>
+      <div class="muted mt4" style="font-size:12px">${escapeHtml(m.effect)}</div>
+    </div>
+  `).join("") : '<div class="muted p12">手里没有小发展卡了</div>';
+
+  openModal("🎴 玩家私密手牌", `
+    <div class="row gap8 mb12">
+      <button class="btn small ${tab === "occupation" ? "" : "ghost"}" id="tabOcc">职业手牌 (${occs.length})</button>
+      <button class="btn small ${tab === "minor" ? "" : "ghost"}" id="tabMinor">小发展卡 (${minors.length})</button>
+    </div>
+    <div id="drawerContent">
+      ${tab === "occupation" ? occHtml : minorHtml}
+    </div>
+  `, (root) => {
+    root.querySelector("#tabOcc").onclick = () => { closeModal(); openHandDrawer("occupation"); };
+    root.querySelector("#tabMinor").onclick = () => { closeModal(); openHandDrawer("minor"); };
+  });
+}
 function renderMinorCards(container, g, p, myTurn) {
   if (!container) return;
   container.innerHTML = "";
@@ -1359,12 +1454,19 @@ function onCellClick(p, x, y, cell) {
   const opts = [];
   const usedSpaces = (_state.game && _state.game.usedSpaces) || [];
   const busy = (id, label) => usedSpaces.includes(id) ? `${label} 本轮已被占用，请下轮再来` : null;
-  // 犁地 / 建房间 是第 1 轮起永久可用的常规行动（不是回合卡），随时可以点棋盘操作
+  // 犁地 / 建房间 / 建马厩 是常规行动，随时可以点棋盘操作
   if (cell.kind === "empty") {
-    const bRoom = busy("BuildRoom", "建房间");
+    const bRoom = busy("BuildRoom", "建房/马厩");
     const bPlow = busy("PlowField", "犁地");
-    if (bRoom) opts.push({ label: "建房间（已占用）", disabled: true, hint: bRoom });
-    else opts.push({ label: "建房间", action: () => doWithLoading(`buildRoom-${x}-${y}`, "建房间", () => sendAction({ type: "BuildRoom", x, y })) });
+    if (bRoom) {
+      opts.push({ label: "建房间（已占用）", disabled: true, hint: bRoom });
+      opts.push({ label: "造马厩（已占用）", disabled: true, hint: bRoom });
+    } else {
+      opts.push({ label: "建房间", action: () => doWithLoading(`buildRoom-${x}-${y}`, "建房间", () => sendAction({ type: "BuildRoom", x, y })) });
+      if (!cell.stable && (p.stables || 0) < 4) {
+        opts.push({ label: "造马厩 (2木)", action: () => doWithLoading(`buildStable-${x}-${y}`, "造马厩", () => sendAction({ type: "BuildRoom", stables: [{ x, y }] })) });
+      }
+    }
     if (bPlow) opts.push({ label: "犁地（已占用）", disabled: true, hint: bPlow });
     else opts.push({ label: "犁地", action: () => doWithLoading(`plow-${x}-${y}`, "犁地", () => sendAction({ type: "PlowField", x, y })) });
   }
@@ -1388,9 +1490,18 @@ function onCellClick(p, x, y, cell) {
 
 function onSpaceClick(sp, p) {
   if (!debounce(`space-${sp.id}`, 300)) return;
+  if (sp.id === "StartPlayer") {
+    const isStarter = p && (_state.game?.startPlayerId === p.id || p.startingPlayer);
+    if (isStarter) {
+      toast("你当前已持有起始玩家标记，无需重复拿取", true);
+      return;
+    }
+    doWithLoading(`take-${sp.id}`, `⏳ ${sp.name}…`, () => sendAction({ type: "Take", space: sp.id }));
+    return;
+  }
   // 简单 take action
   if (["Wood", "Clay", "Reed", "Stone", "Grain", "Vegetable", "Fishing", "DayLaborer",
-       "StartPlayer", "Sheep", "Boar", "Cattle"].includes(sp.id)) {
+       "Sheep", "Boar", "Cattle"].includes(sp.id)) {
     doWithLoading(`take-${sp.id}`, `⏳ ${sp.name}…`, () => sendAction({ type: "Take", space: sp.id }));
     return;
   }
@@ -1457,9 +1568,46 @@ function onSpaceClick(sp, p) {
     openModal("🌱 犁地", `<p class="muted">点击棋盘空格（必须与现有田正交相邻，或任意位置若无田）。</p>`);
     return;
   }
+  if (sp.id === "EasternQuarry") {
+    doWithLoading("take-east-quarry", "⛏ 取石材…", () => sendAction({ type: "Take", space: "EasternQuarry" }));
+    return;
+  }
+  if (sp.id.startsWith("Copse") || sp.id.startsWith("ClayDeposit") || sp.id.startsWith("Grove") || sp.id.startsWith("ReedBank") || sp.id.startsWith("ResourceMarket")) {
+    doWithLoading(`take-${sp.id}`, `⏳ ${sp.name}…`, () => sendAction({ type: "Take", space: sp.id }));
+    return;
+  }
+  if (sp.id.startsWith("Lessons")) {
+    openHandDrawer("occupation");
+    toast("请在手牌面板中选择要打出的职业卡");
+    return;
+  }
+  if (sp.id === "UrgentGrowth") {
+    openModal("👶 急迫添丁", `<p class="muted">官方规则：即使当前没有空房，亦可为家庭增添新成员（上限 5 人）。0 食物消耗。</p>
+      <button class="btn big" id="mUG">确定急迫添丁</button>`,
+      (root) => root.querySelector("#mUG").onclick = () => {
+        doWithLoading("urgent-growth", "急迫添丁…", () => sendAction({ type: "UrgentGrowth" }));
+        closeModal();
+      });
+    return;
+  }
+  if (sp.id === "PlowAndSow") {
+    openModal("🚜 犁田及/或撒种", `<p class="muted">先犁地（点击棋盘空格），随后可对领地内任意空田撒种。</p>`);
+    return;
+  }
+  if (sp.id === "RenovateFences") {
+    openModal("🏰 翻修及/或建栅栏", `<p class="muted">可同时翻修房屋材质并拉取栅栏圈地。</p>
+      <div class="row mt8">
+        <button class="btn" id="mRF_Reno">翻修房屋</button>
+        <button class="btn" id="mRF_Fence">拉取栅栏</button>
+      </div>`, (root) => {
+        root.querySelector("#mRF_Reno").onclick = () => { closeModal(); onSpaceClick({ id: "Renovate", name: "翻修" }, p); };
+        root.querySelector("#mRF_Fence").onclick = () => { closeModal(); onSpaceClick({ id: "Fences", name: "建栅栏" }, p); };
+      });
+    return;
+  }
   if (sp.id === "FamilyGrowth") {
-    openModal("👶 添丁", `<p class="muted">消耗 <b>2 食物</b>。必须有空房，且家人 < 5 人。<br>新成员本轮出生仅需 1 食物，下一轮起需 2。</p>
-      <p class="muted">你有 ${p.food} 食物，${Math.max(0, p.rooms - p.family)} 间空房。</p>
+    openModal("👶 添丁", `<p class="muted">官方规则：<b>0 食物消耗</b>。只需有空房间，且家人 < 5 人。<br>新成员本轮不工作，收获阶段仅需 1 食物。</p>
+      <p class="muted">你有 ${Math.max(0, p.rooms - p.family)} 间空房。</p>
       <button class="btn big" id="mFG">确定</button>`,
       (root) => root.querySelector("#mFG").onclick = () => {
         doWithLoading("family-growth", "添丁…", () => sendAction({ type: "FamilyGrowth" }));
@@ -1470,10 +1618,10 @@ function onSpaceClick(sp, p) {
   if (sp.id === "Renovate") {
     const rooms = p.rooms;
     // 规则：翻修按每间房计费；职业减免与引擎同步
-    const r1 = renovateCost(p, "woodToClay");
-    const r2 = renovateCost(p, "clayToStone");
-    const base1 = { clay: rooms, reed: rooms };
-    const base2 = { stone: rooms, reed: rooms };
+  const r1 = renovateCost(p, "woodToClay");
+  const r2 = renovateCost(p, "clayToStone");
+  const base1 = { clay: rooms, reed: 1 };
+  const base2 = { stone: rooms, reed: 1 };
     const can = (cost) => Object.entries(cost).every(([k, v]) => (p.resources[k] || 0) >= v);
     const ok1 = p.roomType === "wood" && can(r1.cost);
     const ok2 = p.roomType === "clay" && can(r2.cost);
@@ -2151,14 +2299,14 @@ function roomBuildCost(p) {
 }
 /** 翻修实付费用（与引擎 renovate 折扣规则一致） */
 function renovateCost(p, direction) {
-  const perRoom = direction === "woodToClay" ? { clay: 1, reed: 1 } : { stone: 1, reed: 1 };
-  const cost = {};
-  for (const k of Object.keys(perRoom)) cost[k] = perRoom[k] * p.rooms;
+  const rooms = p.rooms || 0;
+  const mat = direction === "woodToClay" ? "clay" : "stone";
+  const cost = { [mat]: rooms, reed: 1 };
   const notes = [];
   if (p.occupation?.id === "renovator" && cost.reed) { cost.reed = 0; notes.push("「翻修工」职业：翻修免芦苇"); }
-  if (p.occupation?.id === "thatcher" && cost.reed) { cost.reed -= 1; notes.push("「盖顶工」职业：翻修 −1 芦苇"); }
-  if (p.occupation?.id === "bricklayer" && cost.clay) { cost.clay -= 1; notes.push("「砌砖工」职业：翻修 −1 陶土"); }
-  if (p.occupation?.id === "masterMason" && direction === "clayToStone" && cost.stone) { cost.stone -= 1; notes.push("「石工大师」职业：翻修石屋 −1 石材"); }
+  if (p.occupation?.id === "thatcher" && cost.reed) { cost.reed = Math.max(0, cost.reed - 1); notes.push("「盖顶工」职业：翻修 −1 芦苇"); }
+  if (p.occupation?.id === "bricklayer" && cost.clay) { cost.clay = Math.max(0, cost.clay - 1); notes.push("「砌砖工」职业：翻修 −1 陶土"); }
+  if (p.occupation?.id === "masterMason" && direction === "clayToStone" && cost.stone) { cost.stone = Math.max(1, cost.stone - 1); notes.push("「石工大师」职业：翻修石屋 −1 石材"); }
   return { cost, notes };
 }
 /** 大改进实付费用（与引擎 buildMajor 折扣规则一致） */
@@ -2257,15 +2405,6 @@ function autoIncomeFor(p, g) {
     (["sheep", "boar", "cattle"]).forEach((t) => {
       if (p.animals[t] >= 2) {
         add(t, 1, `${when} · 繁殖（${({ sheep: "绵羊", boar: "野猪", cattle: "黄牛" })[t]}成对，需牧场有空位）`);
-      }
-    });
-  }
-    const fieldCnt = p.grid.flat().filter((c) => c.kind === "field").length;
-    if (oid === "smallholder" && fieldCnt <= 2) add("grain", 1, `${when} · 职业「小农」（田 ≤2 块）`);
-    // 繁殖：同类成对自动 +1（需牧场有空位）
-    (["sheep", "boar", "cattle"]).forEach((t) => {
-      if (p.animals[t] >= 2) {
-        add(t, 1, `${when} · 繁殖（${({ sheep: "羊", boar: "猪", cattle: "牛" })[t]}成对，需牧场有空位）`);
       }
     });
   }

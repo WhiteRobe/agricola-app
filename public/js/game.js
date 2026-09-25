@@ -1557,6 +1557,10 @@ function ensureFab(g) {
         <span class="fab-txt">排行榜</span>
         <span class="fab-score">${leader ? leader.total : 0}</span>
       </button>
+      <button class="fab-item" data-fab="strategy">
+        <span class="fab-ic">💡</span>
+        <span class="fab-txt">流派玩法</span>
+      </button>
       <button class="fab-item" data-fab="log">
         <span class="fab-ic">📜</span>
         <span class="fab-txt">动态日志</span>
@@ -1596,6 +1600,11 @@ function ensureFab(g) {
   };
   fab.querySelector('[data-fab="leaderboard"]').onclick = () => {
     openLeaderboard(_state && _state.game);
+    fab.classList.remove("open");
+  };
+  const stratBtn = fab.querySelector('[data-fab="strategy"]');
+  if (stratBtn) stratBtn.onclick = () => {
+    import("/js/tutorial.js").then((m) => m.openStrategyDrawer());
     fab.classList.remove("open");
   };
   fab.querySelector('[data-fab="log"]').onclick = () => {

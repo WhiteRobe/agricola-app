@@ -355,3 +355,295 @@ export function closeDlcDrawer() {
   }
   document.removeEventListener("keydown", onDlcEscClose);
 }
+
+// ============================================================
+// 流派玩法抽屉 —— 悬浮球的「💡 流派玩法」专用面板
+// ============================================================
+export const STRATEGIES = [
+  {
+    id: "grain_bake",
+    name: "🌾 农耕面包流",
+    shortName: "🌾 农耕面包",
+    subtitle: "稳定口粮 · 自给自足 · 农田作物满分",
+    tag: "食物无忧",
+    summary: "以早起犁地、播种谷物与蔬菜为核心，第 3 轮抢建烤炉将谷物高倍转化为食物，彻底告别断粮危机，终局拿满农田（4分）与作物高分。",
+    phases: [
+      { round: "前期 (第 1-4 轮)", desc: "全力抢占「谷物」与「犁地」，第 3 轮大改进揭示后第一时间抢建「陶土烤炉」（3 陶 1 石）。" },
+      { round: "中期 (第 5-8 轮)", desc: "播种小麦（1 谷出 3 谷），收获期利用烤炉一键将谷物烤成高额食物（每谷 5 食物），轻松度过喂养期并扩种蔬菜。" },
+      { round: "后期 (第 9-14 轮)", desc: "麦田与菜地轮番丰收，多余蔬菜可直接食用或配合烹饪，最后补建 1 块小牧场养 1 对羊防扣分。" }
+    ],
+    jobs: [
+      { name: "谷物商人", icon: "🌾", desc: "每轮初自动 +1 谷物" },
+      { name: "播种者", icon: "🌱", desc: "单次撒种行动可同时播种多块田" },
+      { name: "犁地工", icon: "🚜", desc: "单次犁地可额外多开垦 1 块田" },
+      { name: "面包师傅", icon: "🍞", desc: "烘焙面包时额外获得大量食物" },
+      { name: "磨坊主", icon: "⚙️", desc: "研磨谷物转化食物效率大幅提升" }
+    ],
+    pros: "食物发动机启动后极其稳定，不惧任何收获阶段的喂养惩罚；农田与作物轻松拿下 8~12 分。",
+    cons: "初期木材较少可能导致住房与栅栏进度稍缓，终局前务必补养基础牲畜避免单项 -1 分。"
+  },
+  {
+    id: "livestock",
+    name: "🐑 畜牧繁育流",
+    shortName: "🐑 畜牧繁育",
+    subtitle: "以肉养家 · 自动繁育 · 终局高爆发",
+    tag: "成对繁衍",
+    summary: "前期囤积木材建造封闭大牧场，中后期按节奏引入羊、猪、牛，利用每轮收获的成对自动繁殖实现资源滚雪球，配合壁炉随时宰杀换粮。",
+    phases: [
+      { round: "前期 (第 1-4 轮)", desc: "全力拿取累积木堆，在第 1 或第 3 轮建起栅栏封闭牧场（推荐 4~6 格连通牧场）。" },
+      { round: "中期 (第 5-8 轮)", desc: "第 5 轮羊市一开直接全包牵羊；抢建「壁炉」或「烹饪锅」，把繁衍出的多余羊烹饪换成食物（以肉养家）。" },
+      { round: "后期 (第 9-14 轮)", desc: "第 9 轮买猪、第 13 轮买牛，成对自然繁殖将三种牲畜均养至计分断点上限（羊≥8、猪≥7、牛≥6）。" }
+    ],
+    jobs: [
+      { name: "牧羊人", icon: "🐑", desc: "取羊行动后额外获赠 1 只羊" },
+      { name: "养猪人", icon: "🐗", desc: "取猪行动后额外获赠 1 只猪" },
+      { name: "牧牛人", icon: "🐄", desc: "取牛行动后额外获赠 1 只牛" },
+      { name: "修篱人", icon: "🪵", desc: "建造栅栏时享受大额木材折减" },
+      { name: "屠夫", icon: "🔪", desc: "宰杀牲畜烹饪时额外产出大量食物" },
+      { name: "制革匠", icon: "👞", desc: "宰杀牛羊时额外获得皮革副产物" }
+    ],
+    pros: "中后期爆发力惊人，牲畜自繁自殖提供源源不断的食物与极高的终局牲畜总分（可达 12~16 分）。",
+    cons: "前期木材竞争极度激烈，且第 4 轮首次收获前牲畜尚未繁衍，需要提前备好口粮以防乞讨。"
+  },
+  {
+    id: "population",
+    name: "🏠 快速添丁流",
+    shortName: "🏠 快速添丁",
+    subtitle: "工人数压制 · 步步领先 · 人多力量大",
+    tag: "行动点碾压",
+    summary: "以最短路径建造第 3、第 4 间房屋，并在第 6 轮添丁开放后第一时间生下新工人，从 2 动飞跃至 4~5 动，以行动点数的绝对优势碾压全场。",
+    phases: [
+      { round: "前期 (第 1-4 轮)", desc: "全力争抢「芦苇」与「木头」，在第 4 轮前造出第 3 间木屋。" },
+      { round: "中期 (第 5-7 轮)", desc: "第 5 轮翻修为陶屋（每间1分），第 6 轮「添丁」揭示立刻生下第 3 名工人！紧接着造房再生第 4 人。" },
+      { round: "后期 (第 8-14 轮)", desc: "利用多出的工人疯狂扫荡版图上所有高累积池，最后翻修为石屋（每间2分），拿满人丁分（每人3分）和房屋分。" }
+    ],
+    jobs: [
+      { name: "木匠", icon: "🪵", desc: "建造木屋每间减少 1 木材消耗" },
+      { name: "乳母", icon: "🍼", desc: "添丁时返还食物消耗，极大减轻初期负担" },
+      { name: "房屋翻修匠", icon: "🔨", desc: "翻修时完全免去芦苇消耗" },
+      { name: "旅店老板", icon: "🏮", desc: "每轮初自动获赠食客留下的食物" },
+      { name: "砌砖工", icon: "🧱", desc: "建造陶屋与翻修时享受陶土大额折扣" }
+    ],
+    pros: "工人数量多 = 每轮能做别人两倍的事，后期几乎可以包揽版图上所有的优质行动格。",
+    cons: "家庭成员增加后每轮喂养压力骤增（每人每轮 2 食物），必须尽早配合壁炉、烤炉或水井提供稳定粮食。"
+  },
+  {
+    id: "industry",
+    name: "🏛 工业与声望流",
+    shortName: "🏛 工业声望",
+    subtitle: "奢华石屋 · 高分工坊 · 声望加成",
+    tag: "质量致胜",
+    summary: "不依赖广袤农田，聚焦陶土、石材和芦苇，快速两度翻修进入石屋时代，垄断水井与各加工坊，搭配终局声望职业一举定乾坤。",
+    phases: [
+      { round: "前期 (第 1-4 轮)", desc: "收集陶土与芦苇，第 4 轮石场开放后抢占石材，优先抢下「水井」（累计产 5 食物）。" },
+      { round: "中期 (第 5-8 轮)", desc: "翻修为陶屋后迅速二次翻修为石屋（每间 2 分，终局单房屋可拿 8~10 分）。" },
+      { round: "后期 (第 9-14 轮)", desc: "抢建「木工坊」、「制陶工坊」、「石材工坊」，将手头多余的木/陶/石在终局结算为丰厚胜利点数。" }
+    ],
+    jobs: [
+      { name: "石匠", icon: "⛏", desc: "每轮初自动 +1 石材" },
+      { name: "泥瓦工", icon: "🏺", desc: "每轮初自动 +1 陶土" },
+      { name: "建筑总监", icon: "📐", desc: "终局按砖石高级房屋数量额外累积分数" },
+      { name: "学者导师", icon: "📜", desc: "拥有 ≥3 张改进卡时，终局直接额外 +3 分" },
+      { name: "村中长者", icon: "👴", desc: "全局 0 乞讨卡时，终局额外 +3 分" }
+    ],
+    pros: "占地紧凑，单靠房屋品质与改进卡就能斩获 20~25 点纯分，受外界板块竞争干扰小。",
+    cons: "需提防空地扣分，中后期需适度用小片农田或栅栏填补剩余荒地，避免每块空地扣 1 分。"
+  },
+  {
+    id: "moor",
+    name: "🌲 荒野拓荒保暖流",
+    shortName: "🌲 荒野拓荒",
+    subtitle: "Farmers of the Moor 专属 · 燃料生金 · 沼泽开拓",
+    tag: "Moor专属",
+    summary: "专精 Moor 扩展的“燃料与泥炭”体系，尽早开垦公有沼泽板并建造专属保暖设施，终局将剩余燃料转化为真金白银的胜利点。",
+    phases: [
+      { round: "前期 (第 1-4 轮)", desc: "积极拿取「收集燃料」与「沼泽拓荒」，利用拓荒赠送的燃料轻松熬过第 4 轮收获的保暖检查。" },
+      { round: "中期 (第 5-8 轮)", desc: "抢建「取暖炉」（全家只消耗 1 燃料）或「泥炭窑」（收获期自动获赠燃料）。在公有沼泽板上播种作物计入农田得分。" },
+      { round: "后期 (第 9-14 轮)", desc: "建造「柴火棚」，大量囤积燃料，在终局时每份剩余燃料直接折算为 1 分真实胜利点。" }
+    ],
+    jobs: [
+      { name: "柴火棚", icon: "🪵", desc: "大改进：终局时每份剩余燃料直接 +1 分" },
+      { name: "取暖炉", icon: "🔥", desc: "大改进：每轮收获全家仅需 1 燃料保暖" },
+      { name: "泥炭窑", icon: "🏺", desc: "大改进：每次收获阶段自动获赠 1 燃料" },
+      { name: "烧炭人", icon: "🔥", desc: "伐木时可顺带制备燃料" },
+      { name: "割草甸", icon: "🌾", desc: "专属行动：包揽全部干草堆，喂饱牛群" }
+    ],
+    pros: "化严寒为动力，彻底免去缺燃料扣分，终局凭借庞大燃料储量爆发额外 5~8 分。",
+    cons: "仅在房间启用 Farmers of the Moor 扩展时生效；需要合理分配木材与芦苇以兼顾拓荒成本。"
+  },
+  {
+    id: "balanced",
+    name: "⚖️ 稳健全能平衡流",
+    shortName: "⚖️ 稳健全能",
+    subtitle: "滴水不漏 · 消灭负分 · 稳健高胜率",
+    tag: "新手推荐",
+    summary: "依据计分规则的“断点递进原理”，避免单一项目过度溢出，优先填补各项的“第一档正分”，消除所有负分项，稳拿 40+ 高分。",
+    checklist: [
+      "🌾 耕地：犁出 2~4 块田（田块得分从 -1 跃升至 +1~2 分）",
+      "🥕 作物：至少存留 1 谷 1 菜（分别摆脱 -1 分惩罚）",
+      "🐑 牲畜：羊、猪、牛各养至少 1 对（全部摆脱 -1 分惩罚并能每轮繁殖）",
+      "🏠 房屋：翻修至 3~4 间陶屋（每间 +1 分）",
+      "👶 人丁：发展至 3~4 名家庭成员（每人 +3 分）",
+      "🌲 空地：开垦或圈地填满 15 个格子，0 荒地（消灭所有 -1 分惩罚）"
+    ],
+    chant: "一轮看木苇，二轮备口粮；四轮前造房，五轮速翻修；六轮添丁旺，七轮始耕牧；动物各留种，空地皆成荫。",
+    pros: "容错率极高，全面消灭负分，各项稳步得分，在 2~4 人局中胜率极高。",
+    cons: "若遭遇对手极端卡位某一关键资源（如芦苇），需具备随时调转次选策略的应变能力。"
+  }
+];
+
+let _stratDrawerEl = null;
+let _stratBackdropEl = null;
+let _curStratId = "grain_bake";
+
+export function openStrategyDrawer(stratId = "grain_bake") {
+  if (_stratDrawerEl) {
+    switchStratTab(stratId);
+    return;
+  }
+  _curStratId = stratId;
+
+  _stratBackdropEl = document.createElement("div");
+  _stratBackdropEl.className = "tut-backdrop";
+  _stratBackdropEl.onclick = closeStrategyDrawer;
+  document.body.appendChild(_stratBackdropEl);
+
+  _stratDrawerEl = document.createElement("aside");
+  _stratDrawerEl.className = "tut-drawer";
+  _stratDrawerEl.innerHTML = `
+    <div class="tut-drawer-head">
+      <h2 class="mt0 mb0">💡 农场主流派玩法指南</h2>
+      <button class="btn ghost small" id="stratClose">关闭 ×</button>
+    </div>
+    <div class="tut-drawer-body">
+      <!-- 流派切换 Tab 栏 -->
+      <div class="strat-tabs" id="stratTabList">
+        ${STRATEGIES.map((s) => `
+          <button class="strat-tab-btn ${s.id === _curStratId ? "active" : ""}" data-sid="${s.id}" type="button">
+            ${s.shortName}
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- 流派内容展示区 -->
+      <div id="stratContent"></div>
+    </div>
+  `;
+  document.body.appendChild(_stratDrawerEl);
+  _stratDrawerEl.querySelector("#stratClose").onclick = closeStrategyDrawer;
+
+  // 绑定 Tab 点击事件
+  _stratDrawerEl.querySelectorAll(".strat-tab-btn").forEach((btn) => {
+    btn.onclick = () => switchStratTab(btn.dataset.sid);
+  });
+
+  renderStratContent(_curStratId);
+
+  requestAnimationFrame(() => {
+    _stratBackdropEl.classList.add("show");
+    _stratDrawerEl.classList.add("show");
+  });
+  document.addEventListener("keydown", onStratEscClose);
+}
+
+function switchStratTab(sid) {
+  _curStratId = sid;
+  if (!_stratDrawerEl) return;
+  _stratDrawerEl.querySelectorAll(".strat-tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.sid === sid);
+  });
+  renderStratContent(sid);
+}
+
+function renderStratContent(sid) {
+  if (!_stratDrawerEl) return;
+  const container = _stratDrawerEl.querySelector("#stratContent");
+  if (!container) return;
+  const st = STRATEGIES.find((s) => s.id === sid) || STRATEGIES[0];
+
+  let html = `
+    <div class="kb-card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:16px;color:var(--leaf-dark)">${st.name}</h3>
+        <span class="strat-badge">${st.tag}</span>
+      </div>
+      <p style="margin:6px 0 0;font-size:12px;color:var(--ink-2);font-weight:600">${st.subtitle}</p>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.6;color:var(--ink)">${st.summary}</p>
+    </div>
+  `;
+
+  // 阶段节奏
+  if (st.phases && st.phases.length) {
+    html += `
+      <h4 style="margin:16px 0 8px;font-size:14px;color:var(--ink)">⏱ 运营节奏与阶段重心</h4>
+      <div class="phase-timeline">
+        ${st.phases.map((p) => `
+          <div class="phase-item">
+            <b>${p.round}</b>：${p.desc}
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  // 核心职业 / 卡牌
+  if (st.jobs && st.jobs.length) {
+    html += `
+      <h4 style="margin:16px 0 8px;font-size:14px;color:var(--ink)">🎴 核心职业 / 设施推荐</h4>
+      <div class="job-tags-grid">
+        ${st.jobs.map((j) => `
+          <div class="job-tag-card">
+            <div class="jt-head">${j.icon} ${j.name}</div>
+            <div class="jt-desc">${j.desc}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  // 平衡流检查清单与口诀
+  if (st.checklist) {
+    html += `
+      <h4 style="margin:16px 0 8px;font-size:14px;color:var(--ink)">📋 终局高分黄金检查清单</h4>
+      <ul style="margin:6px 0;padding-left:20px;line-height:1.7;font-size:13px">
+        ${st.checklist.map((item) => `<li>${item}</li>`).join("")}
+      </ul>
+      <div class="tip-box" style="margin-top:12px">
+        <b>💡 农家乐运营口诀：</b><br>
+        <i>${st.chant}</i>
+      </div>
+    `;
+  }
+
+  // 优缺点评价
+  if (st.pros || st.cons) {
+    html += `
+      <div class="strat-procon">
+        <div class="strat-box pro">
+          <b>✅ 核心优势</b><br>${st.pros}
+        </div>
+        <div class="strat-box con">
+          <b>⚠️ 潜在风险与应对</b><br>${st.cons}
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function onStratEscClose(e) {
+  if (e.key === "Escape") closeStrategyDrawer();
+}
+
+export function closeStrategyDrawer() {
+  if (_stratDrawerEl) {
+    _stratDrawerEl.classList.remove("show");
+    setTimeout(() => { _stratDrawerEl?.remove(); _stratDrawerEl = null; }, 280);
+  }
+  if (_stratBackdropEl) {
+    _stratBackdropEl.classList.remove("show");
+    setTimeout(() => { _stratBackdropEl?.remove(); _stratBackdropEl = null; }, 280);
+  }
+  document.removeEventListener("keydown", onStratEscClose);
+}

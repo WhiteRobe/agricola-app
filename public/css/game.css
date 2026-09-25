@@ -646,6 +646,118 @@
   .fab-item { font-size: 12.5px; padding: 8px 14px 8px 10px; }
 }
 
+/* ---- 流派玩法抽屉专用样式 ---- */
+.strat-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  margin-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.strat-tab-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.strat-tab-btn:hover {
+  background: #fff;
+  border-color: var(--leaf);
+  color: var(--ink);
+}
+.strat-tab-btn.active {
+  background: var(--leaf);
+  color: #fff;
+  border-color: var(--leaf-dark);
+  box-shadow: 0 2px 6px rgba(78, 124, 76, 0.35);
+}
+.strat-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(78, 124, 76, 0.15);
+  color: var(--leaf-dark);
+}
+.phase-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+.phase-item {
+  background: var(--panel-2);
+  border-left: 3px solid var(--leaf);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.phase-item b {
+  color: var(--leaf-dark);
+}
+.job-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+.job-tag-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.job-tag-card .jt-head {
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.job-tag-card .jt-desc {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+.strat-procon {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+@media (max-width: 480px) {
+  .strat-procon { grid-template-columns: 1fr; }
+}
+.strat-box {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.strat-box.pro {
+  background: rgba(63, 157, 85, 0.08);
+  border: 1px solid rgba(63, 157, 85, 0.25);
+  color: #245e33;
+}
+.strat-box.con {
+  background: rgba(224, 93, 68, 0.08);
+  border: 1px solid rgba(224, 93, 68, 0.25);
+  color: #792518;
+}
+
 /* ---- 实时排行榜（旧按钮样式保留但不再使用） ---- */
 .leaderboard-btn {
   display: inline-flex; align-items: center; gap: 6px;

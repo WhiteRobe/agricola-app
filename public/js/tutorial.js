@@ -306,7 +306,7 @@ export function openDlcDrawer(dlc) {
   }
   if (seasons) {
     sections.push(`
-      <h3>📅 节气轮转（Through the Seasons）</h3>
+      <h3>📅 节气轮转（四季扩展）</h3>
       <div class="kb-card">
         <p><b>每一轮代表一个季节</b>：开局随机从一个季节起跑，按 <b>春 → 夏 → 秋 → 冬</b> 循环轮转，直到 14 轮结束。季节会改变资源产量、开放/关闭部分行动，并在回合卡区多出一个<b>「节气行动」格</b>（每轮限 1 人）。</p>
         <h4 style="margin:10px 0 6px">四季效果</h4>
@@ -346,7 +346,7 @@ export function openDlcDrawer(dlc) {
           ${occupations ? "<li>🎴 职业</li>" : ""}
           ${minorImprovements ? "<li>🎴 小发展卡</li>" : ""}
           ${moor ? "<li>🌲 沼泽农夫（荒野之地）</li>" : ""}
-          ${seasons ? "<li>📅 节气轮转（Through the Seasons）</li>" : ""}
+          ${seasons ? "<li>📅 节气轮转（四季扩展）</li>" : ""}
           ${(!occupations && !minorImprovements && !moor && !seasons) ? '<li class="muted">（未启用任何 DLC）</li>' : ""}
         </ul>
         <p class="muted" style="font-size:12px;margin-top:8px">

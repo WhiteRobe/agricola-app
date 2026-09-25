@@ -168,7 +168,7 @@ function openRoomConfigModal() {
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgSeasons">
           <div>
-            <div class="dlc-title">📅 节气轮转（Through the Seasons 扩展）</div>
+            <div class="dlc-title">📅 节气轮转（四季扩展）</div>
             <div class="muted" style="font-size:12px">每一轮代表一个季节（春→夏→秋→冬循环轮转）：季节改变资源产量与部分行动（冬季犁地要 1 食物、鱼塘封冻；春季栅栏免费段；夏季建房送马厩、度假得分；秋季大改进减建材），并新增一个「节气行动」格。与其他 DLC 自由叠加。</div>
           </div>
         </label>

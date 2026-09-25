@@ -23,6 +23,7 @@ import {
 
 const ICONS = ["🧑‍🌾", "👩‍🌾", "🧑‍🍳", "👴"];
 const PLAYER_COLORS = ["#e05d44", "#3f9d55", "#3d7ea6", "#d9932f"];
+const HARVEST_ROUNDS_ALL = [4, 7, 9, 11, 13, 14];
 
 /** 客户端本地副本：DLC 卡牌 lookup（用于 DOM 渲染，权威数据由引擎持有） */
 const OCC_LOOKUP = Object.fromEntries(OCCUPATIONS.map((o) => [o.id, o]));
@@ -33,28 +34,28 @@ function minorEffectById(id) { return MINOR_LOOKUP[id] ? MINOR_LOOKUP[id].effect
 // 资源/行动图标 + 中文标签
 const SPACES = [
   // 永远可用（累积型）
-  { id: "Wood",      name: "木",       icon: "🪵", desc: "+1 木头",     pool: "wood", always: true },
-  { id: "Clay",      name: "陶",       icon: "🧱", desc: "+1 陶土",     pool: "clay", always: true },
-  { id: "Reed",      name: "芦苇",     icon: "🎋", desc: "+1 芦苇",     pool: "reed", always: true },
-  { id: "Stone",     name: "石",       icon: "⛏", desc: "第 4 轮起+1 石", pool: "stone", fromRound: 4 },
-  { id: "Grain",     name: "谷",       icon: "🌾", desc: "+1 谷",       pool: "grain", always: true },
-  { id: "Vegetable", name: "菜",       icon: "🥕", desc: "第 4 轮起+1 蔬菜", pool: "vegetable", fromRound: 4 },
-  { id: "Fishing",   name: "钓鱼",     icon: "🐟", desc: "+1 食物",     pool: "food", always: true },
-  { id: "DayLaborer",name: "日工",     icon: "🛠", desc: "+2 食物（消耗 1 家人）", pool: "special", always: true },
+  { id: "Wood",      name: "木材",     icon: "🪵", desc: "每轮累积 +1 木材，取走全部", pool: "wood", always: true },
+  { id: "Clay",      name: "陶土",     icon: "🧱", desc: "每轮累积 +1 陶土，取走全部", pool: "clay", always: true },
+  { id: "Reed",      name: "芦苇",     icon: "🎋", desc: "每轮累积 +1 芦苇，取走全部", pool: "reed", always: true },
+  { id: "Stone",     name: "石材",     icon: "⛏", desc: "第 4 轮起每轮累积 +1 石材，取走全部", pool: "stone", fromRound: 4 },
+  { id: "Grain",     name: "谷物",     icon: "🌾", desc: "每轮累积 +1 谷物，取走全部", pool: "grain", always: true },
+  { id: "Vegetable", name: "蔬菜",     icon: "🥕", desc: "第 4 轮起每轮累积 +1 蔬菜，取走全部", pool: "vegetable", fromRound: 4 },
+  { id: "Fishing",   name: "钓鱼",     icon: "🐟", desc: "每轮累积 +1 食物，取走全部", pool: "food", always: true },
+  { id: "DayLaborer",name: "日工",     icon: "🛠", desc: "打零工立即获得 2 食物（占用 1 名工人）", pool: "special", always: true },
   // 动物市场
-  { id: "Sheep",     name: "羊市",     icon: "🐑", desc: "取走全部羊", pool: "sheep",  fromRound: 5 },
-  { id: "Boar",      name: "猪市",     icon: "🐗", desc: "取走全部猪", pool: "boar",   fromRound: 9 },
-  { id: "Cattle",    name: "牛市",     icon: "🐄", desc: "取走全部牛", pool: "cattle", fromRound: 13 },
+  { id: "Sheep",     name: "羊市",     icon: "🐑", desc: "第 4 轮开放 · 免费牵走格内全部绵羊", pool: "sheep",  fromRound: 4 },
+  { id: "Boar",      name: "猪市",     icon: "🐗", desc: "第 8 轮开放 · 免费牵走格内全部野猪", pool: "boar",   fromRound: 8 },
+  { id: "Cattle",    name: "牛市",     icon: "🐄", desc: "第 12 轮开放 · 免费牵走格内全部黄牛", pool: "cattle", fromRound: 12 },
   // ---- 常规行动：第 1 轮起永久可用 ----
-  { id: "PlowField",     name: "犁地",       icon: "🌱", desc: "放一块田（须与现有田相邻）", alwaysAction: true },
-  { id: "SowOrBake",     name: "撒种/烤面包", icon: "🌾", desc: "田里撒谷/菜，或用烤炉烤面包", alwaysAction: true },
-  { id: "BuildRoom",     name: "建房间",     icon: "🏠", desc: "5 木/陶/石 + 2 芦苇，需邻接现有房间", alwaysAction: true },
-  { id: "StartPlayer",   name: "起始玩家",   icon: "🚜", desc: "拿走起始玩家标记 +1 食物", alwaysAction: true },
+  { id: "PlowField",     name: "犁地",       icon: "🌱", desc: "开垦一块新农田（须与现有农田相邻）", alwaysAction: true },
+  { id: "SowOrBake",     name: "播种/烤面包", icon: "🌾", desc: "在农田播种谷物/蔬菜，或用烤炉将谷物烤成面包", alwaysAction: true },
+  { id: "BuildRoom",     name: "建房间",     icon: "🏠", desc: "扩建房间（每间消耗 5 木材/陶土/石材 + 2 芦苇）", alwaysAction: true },
+  { id: "StartPlayer",   name: "起始玩家",   icon: "🚜", desc: "拿走起始玩家标记，下轮先动并立即 +1 食物", alwaysAction: true },
   // ---- 回合卡行动：按轮次揭示 ----
-  { id: "Fences",        name: "建栅栏",     icon: "🪵", desc: "围出矩形牧场（每段 1 木）", roundCard: true },
-  { id: "FamilyGrowth",  name: "添丁",       icon: "👶", desc: "花 2 食物 + 1 间空房，家人 +1", roundCard: true },
-  { id: "Renovate",      name: "翻修",       icon: "🔨", desc: "整栋翻修（每间 1 陶/石 + 1 芦苇）", roundCard: true },
-  { id: "BuildMajor",    name: "大改进",     icon: "🔧", desc: "建造重大改进（先到先得）", roundCard: true },
+  { id: "Fences",        name: "建栅栏",     icon: "🪵", desc: "围出封闭矩形牧场（每段栅栏消耗 1 木材）", roundCard: true },
+  { id: "FamilyGrowth",  name: "添丁",       icon: "👶", desc: "消耗 2 食物扩充 1 名家庭成员（需有空房间）", roundCard: true },
+  { id: "Renovate",      name: "翻修",       icon: "🔨", desc: "整栋房屋升级（每间消耗 1 陶土/石材 + 1 芦苇）", roundCard: true },
+  { id: "BuildMajor",    name: "大改进",     icon: "🔧", desc: "建造重大改进设施（壁炉、烤炉、水井等）", roundCard: true },
 ];
 
 // id → 中文名；用于把服务端揭示的英文 token 渲染成中文
@@ -64,7 +65,7 @@ const SPACE_NAME_FALLBACK = {
   GatherFuel: "收集燃料",
   CutMeadow: "割草甸",
   ReclaimMoor: "沼泽拓荒",
-  SowMoor: "沼泽撒种",
+  SowMoor: "沼泽播种",
 };
 function spaceName(id) { return SPACE_NAME_ZH[id] || SPACE_NAME_FALLBACK[id] || id; }
 
@@ -351,6 +352,16 @@ export function renderGame(root, s, me, conn) {
   const seasonInfo = SEASONS.find((s) => s.key === season);
   const top = document.createElement("div");
   top.id = "gameHeaderCard";
+  const isCurHarvest = HARVEST_ROUNDS_ALL.includes(g.round);
+  const nextHarvestRound = HARVEST_ROUNDS_ALL.find((r) => r >= g.round);
+  const roundsToHarvest = nextHarvestRound != null ? nextHarvestRound - g.round : 0;
+  const harvestTip = isCurHarvest
+    ? `🌾 【本轮结束触发收获阶段】\n当本轮所有玩家放完工人后，系统将自动依次结算三大步骤：\n① 农田收割：每块已播种农田收 1 份作物（谷物或蔬菜）进库存\n② 喂养家人与房屋取暖：成年人需 2 食物（本轮婴儿需 1 食物）；缺少食物每缺 1 点被迫拿 1 张乞讨卡（-3分）！若开启沼泽农夫扩展，每人还需 1 燃料，每头黄牛需 1 干草\n③ 牲畜繁殖：每种动物持有 ≥2 只且牧场有空位时，自动繁殖 1 只幼崽`
+    : `🌾 【下一次收获阶段倒计时】\n距第 ${nextHarvestRound} 轮结束的收获阶段还剩 ${roundsToHarvest} 轮。\n全剧共有 6 次收获（第 4、7、9、11、13、14 轮结束时）。\n收获阶段由系统自动结算：①农田收割 ②喂饱家人与房屋取暖 ③牲畜繁殖。\n请提前备足口粮与燃料，缺少资源将受到乞讨卡（每张-3分）的严厉惩罚！`;
+  const harvestBadge = isCurHarvest
+    ? `<span class="badge red anim-pulse" style="cursor:help" data-tip="${escapeHtml(harvestTip)}">🌾 本轮结束结算收获</span>`
+    : `<span class="badge" style="cursor:help;color:var(--gold);border-color:var(--gold)" data-tip="${escapeHtml(harvestTip)}">🌾 距收获还剩 ${roundsToHarvest} 轮</span>`;
+
   top.className = "card mb16";
   top.style.padding = "12px 16px";
   top.innerHTML = `
@@ -362,6 +373,7 @@ export function renderGame(root, s, me, conn) {
           ${seasonInfo.icon} ${seasonInfo.label}季${g.dlc?.seasons ? " · 节气轮转" : ""}
         </span>
         <span class="badge gold">阶段 ${g.stage}</span>
+        ${harvestBadge}
         ${g.revealed.length ? `<span class="badge">可用回合卡：${g.revealed.map(spaceName).join(" · ")}</span>` : ""}
       </div>
       <div class="row" style="gap:8px; align-items:center">
@@ -468,16 +480,16 @@ export function renderGame(root, s, me, conn) {
       <div class="action-sub-panel ${_actionSubTab === "moor" ? "active" : ""}" data-panel="moor">
         <div class="section-sub">🌲 沼泽农夫（燃料 / 干草 · 每轮累积）</div>
         <div id="moorPileGrid" class="spaces-grid"></div>
-        <div class="section-sub">🌱 沼泽板（公有 · 4×4 · 拓荒后撒种 / 收获）</div>
+        <div class="section-sub">🌱 沼泽板（公有 · 4×4 · 拓荒后播种 / 收获）</div>
         <div class="moor-board-wrap">
           <div id="moorBoard" class="moor-board"></div>
           <div class="moor-actions">
-            <button class="btn small" id="moorReclaimBtn" type="button" disabled>🌱 拓荒 (-1 木 +1 芦苇)</button>
+            <button class="btn small" id="moorReclaimBtn" type="button" disabled>🌱 拓荒 (-1 木材 -1 芦苇 +1 燃料)</button>
             <div class="moor-actions-row">
-              <button class="btn small" id="moorSowGBtn" type="button" disabled>🌾 撒谷</button>
-              <button class="btn small" id="moorSowVBtn" type="button" disabled>🥕 撒菜</button>
+              <button class="btn small" id="moorSowGBtn" type="button" disabled>🌾 播种谷物</button>
+              <button class="btn small" id="moorSowVBtn" type="button" disabled>🥕 播种蔬菜</button>
             </div>
-            <p class="muted moor-hint">先点沼泽格，再点拓荒或撒种按钮</p>
+            <p class="muted moor-hint">先点沼泽格，再点拓荒或播种按钮</p>
           </div>
         </div>
       </div>` : ""}
@@ -578,7 +590,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     card.dataset.pid = p.id;
     card.dataset.panel = `p${i}`;
 
-    // 计算预计收获轮口粮消耗（成年人 2 食物/人，当轮出生的婴儿 1 食物/人，保姆免食，厨娘总减免 1）
+    // 计算预计收获阶段口粮消耗（成年人 2 食物/人，当轮出生的婴儿 1 食物/人，保姆免食，厨娘总减免 1）
     const adults = Math.max(0, (p.family || 0) - (p.babiesThisRound || 0));
     const babies = p.babiesThisRound || 0;
     const hasWetNurse = p.occupation?.id === "wetNurse";
@@ -587,26 +599,29 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     const cookDiscount = hasCook ? 1 : 0;
     const estFoodNeed = Math.max(0, adults * 2 + babies * babyFoodRate - cookDiscount);
 
-    let foodFormula = `预计收获消耗: ${adults}名家人×2`;
+    let foodFormula = `预计收获阶段口粮消耗: ${adults}名成年家人×2`;
     if (babies > 0) {
       foodFormula += ` + ${babies}名婴儿×${babyFoodRate}${hasWetNurse ? "(保姆免食)" : ""}`;
     }
     if (cookDiscount > 0) {
       foodFormula += ` - 厨娘减免1`;
     }
-    foodFormula += ` = ${estFoodNeed}食物\n（每逢收获节结算：第 4, 7, 9, 11, 13, 14 轮）`;
+    foodFormula += ` = ${estFoodNeed}食物\n【收获阶段说明】游戏共14轮，在第 4、7、9、11、13、14 轮结束时系统自动结算收获。按序执行：①农田收割 ②喂养家人与取暖 ③牲畜繁殖。若食物不足每缺少1点将被迫领取1张乞讨卡（终局每张倒扣3分）！`;
 
-    // 计算预计收获轮柴火消耗（取暖炉保底 1 燃料，否则每名家人 1 燃料）
+    // 计算预计收获阶段柴火消耗（取暖炉保底 1 燃料，否则每名家人 1 燃料）
     const hasHeatingStove = (p.improvements || []).includes("heatingStove");
     const estFuelNeed = hasHeatingStove ? (p.family > 0 ? 1 : 0) : ((p.family || 0) * 1);
 
-    let fuelFormula = `预计收获消耗: `;
+    let fuelFormula = `预计收获阶段取暖消耗: `;
     if (hasHeatingStove) {
-      fuelFormula += `取暖炉加成(全家保底1燃料) = ${estFuelNeed}燃料`;
+      fuelFormula += `取暖炉加成(全家保底仅需1燃料) = ${estFuelNeed}燃料`;
     } else {
       fuelFormula += `${p.family || 0}名家人×1 = ${estFuelNeed}燃料`;
     }
-    fuelFormula += `\n（沼泽农夫扩展：收获节缺少燃料将获得乞讨卡）`;
+    fuelFormula += `\n【沼泽农夫扩展】每逢第 4、7、9、11、13、14 轮结束的收获阶段，除喂食外还必须为房屋取暖，若缺少燃料每缺少1点也将强制获得1张乞讨卡（终局每张倒扣3分）。`;
+
+    const estHayNeed = (p.animals.cattle || 0) * 1;
+    let hayFormula = `预计收获阶段饲料消耗: ${p.animals.cattle || 0}头黄牛×1 = ${estHayNeed}干草\n【沼泽农夫扩展】收获阶段必须为每头黄牛提供1干草，若干草不足将导致黄牛饿死（损失黄牛）。`;
 
     const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null, buffHtml = "", incomeHtml = "") => {
       const tipText = formulaTip ? `${name} · ${formulaTip}` : name;
@@ -640,20 +655,20 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       <div class="stock">
         <div class="stock-row stock-key">
           ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula, resBuff("food"), resInc("food"))}
-          ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false)}
-          ${stk("beggings", "🃏", p.beggings, "乞讨卡", false)}
+          ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false, null, "家人 · 你的家庭成员。每名家人代表每轮可执行1次行动的工人。终局时每名家人直接提供 +3 分！")}
+          ${stk("beggings", "🃏", p.beggings, "乞讨卡", false, null, "乞讨卡 · 当收获阶段食物或燃料不足时被迫获得，每张乞讨卡在终局结算时惩罚性倒扣 3 分！")}
         </div>
         ${_state.game.dlc?.moor ? `<div class="stock-label">沼泽物资</div>
         <div class="stock-row stock-moor">
           ${stk("fuel", tokenSvg("fuel", 20), p.fuel || 0, "燃料", true, estFuelNeed, fuelFormula, "", resInc("fuel"))}
-          ${stk("hay", tokenSvg("hay", 20), p.hay || 0, "干草")}
+          ${stk("hay", tokenSvg("hay", 20), p.hay || 0, "干草", true, estHayNeed, hayFormula)}
         </div>` : ""}
         <div class="stock-label">建材</div>
         <div class="stock-row stock-mat">
           ${stk("wood", tokenSvg("wood", 20), p.resources.wood, "木材", true, null, null, resBuff("wood"), resInc("wood"))}
           ${stk("clay", tokenSvg("clay", 20), p.resources.clay, "陶土", true, null, null, resBuff("clay"), resInc("clay"))}
           ${stk("reed", tokenSvg("reed", 20), p.resources.reed, "芦苇", true, null, null, resBuff("reed"), resInc("reed"))}
-          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石头", true, null, null, resBuff("stone"), resInc("stone"))}
+          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石材", true, null, null, resBuff("stone"), resInc("stone"))}
         </div>
         <div class="stock-label">农产品</div>
         <div class="stock-row stock-crop">
@@ -662,9 +677,9 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
         </div>
         <div class="stock-label">牲畜</div>
         <div class="stock-row stock-animal">
-          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "羊", false, null, null, resBuff("sheep"), resInc("sheep"))}
-          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "猪", false, null, null, resBuff("boar"), resInc("boar"))}
-          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false, null, null, resBuff("cattle"), resInc("cattle"))}
+          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "绵羊", false, null, null, resBuff("sheep"), resInc("sheep"))}
+          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "野猪", false, null, null, resBuff("boar"), resInc("boar"))}
+          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "黄牛", false, null, null, resBuff("cattle"), resInc("cattle"))}
         </div>
       </div>
       ${(() => {
@@ -878,15 +893,15 @@ function renderFarm(wrap, p, myTurn) {
     }
     el.innerHTML = html;
     const kindNames = { empty: "荒地", room: `${houseLabel(p.roomType)}房屋`, field: "耕地" };
-    const cropNames = { grain: "小麦", vegetable: "蔬菜" };
+    const cropNames = { grain: "谷物", vegetable: "蔬菜" };
     let tip = `坐标 (${x}, ${y}) · ${kindNames[cell.kind] || cell.kind}`;
     if (cell.kind === "field") {
-      if (cell.crop) tip += ` · 已播种${cropNames[cell.crop] || cell.crop}（剩余 ${cell.markers ?? 0} 个）`;
-      else tip += " · 闲置田（可撒种）";
+      if (cell.crop) tip += ` · 已播种${cropNames[cell.crop] || cell.crop}（剩余收割次数：${cell.markers ?? 0} 次）`;
+      else tip += " · 闲置田（可播种）";
     }
     const pasture = p.pastures.find(ps => ps.cells.includes(`${x},${y}`));
     if (pasture) {
-      const anNames = { sheep: "羊", boar: "野猪", cattle: "牛" };
+      const anNames = { sheep: "绵羊", boar: "野猪", cattle: "黄牛" };
       tip += ` · 牧场${pasture.animal ? `（放牧 ${anNames[pasture.animal] || pasture.animal}）` : "（空闲）"}`;
     }
     el.title = tip;
@@ -1187,16 +1202,16 @@ function renderMoorBoard(container, g, p, myTurn) {
         if (data.crop) {
           cell.classList.add("is-sown");
           const cropIcon = data.crop === "grain" ? "🌾" : "🥕";
-          const cropZh = data.crop === "grain" ? "小麦" : "蔬菜";
-          cell.innerHTML = `<span class="moor-crop">${cropIcon}</span><span class="moor-marker">×${data.markers || 0}</span><span class="moor-owner" title="撒种者：${escapeHtml(ownerName)}">${escapeHtml(ownerName.slice(0, 3))}</span>`;
-          cell.title = `已拓荒田 (${x}, ${y}) · ${cropZh}（剩余 ${data.markers || 0} 个）· 撒种者：${ownerName}`;
+          const cropZh = data.crop === "grain" ? "谷物" : "蔬菜";
+          cell.innerHTML = `<span class="moor-crop">${cropIcon}</span><span class="moor-marker">×${data.markers || 0}</span><span class="moor-owner" title="播种者：${escapeHtml(ownerName)}">${escapeHtml(ownerName.slice(0, 3))}</span>`;
+          cell.title = `已拓荒农田 (${x}, ${y}) · ${cropZh}（剩余收割次数：${data.markers || 0} 次）· 播种者：${ownerName}`;
         } else {
           cell.innerHTML = `<span class="moor-empty">▢</span>`;
-          cell.title = `已拓荒田 (${x}, ${y}) · 闲置（可撒谷或撒菜）`;
+          cell.title = `已拓荒农田 (${x}, ${y}) · 闲置（可播种谷物或蔬菜）`;
         }
       } else {
         cell.innerHTML = `<span class="moor-locked">#</span>`;
-        cell.title = `沼泽荒地 (${x}, ${y}) · 未拓荒（需 1 木 + 1 芦苇拓荒）`;
+        cell.title = `沼泽荒地 (${x}, ${y}) · 未拓荒（需消耗 1 木材 + 1 芦苇拓荒，奖励 1 燃料）`;
       }
       if (sel) cell.classList.add("is-sel");
       if (myTurn) cell.onclick = () => {
@@ -1786,7 +1801,7 @@ function openSeasonModal(g, p) {
 
   if (season === "spring") {
     const pairs = (["sheep", "boar", "cattle"]).filter((t) => p.animals[t] >= 2)
-      .map((t) => `${({ sheep: "羊", boar: "猪", cattle: "牛" })[t]}×${p.animals[t]}`).join("、");
+      .map((t) => `${({ sheep: "绵羊", boar: "野猪", cattle: "黄牛" })[t]}×${p.animals[t]}`).join("、");
     const emptyFields = [];
     p.grid.forEach((row, y) => row.forEach((c, x) => {
       if (c.kind === "field" && !c.crop) emptyFields.push({ x, y });
@@ -1794,16 +1809,16 @@ function openSeasonModal(g, p) {
     const canSow = emptyFields.length > 0 && (p.resources.grain > 0 || p.resources.vegetable > 0);
     const fieldBtns = canSow ? emptyFields.map((f) => `
       <div class="row" style="gap:6px;align-items:center;margin-bottom:6px">
-        <span class="muted" style="min-width:56px">田 (${f.x},${f.y})</span>
-        ${p.resources.grain > 0 ? `<button class="btn small" data-season-sow="grain" data-x="${f.x}" data-y="${f.y}">🌾 撒谷</button>` : ""}
-        ${p.resources.vegetable > 0 ? `<button class="btn small" data-season-sow="vegetable" data-x="${f.x}" data-y="${f.y}">🥕 撒菜</button>` : ""}
-      </div>`).join("") : `<p class="muted">没有空田或种子，本次只繁殖。</p>`;
+        <span class="muted" style="min-width:56px">农田 (${f.x},${f.y})</span>
+        ${p.resources.grain > 0 ? `<button class="btn small" data-season-sow="grain" data-x="${f.x}" data-y="${f.y}">🌾 播种谷物</button>` : ""}
+        ${p.resources.vegetable > 0 ? `<button class="btn small" data-season-sow="vegetable" data-x="${f.x}" data-y="${f.y}">🥕 播种蔬菜</button>` : ""}
+      </div>`).join("") : `<p class="muted">没有空农田或种子，本次只繁殖。</p>`;
     openModal(title, `
       <div class="tip-box" style="margin-top:0;margin-bottom:12px">
         立即执行一次<b>繁殖阶段</b>：同类动物成对（≥2 只）即 +1 只幼崽（需牧场有容量）。
         ${pairs ? `<br>当前成对：${escapeHtml(pairs)}` : `<br>当前没有成对的动物，繁殖不会产出。`}
       </div>
-      <h4 style="margin:10px 0 6px">可选：顺带撒种一块田</h4>
+      <h4 style="margin:10px 0 6px">可选：顺带为一块农田播种</h4>
       ${fieldBtns}
       <div class="row mt8">
         <button class="btn big" id="mSeasonSpringBreed">🌸 只繁殖</button>
@@ -1848,11 +1863,11 @@ function openSeasonModal(g, p) {
     }));
     openModal(title, `
       <div class="tip-box" style="margin-top:0;margin-bottom:12px">
-        立即执行一次<b>田间阶段</b>：每块有作物的田收 1 个谷/菜（marker −1）。当前有 <b>${sown.length}</b> 块作物田。
+        立即执行一次<b>田间阶段</b>：每块有作物的农田收割 1 份谷物或蔬菜（marker −1）。当前有 <b>${sown.length}</b> 块作物田。
       </div>
       <div class="row mt8" style="flex-wrap:wrap">
         <button class="btn" id="mSeasonAutumnGo">🍂 秋收${sown.length ? `（预计 +${sown.length} 作物）` : ""}</button>
-        <button class="btn" id="mSeasonAutumnVeg">🍂 秋收 + 🥕 拿 1 菜</button>
+        <button class="btn" id="mSeasonAutumnVeg">🍂 秋收 + 🥕 额外拿 1 蔬菜</button>
       </div>
     `, (root) => {
       root.querySelector("#mSeasonAutumnGo").onclick = () => {
@@ -1870,10 +1885,10 @@ function openSeasonModal(g, p) {
   // winter
   openModal(title, `
     <div class="tip-box" style="margin-top:0;margin-bottom:12px">
-      <b>家庭扩建</b>：寒冬室内施工 —— <b>无需空房</b>直接添 1 名家人（本轮出生不干活，下次收获起正常吃饭）。<br>
-      成本：<b>2 木 + 3 食物</b>（你现有 ${p.resources.wood} 木 · ${p.food} 食物 · ${p.family} 名家人）。
+      <b>家庭扩建</b>：寒冬室内施工 —— <b>无需空房</b>直接添 1 名家人（本轮出生不干活，下次收获阶段起正常吃饭）。<br>
+      成本：<b>2 木材 + 3 食物</b>（你现有 ${p.resources.wood} 木材 · ${p.food} 食物 · ${p.family} 名家人）。
     </div>
-    <button class="btn big" id="mSeasonWinterGo" ${p.resources.wood >= 2 && p.food >= 3 && p.family < 5 ? "" : "disabled"}>❄️ 扩建添丁（−2木 −3食物）</button>
+    <button class="btn big" id="mSeasonWinterGo" ${p.resources.wood >= 2 && p.food >= 3 && p.family < 5 ? "" : "disabled"}>❄️ 扩建添丁（−2 木材 −3 食物）</button>
     ${(p.resources.wood < 2 || p.food < 3) ? '<p class="muted" style="color:var(--barn)">资源不足，无法扩建。</p>' : ""}
   `, (root) => {
     const btn = root.querySelector("#mSeasonWinterGo");
@@ -1923,21 +1938,21 @@ const MAJOR_ZH = {
 };
 /** 改进悬浮说明（费用 / 得分 / 效果）—— 修订版数值 */
 const MAJOR_TIP = {
-  fireplace:        "壁炉 · 2 陶 · +1 分\n随时烹饪：2 谷/菜/羊/猪 → 1 食物；3 牛 → 1 食物\n👉 点此标签烹饪",
-  fireplaceBig:     "大壁炉 · 3 陶 · +1 分\n随时烹饪，效果与壁炉完全相同\n👉 点此标签烹饪",
-  cookingHearth:    "烹饪灶 · 4 陶 · +1 分\n随时烹饪：1 谷/菜/羊/猪 → 2 食物；3 牛 → 2 食物\n👉 点此标签烹饪",
-  cookingHearthBig: "大烹饪灶 · 5 陶 · +1 分\n随时烹饪，效果与烹饪灶完全相同\n👉 点此标签烹饪",
-  clayOven:         "陶土烤炉 · 3 陶 + 1 石 · +2 分\n烤面包：每次最多 1 谷 → 5 食物",
-  stoneOven:        "石头烤炉 · 3 石 + 1 陶 · +3 分\n烤面包：每次最多 2 谷 → 每谷 4 食物",
-  well:             "水井 · 3 石 + 1 木 · +4 分\n建成后 5 轮，每轮开始 +1 食物（自动结算）",
-  joinery:          "木工坊 · 2 石 + 2 木 · +2 分\n随时 1 木 → 2 食物（不占行动）\n👉 点此标签转换",
-  pottery:          "陶器坊 · 2 石 + 2 陶 · +2 分\n随时 1 陶 → 2 食物（不占行动）\n👉 点此标签转换",
-  basket:           "编筐坊 · 2 石 + 2 芦苇 · +2 分\n随时 1 芦苇 → 3 食物（不占行动）\n👉 点此标签转换",
-  heatingStove:     "取暖炉 · 3 石 + 2 木 · +2 分\n每轮只消耗 1 燃料取暖（不论家人数）",
-  peatKiln:         "泥炭窑 · 2 陶 + 1 木 · +2 分\n每收获轮自动 +1 燃料",
-  moorCook:         "沼泽灶 · 2 石 + 1 木 · +3 分\n随时烹饪：1 谷/菜/羊/猪 → 2 食物\n👉 点此标签烹饪",
-  tileOven:         "瓷砖烤炉 · 3 石 + 2 陶 · +3 分\n烤面包：最多 2 谷 → 每谷 4 食物",
-  firewood:         "柴火棚 · 2 石 + 2 芦苇 · +2 分\n终局每份剩余燃料 +1 分",
+  fireplace:        "壁炉 · 2 陶土 · +1 分\n随时烹饪：2 谷物/蔬菜/绵羊/野猪 → 1 食物；3 黄牛 → 1 食物\n👉 点此标签烹饪",
+  fireplaceBig:     "大壁炉 · 3 陶土 · +1 分\n随时烹饪，效果与壁炉完全相同\n👉 点此标签烹饪",
+  cookingHearth:    "烹饪灶 · 4 陶土 · +1 分\n随时烹饪：1 谷物/蔬菜/绵羊/野猪 → 2 食物；3 黄牛 → 2 食物\n👉 点此标签烹饪",
+  cookingHearthBig: "大烹饪灶 · 5 陶土 · +1 分\n随时烹饪，效果与烹饪灶完全相同\n👉 点此标签烹饪",
+  clayOven:         "陶土烤炉 · 3 陶土 + 1 石材 · +2 分\n烤面包：每次最多 1 谷物 → 5 食物",
+  stoneOven:        "石头烤炉 · 3 石材 + 1 陶土 · +3 分\n烤面包：每次最多 2 谷物 → 每份谷物 4 食物",
+  well:             "水井 · 3 石材 + 1 木材 · +4 分\n建成后 5 轮，每轮开始 +1 食物（自动结算）",
+  joinery:          "木工坊 · 2 石材 + 2 木材 · +2 分\n收获阶段 1 木材 → 2 食物（不占行动）\n👉 点此标签转换",
+  pottery:          "陶器坊 · 2 石材 + 2 陶土 · +2 分\n收获阶段 1 陶土 → 2 食物（不占行动）\n👉 点此标签转换",
+  basket:           "编筐坊 · 2 石材 + 2 芦苇 · +2 分\n收获阶段 1 芦苇 → 3 食物（不占行动）\n👉 点此标签转换",
+  heatingStove:     "取暖炉 · 3 石材 + 2 木材 · +2 分\n收获阶段全家仅消耗 1 燃料取暖（不论家人数）",
+  peatKiln:         "泥炭窑 · 2 陶土 + 1 木材 · +2 分\n每次收获阶段自动 +1 燃料",
+  moorCook:         "沼泽灶 · 2 石材 + 1 木材 · +3 分\n随时烹饪：1 谷物/蔬菜/绵羊/野猪 → 2 食物；3 黄牛 → 2 食物\n👉 点此标签烹饪",
+  tileOven:         "瓷砖烤炉 · 3 石材 + 2 陶土 · +3 分\n烤面包：每次最多 2 谷物 → 每份谷物 4 食物",
+  firewood:         "柴火棚 · 2 石材 + 2 芦苇 · +2 分\n终局时每份剩余燃料直接折算 1 分胜利点",
 };
 /** 可烹饪/转换的改进 → 消耗比（多少单位换 1 食物，与引擎 cook 字段一致） */
 const COOK_RULES = {
@@ -1969,7 +1984,7 @@ function openCookModal(impName) {
   if (!p || !p.improvements.includes(impName)) return toast("你还没有这个改进", true);
   const rule = COOK_RULES[impName];
   if (!rule) return;
-  const ANIMAL_ZH_C = { sheep: "羊", boar: "猪", cattle: "牛" };
+  const ANIMAL_ZH_C = { sheep: "绵羊", boar: "野猪", cattle: "黄牛" };
   const rows = Object.entries(rule).map(([k, ratio]) => {
     const owned = k === "grain" || k === "vegetable" || k === "wood" || k === "clay" || k === "reed"
       ? (p.resources[k] || 0)
@@ -2025,10 +2040,10 @@ function openCookModal(impName) {
   });
 }
 
-function houseLabel(t) { return t === "wood" ? "木" : t === "clay" ? "陶" : "石"; }
+function houseLabel(t) { return t === "wood" ? "木屋" : t === "clay" ? "陶屋" : "石屋"; }
 function houseEmoji(t) { return t === "wood" ? "🏚" : t === "clay" ? "🛖" : "🏛"; }
 function houseCostLabel(t) {
-  return t === "wood" ? "5 木 + 2 芦苇" : t === "clay" ? "5 陶 + 2 芦苇" : "5 石 + 2 芦苇";
+  return t === "wood" ? "5 木材 + 2 芦苇" : t === "clay" ? "5 陶土 + 2 芦苇" : "5 石材 + 2 芦苇";
 }
 
 /** 房间建造费用（与引擎 ROOM_COST 一致） */
@@ -2039,9 +2054,9 @@ const ROOM_COST_BY_TYPE = {
 };
 /** 资源 key → 中文 */
 function resZh(k) {
-  return ({ wood: "木", clay: "陶", reed: "芦苇", stone: "石", grain: "谷", vegetable: "菜", food: "食物" })[k] || k;
+  return ({ wood: "木材", clay: "陶土", reed: "芦苇", stone: "石材", grain: "谷物", vegetable: "蔬菜", food: "食物", fuel: "燃料", hay: "干草" })[k] || k;
 }
-/** 费用行文本，如 "5 木 + 2 芦苇" */
+/** 费用行文本，如 "5 木材 + 2 芦苇" */
 function costLine(cost) {
   return Object.entries(cost).map(([k, v]) => `${v} ${resZh(k)}`).join(" + ");
 }
@@ -2049,7 +2064,7 @@ function costLine(cost) {
 function canAfford(p, cost) {
   return Object.entries(cost).every(([k, v]) => (p.resources[k] || 0) >= v);
 }
-/** 缺什么，如 "3 木、1 芦苇" */
+/** 缺什么，如 "3 木材、1 芦苇" */
 function shortfall(p, cost) {
   const lack = Object.entries(cost)
     .filter(([k, v]) => (p.resources[k] || 0) < v)
@@ -2064,33 +2079,33 @@ function shortfall(p, cost) {
 /** 取用行动格 → 职业额外收益表（与引擎 handleTake 钩子一一对应） */
 const TAKE_BUFF_TABLE = {
   Wood: [
-    { occ: "lumberjack", label: "柴夫", extra: "额外 +1 木" },
+    { occ: "lumberjack", label: "柴夫", extra: "额外 +1 木材" },
     { occ: "forestCustodian", label: "护林员", extra: "额外 +1 芦苇" },
     { occ: "mushroomCollector", label: "蘑菇采摘人", extra: "额外 +1 食物" },
     { occ: "hunter", label: "猎人", extra: "额外 +1 食物" },
     { occ: "trapper", label: "野味设阱师", extra: "额外 +1 食物" },
-    { occ: "silviculturist", label: "林农", extra: "取走 ≥3 木时额外 +1 食物" },
+    { occ: "silviculturist", label: "林农", extra: "取走 ≥3 木材时额外 +1 食物" },
     { occ: "charcoalBurner", label: "炭烧工", extra: "额外 +1 燃料（无沼泽扩展时 +1 食物）" },
   ],
   Clay: [
-    { occ: "clayCarrier", label: "运泥工", extra: "额外 +1 陶" },
-    { occ: "miner", label: "矿工", extra: "额外 +1 陶" },
-    { occ: "gravelCarrier", label: "砾石搬运工", extra: "额外 +1 石" },
+    { occ: "clayCarrier", label: "运泥工", extra: "额外 +1 陶土" },
+    { occ: "miner", label: "矿工", extra: "额外 +1 陶土" },
+    { occ: "gravelCarrier", label: "砾石搬运工", extra: "额外 +1 石材" },
     { occ: "peatCutter", label: "泥炭割工", extra: "额外 +1 燃料（无沼泽扩展时 +1 食物）" },
   ],
   Reed: [
     { occ: "reedCollector", label: "割苇人", extra: "额外 +1 芦苇" },
   ],
   Stone: [
-    { occ: "quarryman", label: "采石工", extra: "额外 +1 石" },
-    { occ: "miner", label: "矿工", extra: "额外 +1 石" },
+    { occ: "quarryman", label: "采石工", extra: "额外 +1 石材" },
+    { occ: "miner", label: "矿工", extra: "额外 +1 石材" },
   ],
   Grain: [
-    { occ: "seedMerchant", label: "种子商人", extra: "额外 +1 谷" },
-    { occ: "grainInspector", label: "谷物检验员", extra: "额外 +1 谷" },
+    { occ: "seedMerchant", label: "种子商人", extra: "额外 +1 谷物" },
+    { occ: "grainInspector", label: "谷物检验员", extra: "额外 +1 谷物" },
   ],
   Vegetable: [
-    { occ: "seedMerchant", label: "种子商人", extra: "额外 +1 菜" },
+    { occ: "seedMerchant", label: "种子商人", extra: "额外 +1 蔬菜" },
   ],
   Fishing: [
     { occ: "fisher", label: "渔夫", extra: "额外 +1 食物" },
@@ -2099,12 +2114,12 @@ const TAKE_BUFF_TABLE = {
   ],
   DayLaborer: [
     { occ: "dayLaborer", label: "打工达人", extra: "额外 +1 食物（共 3 食物）" },
-    { occ: "oddJobMan", label: "杂务工", extra: "额外 +1 木" },
-    { occ: "laborBroker", label: "劳工经纪", extra: "额外 +1 陶" },
+    { occ: "oddJobMan", label: "杂务工", extra: "额外 +1 木材" },
+    { occ: "laborBroker", label: "劳工经纪", extra: "额外 +1 陶土" },
   ],
-  Sheep: [{ occ: "shepherd", label: "牧羊人", extra: "额外 +1 只羊" }],
-  Boar: [{ occ: "swineherd", label: "养猪人", extra: "额外 +1 只猪" }],
-  Cattle: [{ occ: "cattleFarmer", label: "牧牛人", extra: "额外 +1 只牛" }],
+  Sheep: [{ occ: "shepherd", label: "牧羊人", extra: "额外 +1 只绵羊" }],
+  Boar: [{ occ: "swineherd", label: "养猪人", extra: "额外 +1 只野猪" }],
+  Cattle: [{ occ: "cattleFarmer", label: "牧牛人", extra: "额外 +1 只黄牛" }],
 };
 const RES_TO_SPACE = { wood: "Wood", clay: "Clay", reed: "Reed", stone: "Stone", grain: "Grain", vegetable: "Vegetable", food: "Fishing", sheep: "Sheep", boar: "Boar", cattle: "Cattle" };
 /** 该玩家在某个行动格取用时的职业加成列表 */
@@ -2124,10 +2139,10 @@ function roomBuildCost(p) {
   const cost = { ...ROOM_COST_BY_TYPE[p.roomType] };
   const notes = [];
   if (p.occupation?.id === "carpenter" && p.roomType === "wood" && cost.wood) {
-    cost.wood -= 1; notes.push("「木匠」职业：建木屋 −1 木");
+    cost.wood -= 1; notes.push("「木匠」职业：建木屋 −1 木材");
   }
   if (p.occupation?.id === "bricklayer" && p.roomType === "clay" && cost.clay) {
-    cost.clay -= 1; notes.push("「砌砖工」职业：建陶屋 −1 陶");
+    cost.clay -= 1; notes.push("「砌砖工」职业：建陶屋 −1 陶土");
   }
   if ((p.occupation?.id === "wainwright" || p.occupation?.id === "thatcher") && cost.reed) {
     cost.reed -= 1; notes.push(`「${p.occupation.id === "wainwright" ? "车匠" : "盖顶工"}」职业：建房 −1 芦苇`);
@@ -2142,20 +2157,20 @@ function renovateCost(p, direction) {
   const notes = [];
   if (p.occupation?.id === "renovator" && cost.reed) { cost.reed = 0; notes.push("「翻修工」职业：翻修免芦苇"); }
   if (p.occupation?.id === "thatcher" && cost.reed) { cost.reed -= 1; notes.push("「盖顶工」职业：翻修 −1 芦苇"); }
-  if (p.occupation?.id === "bricklayer" && cost.clay) { cost.clay -= 1; notes.push("「砌砖工」职业：翻修 −1 陶"); }
-  if (p.occupation?.id === "masterMason" && direction === "clayToStone" && cost.stone) { cost.stone -= 1; notes.push("「石工大师」职业：翻修石屋 −1 石"); }
+  if (p.occupation?.id === "bricklayer" && cost.clay) { cost.clay -= 1; notes.push("「砌砖工」职业：翻修 −1 陶土"); }
+  if (p.occupation?.id === "masterMason" && direction === "clayToStone" && cost.stone) { cost.stone -= 1; notes.push("「石工大师」职业：翻修石屋 −1 石材"); }
   return { cost, notes };
 }
 /** 大改进实付费用（与引擎 buildMajor 折扣规则一致） */
 function majorBuildCost(p, costObj) {
   const cost = { ...(costObj || {}) };
   const notes = [];
-  if (p.occupation?.id === "cooper" && cost.wood) { cost.wood -= 1; notes.push("「箍桶匠」职业：建改进 −1 木"); }
-  if (p.occupation?.id === "blacksmith" && cost.stone) { cost.stone -= 1; notes.push("「铁匠」职业：建改进 −1 石"); }
-  if (p.occupation?.id === "kilnMaster" && cost.clay) { cost.clay -= 1; notes.push("「窑炉大师」职业：建改进 −1 陶"); }
+  if (p.occupation?.id === "cooper" && cost.wood) { cost.wood -= 1; notes.push("「箍桶匠」职业：建改进 −1 木材"); }
+  if (p.occupation?.id === "blacksmith" && cost.stone) { cost.stone -= 1; notes.push("「铁匠」职业：建改进 −1 石材"); }
+  if (p.occupation?.id === "kilnMaster" && cost.clay) { cost.clay -= 1; notes.push("「窑炉大师」职业：建改进 −1 陶土"); }
   return { cost, notes };
 }
-/** 带减免徽章的费用行：如 "5 木 −1木 + 2 芦苇"，悬浮注明来源职业 */
+/** 带减免徽章的费用行：如 "5 木材 −1木材 + 2 芦苇"，悬浮注明来源职业 */
 function annotatedCostLine(base, disc, notes) {
   return Object.entries(base).map(([k, v]) => {
     const d = disc[k] ?? v;
@@ -2172,7 +2187,6 @@ function annotatedCostLine(base, disc, notes) {
 // （水井、永久小发展卡、被动职业、田地阶段、蜂箱、繁殖等）
 // Stock 上显示虚线框 (+N)，悬浮注明每笔来源与结算时机
 // ============================================================
-const HARVEST_ROUNDS_ALL = [4, 7, 9, 11, 13, 14];
 function autoIncomeFor(p, g) {
   const inc = {}; // resKey -> { amount, lines[] }
   const add = (key, n, line) => {
@@ -2220,15 +2234,15 @@ function autoIncomeFor(p, g) {
 
   // —— 下次收获（自动结算：田地 / 蜂箱 / 繁殖等）——
   if (nextHarvest) {
-    const when = `第 ${nextHarvest} 轮收获`;
+    const when = `第 ${nextHarvest} 轮收获阶段`;
     let gf = 0, vf = 0;
     p.grid.forEach((row) => row.forEach((c) => {
       if (c.kind === "field" && c.crop && (c.markers || 0) > 0) {
         if (c.crop === "grain") gf++; else vf++;
       }
     }));
-    if (gf) add("grain", gf, `${when} · ${gf} 块谷田各 +1`);
-    if (vf) add("vegetable", vf, `${when} · ${vf} 块菜田各 +1`);
+    if (gf) add("grain", gf, `${when} · ${gf} 块谷物田各收割 1 谷物`);
+    if (vf) add("vegetable", vf, `${when} · ${vf} 块蔬菜田各收割 1 蔬菜`);
     if ((p.minorImprovements || []).includes("mi.beehive")) add("food", 1, `${when} · 蜂箱`);
     if ((p.improvements || []).includes("peatKiln")) add("fuel", 1, `${when} · 泥炭窑`);
     const oid = p.occupation?.id;
@@ -2237,6 +2251,15 @@ function autoIncomeFor(p, g) {
     if (oid === "beekeeper") add("food", 2, `${when} · 职业「养蜂人」`);
     if (oid === "milker" && (p.animals.sheep >= 1 || p.animals.cattle >= 1)) add("food", 1, `${when} · 职业「挤奶工」`);
     if (oid === "woolWeaver" && p.animals.sheep >= 1) add("food", 1, `${when} · 职业「羊毛织工」`);
+    const fieldCnt = p.grid.flat().filter((c) => c.kind === "field").length;
+    if (oid === "smallholder" && fieldCnt <= 2) add("grain", 1, `${when} · 职业「小农」（田 ≤2 块）`);
+    // 繁殖：同类成对自动 +1（需牧场有空位）
+    (["sheep", "boar", "cattle"]).forEach((t) => {
+      if (p.animals[t] >= 2) {
+        add(t, 1, `${when} · 繁殖（${({ sheep: "绵羊", boar: "野猪", cattle: "黄牛" })[t]}成对，需牧场有空位）`);
+      }
+    });
+  }
     const fieldCnt = p.grid.flat().filter((c) => c.kind === "field").length;
     if (oid === "smallholder" && fieldCnt <= 2) add("grain", 1, `${when} · 职业「小农」（田 ≤2 块）`);
     // 繁殖：同类成对自动 +1（需牧场有空位）
@@ -2482,64 +2505,72 @@ function closeLeaderboard() {
 /** 与引擎 constants.ts 保持一致的速查数据 */
 const RULES_DATA = {
   resources: [
-    ["🪵 森林", "每轮 +1 木，取走全部"],
-    ["🧱 陶坑", "每轮 +1 陶，取走全部"],
-    ["🎋 芦苇滩", "每轮 +1 芦苇，取走全部"],
-    ["⛏ 石场", "第 4 轮起，每轮 +1 石"],
-    ["🌾 谷堆", "每轮 +1 谷，取走全部"],
-    ["🥕 菜地", "第 4 轮起，每轮 +1 菜"],
-    ["🐟 钓鱼", "每轮 +1 食物"],
-    ["🛠 日工", "+2 食物（无成本，但占用 1 名家人）"],
+    ["🪵 木材堆", "每轮累积 +1 木材，取走格内全部"],
+    ["🧱 陶土坑", "每轮累积 +1 陶土，取走格内全部"],
+    ["🎋 芦苇滩", "每轮累积 +1 芦苇，取走格内全部"],
+    ["⛏ 采石场", "第 4 轮起开放，每轮累积 +1 石材，取走全部"],
+    ["🌾 谷物堆", "每轮累积 +1 谷物，取走格内全部"],
+    ["🥕 蔬菜地", "第 4 轮起开放，每轮累积 +1 蔬菜，取走全部"],
+    ["🐟 鱼塘", "每轮累积 +1 食物，取走格内全部"],
+    ["🛠 日工", "立即获得 2 食物（无建材成本，但占用 1 名工人）"],
   ],
   animals: [
-    ["🐑 羊市", "第 4 轮开放 · 每轮累积 +1 · 取走全部（免费）", "🏠 每格牧场 2 只 · 羊 8 只 = 4 分"],
-    ["🐗 猪市", "第 8 轮开放 · 每轮累积 +1 · 取走全部（免费）", "🏠 每格牧场 2 只 · 猪 7 只 = 4 分"],
-    ["🐄 牛市", "第 12 轮开放 · 每轮累积 +1 · 取走全部（免费）", "🏠 每格牧场 2 只 · 牛 6 只 = 4 分"],
+    ["🐑 羊市", "第 4 轮开放 · 每轮累积 +1 只绵羊 · 取走全部（免费）", "🏠 每格牧场容纳 2 只 · 绵羊 8 只 = 4 分"],
+    ["🐗 猪市", "第 8 轮开放 · 每轮累积 +1 只野猪 · 取走全部（免费）", "🏠 每格牧场容纳 2 只 · 野猪 7 只 = 4 分"],
+    ["🐄 牛市", "第 12 轮开放 · 每轮累积 +1 只黄牛 · 取走全部（免费）", "🏠 每格牧场容纳 2 只 · 黄牛 6 只 = 4 分"],
   ],
   buildings: [
-    ["🏠 建房间", "每间 5 木/陶/石（按房屋材料）+ 2 芦苇", "必须与现有房间正交相邻 · 每间 +1 居住位"],
-    ["🪵 建栅栏", "每段 1 木 · 每人最多 15 段", "必须围成完整矩形牧场；栅栏不可拆除"],
-    ["🔨 翻修", "整栋一起翻 · 每间 1 陶/石 + 1 芦苇", "木屋 0 分 → 陶屋 1 分/间 → 石屋 2 分/间"],
+    ["🏠 建房间", "每间消耗 5 木材/陶土/石材（按现有房屋材质）+ 2 芦苇", "必须与现有房间正交相邻 · 每间增加 1 个工人居住位"],
+    ["🪵 建栅栏", "每段消耗 1 木材 · 每人最多建造 15 段栅栏", "必须围成封闭的完整矩形牧场；栅栏不可拆除"],
+    ["🔨 翻修", "整栋房屋全部翻新 · 每间消耗 1 陶土/石材 + 1 芦苇", "木屋 0 分 → 陶屋 1 分/间 → 石屋 2 分/间"],
   ],
   majors: [
-    ["壁炉", "2 陶", "1 分", "2 谷/菜/羊/猪 → 1 食物；3 牛 → 1 食物（随时可用）"],
-    ["大壁炉", "3 陶", "1 分", "与壁炉完全相同（适合陶多 / 想多占 1 分时建）"],
-    ["烹饪灶", "4 陶", "1 分", "1 谷/菜/羊/猪 → 2 食物；3 牛 → 2 食物（随时可用）"],
-    ["大烹饪灶", "5 陶", "1 分", "与烹饪灶完全相同（适合陶多 / 想多占 1 分时建）"],
-    ["陶土烤炉", "3 陶 + 1 石", "2 分", "烤面包：最多 1 谷 → 5 食物"],
-    ["石头烤炉", "3 石 + 1 陶", "3 分", "烤面包：最多 2 谷 → 每谷 4 食物"],
-    ["水井", "3 石 + 1 木", "4 分", "未来 5 轮每轮开始 +1 食物"],
-    ["木工坊", "2 石 + 2 木", "2 分", "每轮收获可将 1 木 → 2 食物"],
-    ["陶器坊", "2 石 + 2 陶", "2 分", "每轮收获可将 1 陶 → 2 食物"],
-    ["编筐坊", "2 石 + 2 芦苇", "2 分", "每轮收获可将 1 芦苇 → 3 食物"],
+    ["壁炉", "2 陶土", "1 分", "随时烹饪：2 谷物/蔬菜/绵羊/野猪 → 1 食物；3 黄牛 → 1 食物"],
+    ["大壁炉", "3 陶土", "1 分", "随时烹饪，功能与壁炉完全相同（陶土充足时可建来抢分）"],
+    ["烹饪灶", "4 陶土", "1 分", "随时烹饪：1 谷物/蔬菜/绵羊/野猪 → 2 食物；3 黄牛 → 2 食物"],
+    ["大烹饪灶", "5 陶土", "1 分", "随时烹饪，功能与烹饪灶完全相同（陶土充足时可建来抢分）"],
+    ["陶土烤炉", "3 陶土 + 1 石材", "2 分", "烤面包行动：每次最多 1 谷物 → 5 食物"],
+    ["石头烤炉", "3 石材 + 1 陶土", "3 分", "烤面包行动：每次最多 2 谷物 → 每份谷物 4 食物"],
+    ["水井", "3 石材 + 1 木材", "4 分", "建成后未来 5 轮，每轮开始时自动获得 1 食物"],
+    ["木工坊", "2 石材 + 2 木材", "2 分", "收获阶段可将 1 木材 → 2 食物"],
+    ["陶器坊", "2 石材 + 2 陶土", "2 分", "收获阶段可将 1 陶土 → 2 食物"],
+    ["编筐坊", "2 石材 + 2 芦苇", "2 分", "收获阶段可将 1 芦苇 → 3 食物"],
+  ],
+  harvest: [
+    ["🌾 步骤一：农田收割", "每块已播种农田自动收割 1 份作物（谷物或蔬菜）进入库存。收割后农田变空可再次播种。不消耗工人。"],
+    ["🍞 步骤二：喂养家人与取暖", "每位成年家人消耗 2 食物（本轮新生儿只需 1 食物）。食物不足自动用库存谷物/蔬菜 1:1 折抵。若仍不足，每缺 1 点被迫拿 1 张乞讨卡（终局每张 -3 分）！若开启沼泽农夫扩展，每人还需 1 燃料，每头牛需 1 干草。"],
+    ["🐣 步骤三：牲畜繁殖", "同种动物持有 ≥2 只（至少 2 只绵羊、2 只野猪或 2 只黄牛）时，自动繁殖 1 只该种幼崽！前提是农场有空余牧场容量能容纳它。"],
   ],
   roles: [
-    ["👨‍👩‍👧 家人（人丁）", "每人每轮 = <b>1 次行动</b>（工放）。收获时每人需 <b>2 食物</b>；食物不够 → 每缺 1 点 = 1 张乞讨卡（-3 分）。每名家人终局 <b>+3 分</b>。"],
-    ["👶 添丁", "花 2 食物 + 1 间空房，家人 +1（上限 5 人）。<b>新生儿当轮不能工作</b>，该轮收获只需喂 1 食物；下一轮起正常。"],
-    ["🐑 牲畜", "三大作用：① <b>计分</b>（羊 8/猪 7/牛 6 只 = 4 分，各档见计分表）；② <b>繁殖</b>（收获时同类 ≥2 只 → 自动 +1 只，需有容量）；③ <b>烹饪</b>（用壁炉/烹饪灶换成食物救急）。"],
-    ["🐣 繁殖与容量", "每格牧场容纳 2 只；一个牧场只能养一种动物。容量不足则不繁殖，多出的动物跑掉。围好栅栏不会自动来动物，需要去动物市场拿。"],
-    ["🍞 喂养", "收获顺序：① 每块田产 1 谷/菜 → ② 每人吃 2 食物（可用谷/菜抵 1 食物）→ ③ 繁殖。收获在第 4/7/9/11/13/14 轮后进行。"],
+    ["👨‍👩‍👧 家人（工人）", "每名家人每轮 = <b>1 次工人行动机会</b>。收获阶段每人需 <b>2 食物</b>；食物不够 → 每缺 1 点被迫拿 <b>1 张乞讨卡</b>（终局 -3 分）。每名家人终局自带 <b>+3 分</b>。"],
+    ["👶 添丁", "消耗 <b>2 食物</b> + 需要 <b>1 间空房间</b>，家庭成员 +1（上限 5 人）。<b>新生儿当轮不能工作</b>，当轮收获只需吃 1 食物；下一轮起成为正式工人。"],
+    ["🐑 牲畜", "三大作用：① <b>终局计分</b>（绵羊 8只/野猪 7只/黄牛 6只 = 满分 4 分，无对应牲畜扣 1 分）；② <b>成对繁殖</b>（收获阶段同类 ≥2 只自动繁殖 1 只幼崽，需有空余容量）；③ <b>烹饪换粮</b>（建造壁炉/烹饪灶随时将牲畜宰杀换为大量食物）。"],
+    ["🐣 牧场容量规则", "每格牧场能容纳 2 只牲畜；一个封闭牧场只能饲养同一种牲畜。容量不足则多出的幼崽逃跑。围好栅栏不会凭空出现动物，需要去动物市场牵取或等待成对繁殖。"],
   ],
   /** 回合卡时间表 */
   schedule: [
-    ["第 1 轮", "建栅栏（此后永久可用）"],
-    ["第 3 轮", "建造重大改进（此后永久可用）"],
-    ["第 4 轮", "★ 羊市、石场、菜地开放"],
-    ["第 5 轮", "翻修（此后永久可用）"],
-    ["第 6 轮", "添丁（此后永久可用）"],
+    ["第 1 轮", "建栅栏（揭示后永久可用）"],
+    ["第 3 轮", "大改进（抢建壁炉、烤炉、水井等，永久可用）"],
+    ["第 4 轮", "★ 羊市、采石场、蔬菜地开放 · 轮末结算第 1 次【收获阶段】"],
+    ["第 5 轮", "翻修（升级木屋为陶屋/石屋，永久可用）"],
+    ["第 6 轮", "添丁（有空房时扩充人口，永久可用）"],
+    ["第 7 轮", "轮末结算第 2 次【收获阶段】"],
     ["第 8 轮", "★ 猪市开放"],
+    ["第 9 轮", "轮末结算第 3 次【收获阶段】"],
+    ["第 11 轮", "轮末结算第 4 次【收获阶段】"],
     ["第 12 轮", "★ 牛市开放"],
-    ["第 14 轮", "最后一轮 · 结束后结算"],
+    ["第 13 轮", "轮末结算第 5 次【收获阶段】"],
+    ["第 14 轮", "最后一轮 · 轮末结算第 6 次【收获阶段】· 随后游戏终局计分"],
   ],
   always: [
-    ["🪵 木 / 🧱 陶 / 🎋 芦苇", "每轮累积 +1，取走全部"],
-    ["🌾 谷", "每轮累积 +1（建田地前也能拿）"],
-    ["🐟 钓鱼", "每轮累积 +1 食物"],
-    ["🛠 日工", "固定 +2 食物"],
-    ["🌱 犁地", "放一块田（须与现有田相邻）"],
-    ["🌾 撒种 / 烤面包", "田里撒谷/菜；或用烤炉烤面包"],
-    ["🏠 建房间", "5 木/陶/石 + 2 芦苇，须邻接现有房间"],
-    ["🚜 起始玩家", "拿走标记 +1 食物"],
+    ["🪵 木材 / 🧱 陶土 / 🎋 芦苇", "每轮累积 +1，取走格内全部资源"],
+    ["🌾 谷物", "每轮累积 +1 谷物（未开垦农田前也能拿取备用）"],
+    ["🐟 钓鱼", "每轮累积 +1 食物，取走格内全部"],
+    ["🛠 日工", "固定获得 2 食物（无资源成本，但占用 1 名工人）"],
+    ["🌱 犁地", "在农场开垦 1 块新农田（须与现有农田相邻）"],
+    ["🌾 播种 / 烤面包", "在空农田上播种谷物/蔬菜；或使用烤炉烘烤谷物换取海量食物"],
+    ["🏠 建房间", "每间 5 木材/陶土/石材 + 2 芦苇，须邻接现有房间"],
+    ["🚜 起始玩家", "成为下轮起始玩家，并立即拿走 1 食物"],
   ],
 };
 
@@ -2560,6 +2591,9 @@ function openRulesSheet(g) {
         <button class="btn ghost small" id="rulesClose">关闭</button>
       </div>
 
+      <h4 class="rules-h">🌾 收获阶段详解（第 4/7/9/11/13/14 轮末自动结算）</h4>
+      ${RULES_DATA.harvest.map(([k, v]) => `<div class="rules-note"><b>${k}</b><br>${v}</div>`).join("")}
+
       <h4 class="rules-h">🪵 永久资源格（第 1 轮起可用）</h4>
       ${tbl(RULES_DATA.resources.map(([k, v]) => [k, v]), 2)}
 
@@ -2569,13 +2603,13 @@ function openRulesSheet(g) {
       <h4 class="rules-h">🎴 回合卡时间表</h4>
       ${tbl(RULES_DATA.schedule.map(([k, v]) => [k, v]), 2)}
       <p class="muted" style="font-size:12px;margin:6px 0 0">
-        收获在第 4 / 7 / 9 / 11 / 13 / 14 轮后进行（先田产 → 再喂养 → 最后繁殖）。
+        收获阶段在第 4 / 7 / 9 / 11 / 13 / 14 轮后自动进行（先田产收割 → 再喂养取暖 → 最后牲畜繁殖）。
       </p>
 
       <h4 class="rules-h">🐑 动物市场（累积格 · 免费）</h4>
       ${tbl(RULES_DATA.animals.map(([k, v, n]) => [k, v, n]), 3)}
       <p class="muted" style="font-size:12px;margin:6px 0 0">
-        取用动物格时拿走该格<b>全部</b>动物；养不下的会跑回供应区。需先围出牧场才能容纳。
+        取用动物格时拿走该格<b>全部</b>动物；养不下的会跑回供应区。需先围出封闭牧场才能容纳。
       </p>
 
       <h4 class="rules-h">🏗 建筑与改造</h4>
@@ -2588,7 +2622,7 @@ function openRulesSheet(g) {
       ${RULES_DATA.roles.map(([k, v]) => `<div class="rules-note"><b>${k}</b><br>${v}</div>`).join("")}
 
       <p class="muted" style="font-size:12px;margin-top:12px">
-        依据《农场主》家庭变体规则整理。计分阈值见结算页或排行榜。
+        依据《农家乐》2016 正统规则整理。计分阈值见结算页或排行榜。
       </p>
     </div>
   `;
@@ -2761,41 +2795,47 @@ function applySeasonTheme(round) {
 // ============================================================
 const GUIDE_STEPS = [
   {
-    title: "🚜 欢迎来到《农场主》",
-    body: "你是一个 17 世纪的农场主，要在 14 轮内把一片荒地发展成兴旺的农庄。顶部显示当前轮次、季节与下一次收获倒计时。<br><br>每轮核心循环：揭开新行动 → 累积资源 → 派工人做工 → 回家 → 关键轮次触发收获。",
+    title: "🚜 欢迎来到《农家乐》",
+    body: "你是一个 17 世纪的农场主，要在 14 轮内把一片荒地发展成兴旺的农庄。顶部显示当前轮次、阶段、季节以及下一次收获阶段倒计时。<br><br>每轮核心循环：揭开新行动 → 资源自动累积 → 派遣家人做工 → 工人回家 → 关键轮次自动结算收获阶段。",
     selector: "#gameHeaderCard",
     tab: "home",
   },
   {
     title: "🪵 基础资源格",
-    body: "木🪵、陶🧱、芦苇🎋、石⛏ 是建房与造栅栏的建材。谷🌾、菜🥕 可播种或烹饪，食物🍞 是每轮喂饱家人的必需品。点击即可派遣工人取走格内累积的全部资源。",
+    body: "木材🪵、陶土🧱、芦苇🎋、石材⛏ 是建房与造栅栏的建材。谷物🌾、蔬菜🥕 可播种或烹饪，食物🍞 是收获阶段喂饱家人的必需品。点击即可派遣工人取走格内累积的全部资源。",
     selector: "#alwaysGrid",
     tab: "common",
     subTab: "resources",
   },
   {
     title: "🐑 动物市场",
-    body: "轮 5 起买羊、轮 9 起买猪、轮 13 起买牛。每轮免费自动新增 1 只。注意：要在棋盘上先用栅栏围出矩形牧场才能养动物（每格牧场可养 2 只）。",
+    body: "第 4 轮起开放羊市、第 8 轮起开放猪市、第 12 轮起开放牛市。每轮免费自动累积 1 只，取用时牵走全部。注意：必须在棋盘上先用栅栏围出封闭矩形牧场才能容纳动物（每格牧场容纳 2 只，单牧场仅能饲养同一种动物）。",
     selector: "#animalGrid",
     tab: "common",
     subTab: "resources",
   },
   {
     title: "🎯 常规与回合卡行动",
-    body: "每轮揭示新的行动卡（揭出后永久可用，每轮每格限 1 人）。<br>· <b>起始玩家</b>：拿走标记 +1 食物<br>· <b>建房/犁地/播种/建栅栏/添丁/翻修</b>：点击卡看要求后在棋盘操作<br>· <b>播种/烤面包</b>：点击后选择田地或烤面包数量",
+    body: "每轮揭示新的行动回合卡（翻开后整局永久可用，每轮每格限 1 人）。<br>· <b>起始玩家</b>：夺得下轮先手并立即 +1 食物<br>· <b>建房间/犁地/播种/建栅栏/添丁/翻修</b>：点击卡牌查看要求后在棋盘上操作<br>· <b>播种/烤面包</b>：点击后选择农田播种或选择烤面包数量",
     selector: "#roundGrid",
     tab: "common",
     subTab: "actions",
   },
   {
+    title: "🌾 【重要】关键结算：收获阶段",
+    body: "全剧在 <b>第 4、7、9、11、13、14 轮结束时</b> 自动触发收获阶段！由系统按序自动结算三件事：<br>① <b>农田收割</b>：每块已播种农田收 1 份作物（谷物或蔬菜）进库存；<br>② <b>喂饱家人与取暖</b>：每名成年家人吃 2 食物（本轮新生儿 1 食物），食物不足将被迫领取惩罚性的<b>乞讨卡（终局每张 -3 分）</b>！若开启沼泽农夫扩展，每人还需 1 燃料取暖，每头牛需 1 干草；<br>③ <b>牲畜繁殖</b>：同种动物持有 ≥2 只且牧场有空位时，自动繁殖 1 只幼崽。请务必提前备足口粮！",
+    selector: "#gameHeaderCard",
+    tab: "home",
+  },
+  {
     title: "👨‍🌾 你的家园与当前回合",
-    body: "轮到行动的玩家：资源卡 + 农场卡都加亮绿色边框 + 右上角「👉 该他行动」徽章。<br>在个人面板可清晰查看你的工人剩余数、仓库库存与已就任的职业/小发展卡。",
+    body: "轮到行动的玩家：资源卡 + 农场卡都加亮绿色边框 + 顶部徽章提示「👉 该你行动」。<br>在个人面板可清晰查看你的工人剩余数、仓库物资储备与已就任的职业/小发展卡。",
     selector: ".col-card.is-current-turn",
     tab: "current_player",
   },
   {
     title: "🧰 工具箱与实时排行榜",
-    body: "点击右下角 🧰 悬浮球，即可随时查看实时排行榜（得分细则）、流派玩法攻略、价格与规则速查表、完整游玩教程，或在此随时再次开启引导。",
+    body: "点击右下角 🧰 悬浮球，即可随时查看实时排行榜（得分细则）、流派玩法攻略、价格与规则速查表、完整游玩教程，或随时再次开启本引导。",
     selector: "#gameFab",
     tab: null,
   },

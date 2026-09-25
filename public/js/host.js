@@ -162,14 +162,14 @@ function openRoomConfigModal() {
           <input type="checkbox" id="roomCfgMoor">
           <div>
             <div class="dlc-title">🌲 沼泽农夫（荒野之地扩展）</div>
-            <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/撒种/收获）+ 4 张新大发展卡。收获阶段新增燃料取暖与喂干草，带来更拟真的农耕开拓体验。可与职业扩展自由叠加。</div>
+            <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/播种/收获）+ 5 张新大发展卡。收获阶段新增燃料取暖与黄牛喂干草，带来更拟真的农耕开拓体验。可与职业扩展自由叠加。</div>
           </div>
         </label>
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgSeasons">
           <div>
             <div class="dlc-title">📅 节气轮转（四季扩展）</div>
-            <div class="muted" style="font-size:12px">每一轮代表一个季节（春→夏→秋→冬循环轮转）：季节改变资源产量与部分行动（冬季犁地要 1 食物、鱼塘封冻；春季栅栏免费段；夏季建房送马厩、度假得分；秋季大改进减建材），并新增一个「节气行动」格。与其他 DLC 自由叠加。</div>
+            <div class="muted" style="font-size:12px">每一轮代表一个季节（春→夏→秋→冬循环轮转）：季节改变资源产量与部分行动（冬季犁地要 1 食物、鱼塘封冻；春季建栅栏享免费段；夏季建房送马厩、度假得分；秋季建大改进减 1 建材），并新增一个「节气行动」格。与其他 DLC 自由叠加。</div>
           </div>
         </label>
       </div>

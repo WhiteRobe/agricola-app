@@ -1,16 +1,16 @@
 // ---- 行动 / 原料 → 中文 ----
 // 仅用于 pushLog 与错误提示里的中文渲染；动作协议 token 仍保持英文。
 const ACTION_NAME_ZH: Record<string, string> = {
-  Wood: "木", Clay: "陶", Reed: "芦苇", Stone: "石", Grain: "谷", Vegetable: "菜",
+  Wood: "木材", Clay: "陶土", Reed: "芦苇", Stone: "石材", Grain: "谷物", Vegetable: "蔬菜",
   Fishing: "钓鱼", DayLaborer: "日工",
   Sheep: "羊市", Boar: "猪市", Cattle: "牛市",
   StartPlayer: "起始玩家",
-  BuildRoom: "建房间", PlowField: "犁地", SowOrBake: "撒种/烤面包",
+  BuildRoom: "建房间", PlowField: "犁地", SowOrBake: "播种/烤面包",
   Fences: "建栅栏", FamilyGrowth: "添丁", Renovate: "翻修", BuildMajor: "大改进",
-  GatherFuel: "收集燃料", CutMeadow: "割草甸", ReclaimMoor: "沼泽拓荒", SowMoor: "沼泽撒种",
+  GatherFuel: "收集燃料", CutMeadow: "割草甸", ReclaimMoor: "沼泽拓荒", SowMoor: "沼泽播种",
   Ore: "采矿", Season: "节气行动",
 };
-const ANIMAL_ZH: Record<string, string> = { sheep: "羊", boar: "猪", cattle: "牛", vegetable: "菜" };
+const ANIMAL_ZH: Record<string, string> = { sheep: "绵羊", boar: "野猪", cattle: "黄牛", vegetable: "蔬菜" };
 function zhAction(id: string): string { return ACTION_NAME_ZH[id] || id; }
 function zhAnimal(k: string): string { return ANIMAL_ZH[k] || k; }
 
@@ -313,11 +313,11 @@ function startRound(g: GameState) {
   for (const p of g.players) {
     if (!p.occupation) continue;
     const oid = p.occupation.id;
-    if (oid === "woodcutter") { p.resources.wood += 1; pushLog(g, `🪓 「${p.name}」伐木工 +1 木`); }
-    else if (oid === "clayworker") { p.resources.clay += 1; pushLog(g, `🏺 「${p.name}」泥瓦工 +1 陶`); }
+    if (oid === "woodcutter") { p.resources.wood += 1; pushLog(g, `🪓 「${p.name}」伐木工 +1 木材`); }
+    else if (oid === "clayworker") { p.resources.clay += 1; pushLog(g, `🏺 「${p.name}」泥瓦工 +1 陶土`); }
     else if (oid === "reedcutter") { p.resources.reed += 1; pushLog(g, `🎋 「${p.name}」芦苇工 +1 芦苇`); }
-    else if (oid === "stonemason") { p.resources.stone += 1; pushLog(g, `⛏ 「${p.name}」石匠 +1 石`); }
-    else if (oid === "grainMerchant" || oid === "fieldHand") { p.resources.grain += 1; pushLog(g, `🌾 「${p.name}」${p.occupation.name} +1 谷`); }
+    else if (oid === "stonemason") { p.resources.stone += 1; pushLog(g, `⛏ 「${p.name}」石匠 +1 石材`); }
+    else if (oid === "grainMerchant" || oid === "fieldHand") { p.resources.grain += 1; pushLog(g, `🌾 「${p.name}」${p.occupation.name} +1 谷物`); }
     else if (oid === "innkeeper") { p.food += 1; pushLog(g, `🏮 「${p.name}」旅店老板 +1 食物`); }
     else if (oid === "storehouseClerk" && p.food === 0) { p.food += 1; pushLog(g, `📦 「${p.name}」仓库管理员补贴 +1 食物`); }
     else if (oid === "woodMerchant" && p.resources.wood === 0) { p.resources.wood += 1; pushLog(g, `🪵 「${p.name}」木柴商保底补贴 +1 木材`); }
@@ -330,7 +330,7 @@ function startRound(g: GameState) {
     else if (oid === "brewer" && p.resources.grain >= 1) {
       p.resources.grain -= 1;
       p.food += 4;
-      pushLog(g, `🍺 「${p.name}」酿酒师 1 谷换 4 食物`);
+      pushLog(g, `🍺 「${p.name}」酿酒师 1 谷物换 4 食物`);
     }
     else if (oid === "basketmaker" && p.resources.reed >= 1) {
       p.resources.reed -= 1;
@@ -341,7 +341,7 @@ function startRound(g: GameState) {
       if ([1, 5, 8, 10, 12, 14].includes(g.round)) {
         p.resources.grain += 1;
         p.food += 1;
-        pushLog(g, `🍂 「${p.name}」季节工 +1 谷 +1 食物`);
+        pushLog(g, `🍂 「${p.name}」季节工 +1 谷物 +1 食物`);
       }
     }
   }
@@ -371,12 +371,12 @@ function startRound(g: GameState) {
   if (g.dlc?.seasons && g.season !== "none") {
     const s = g.season as TtsSeason;
     const desc = s === "spring"
-      ? "木材堆−1、石场+1；建栅栏最多 2 段免费（须付费 ≥1 段）；节气行动：春耕（立即繁殖 + 可撒种）"
+      ? "木材堆−1、采石场+1；建栅栏最多 2 段免费（须付费 ≥1 段）；节气行动：春耕（立即繁殖 + 可播种）"
       : s === "summer"
-        ? "陶坑+1、石场−1、钓鱼+1；建房附赠 1 马厩；日工额外 +1 谷；节气行动：度假（按本轮已放置家人数得分）"
+        ? "陶土坑+1、采石场−1、钓鱼+1；建房附赠 1 马厩；日工额外 +1 谷物；节气行动：度假（按本轮已放置家人数得分）"
         : s === "autumn"
-          ? "木材堆+1、芦苇滩+1；建大改进减 1 建材；节气行动：秋收（立即田间阶段 + 可拿 1 菜）"
-          : "陶坑−1、芦苇滩−1；犁地需付 1 食物；鱼塘封冻（第 11 轮起解冻）；节气行动：家庭扩建（无需空房，2 木 + 3 食物）";
+          ? "木材堆+1、芦苇滩+1；建大改进减 1 建材；节气行动：秋收（立即田间阶段 + 可拿 1 蔬菜）"
+          : "陶土坑−1、芦苇滩−1；犁地需付 1 食物；鱼塘封冻（第 11 轮起解冻）；节气行动：家庭扩建（无需空房，2 木材 + 3 食物）";
     pushLog(g, `📅 节气 · ${TTS_ZH[s]}季：${desc}`);
   }
 }
@@ -680,7 +680,7 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
 
     // 职业资源额外加成
     if (space === "Wood") {
-      if (p.occupation?.id === "lumberjack") { p.resources.wood += 1; pushLog(g, `🪵 「${p.name}」柴夫额外 +1 木`); }
+      if (p.occupation?.id === "lumberjack") { p.resources.wood += 1; pushLog(g, `🪵 「${p.name}」柴夫额外 +1 木材`); }
       if (p.occupation?.id === "forestCustodian") { p.resources.reed += 1; pushLog(g, `🌲 「${p.name}」护林员额外 +1 芦苇`); }
       if (p.occupation?.id === "mushroomCollector") { p.food += 1; pushLog(g, `🍄 「${p.name}」蘑菇采摘人额外 +1 食物`); }
       if (p.occupation?.id === "hunter") { p.food += 1; pushLog(g, `🏹 「${p.name}」猎人额外 +1 食物`); }
@@ -691,9 +691,9 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
         pushLog(g, `🔥 「${p.name}」炭烧工额外 +1 燃料/食物`);
       }
     } else if (space === "Clay") {
-      if (p.occupation?.id === "clayCarrier") { p.resources.clay += 1; pushLog(g, `🧱 「${p.name}」运泥工额外 +1 陶`); }
-      if (p.occupation?.id === "miner") { p.resources.clay += 1; pushLog(g, `⛏️ 「${p.name}」矿工额外 +1 陶`); }
-      if (p.occupation?.id === "gravelCarrier") { p.resources.stone += 1; pushLog(g, `🪨 「${p.name}」砾石搬运工额外 +1 石`); }
+      if (p.occupation?.id === "clayCarrier") { p.resources.clay += 1; pushLog(g, `🧱 「${p.name}」运泥工额外 +1 陶土`); }
+      if (p.occupation?.id === "miner") { p.resources.clay += 1; pushLog(g, `⛏️ 「${p.name}」矿工额外 +1 陶土`); }
+      if (p.occupation?.id === "gravelCarrier") { p.resources.stone += 1; pushLog(g, `🪨 「${p.name}」砾石搬运工额外 +1 石材`); }
       if (p.occupation?.id === "peatCutter") {
         if (g.dlc?.moor) p.fuel += 1; else p.food += 1;
         pushLog(g, `🧱 「${p.name}」泥炭割工额外 +1 燃料/食物`);
@@ -701,10 +701,10 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
     } else if (space === "Reed") {
       if (p.occupation?.id === "reedCollector") { p.resources.reed += 1; pushLog(g, `🌿 「${p.name}」割苇人额外 +1 芦苇`); }
     } else if (space === "Grain") {
-      if (p.occupation?.id === "seedMerchant") { p.resources.grain += 1; pushLog(g, `🌱 「${p.name}」种子商人多得 1 份谷种`); }
+      if (p.occupation?.id === "seedMerchant") { p.resources.grain += 1; pushLog(g, `🌱 「${p.name}」种子商人多得 1 份谷物种子`); }
       if (p.occupation?.id === "grainInspector") { p.resources.grain += 1; pushLog(g, `🔍 「${p.name}」谷物检验员额外 +1 谷物`); }
     } else if (space === "Vegetable") {
-      if (p.occupation?.id === "seedMerchant") { p.resources.vegetable += 1; pushLog(g, `🌱 「${p.name}」种子商人多得 1 份菜种`); }
+      if (p.occupation?.id === "seedMerchant") { p.resources.vegetable += 1; pushLog(g, `🌱 「${p.name}」种子商人多得 1 份蔬菜种子`); }
     }
     return { ok: true };
   }
@@ -714,9 +714,9 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
     if (got <= 0) return { ok: false, msg: "石场是空的（每轮 +1）" };
     p.resources.stone += got;
     g.piles.Stone = 0;
-    pushLog(g, `⛏ 「${p.name}」取走石场上的全部 ${got} 石`);
-    if (p.occupation?.id === "quarryman") { p.resources.stone += 1; pushLog(g, `⛰️ 「${p.name}」采石工额外 +1 石`); }
-    if (p.occupation?.id === "miner") { p.resources.stone += 1; pushLog(g, `⛏️ 「${p.name}」矿工额外 +1 石`); }
+    pushLog(g, `⛏ 「${p.name}」取走采石场上的全部 ${got} 石材`);
+    if (p.occupation?.id === "quarryman") { p.resources.stone += 1; pushLog(g, `⛰️ 「${p.name}」采石工额外 +1 石材`); }
+    if (p.occupation?.id === "miner") { p.resources.stone += 1; pushLog(g, `⛏️ 「${p.name}」矿工额外 +1 石材`); }
     return { ok: true };
   }
   if (space === "Fishing") {
@@ -737,10 +737,10 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
   if (space === "DayLaborer") {
     p.food += LEFT_BOARD.dayLaborer.food;
     pushLog(g, `🛠 「${p.name}」日工 +${LEFT_BOARD.dayLaborer.food} 食物（无须成本，但用掉 1 名家人）`);
-    // 节气轮转：夏季日工额外 +1 谷
+    // 节气轮转：夏季日工额外 +1 谷物
     if (isSeason(g, "summer")) {
       p.resources.grain += 1;
-      pushLog(g, `☀️ 「${p.name}」夏季日工雇主管饭，额外 +1 谷`);
+      pushLog(g, `☀️ 「${p.name}」夏季日工雇主管饭，额外 +1 谷物`);
     }
     if (p.occupation?.id === "dayLaborer") { p.food += 1; pushLog(g, `🛠 「${p.name}」打工达人额外 +1 食物（共 3 食物）`); }
     if (p.occupation?.id === "oddJobMan") { p.resources.wood += 1; pushLog(g, `🧹 「${p.name}」杂务工额外 +1 木材`); }
@@ -864,17 +864,17 @@ function sow(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
   if (cell.kind !== "field") return { ok: false, msg: "这里不是田" };
   if (cell.crop) return { ok: false, msg: "已经播过种" };
   if (crop === "grain") {
-    if (p.resources.grain < 1) return { ok: false, msg: "没有谷种" };
+    if (p.resources.grain < 1) return { ok: false, msg: "库存中没有谷物种子" };
     p.resources.grain -= 1; g.supply.grain += 1; // 种由田里扣除，标记数加入田
     cell.crop = "grain";
     cell.markers = SOW_GRAIN_TOTAL;
-    pushLog(g, `🌾 「${p.name}」在 (${x},${y}) 撒谷种（收获 3 次）`);
+    pushLog(g, `🌾 「${p.name}」在 (${x},${y}) 播种谷物（未来可收获 3 次）`);
   } else {
-    if (p.resources.vegetable < 1) return { ok: false, msg: "没有菜种" };
+    if (p.resources.vegetable < 1) return { ok: false, msg: "库存中没有蔬菜种子" };
     p.resources.vegetable -= 1; g.supply.vegetable += 1;
     cell.crop = "vegetable";
     cell.markers = SOW_VEG_TOTAL;
-    pushLog(g, `🥕 「${p.name}」在 (${x},${y}) 撒菜种（收获 2 次）`);
+    pushLog(g, `🥕 「${p.name}」在 (${x},${y}) 播种蔬菜（未来可收获 2 次）`);
   }
   if (p.occupation?.id === "cornShepherd") {
     p.food += 1;
@@ -1006,15 +1006,15 @@ function renovate(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
 
 /** 资源 key → 中文单位（用于费用提示） */
 function resLabel(k: string): string {
-  return ({ wood: "木", clay: "陶", reed: "芦苇", stone: "石", grain: "谷", vegetable: "菜", food: "食物" } as Record<string, string>)[k] || k;
+  return ({ wood: "木材", clay: "陶土", reed: "芦苇", stone: "石材", grain: "谷物", vegetable: "蔬菜", food: "食物", fuel: "燃料", hay: "干草" } as Record<string, string>)[k] || k;
 }
 /** 行动格 id → 中文名 */
 function zhSpace(id: string): string {
-  return ({ Wood: "木堆", Clay: "陶坑", Reed: "芦苇滩", Stone: "石场", Grain: "谷堆", Vegetable: "菜地", Fishing: "鱼塘" } as Record<string, string>)[id] || id;
+  return ({ Wood: "木材堆", Clay: "陶土坑", Reed: "芦苇滩", Stone: "采石场", Grain: "谷物堆", Vegetable: "蔬菜地", Fishing: "鱼塘" } as Record<string, string>)[id] || id;
 }
 /** 资源 key → 中文名 */
 function resZh(k: string): string {
-  return ({ wood: "木", clay: "陶", reed: "芦苇", stone: "石", grain: "谷", vegetable: "菜" } as Record<string, string>)[k] || k;
+  return ({ wood: "木材", clay: "陶土", reed: "芦苇", stone: "石材", grain: "谷物", vegetable: "蔬菜", fuel: "燃料", hay: "干草" } as Record<string, string>)[k] || k;
 }
 /** 资源 key → 图标 */
 function resIcon(k: string): string {
@@ -1190,7 +1190,7 @@ function useMinorImmediate(g: GameState, p: PlayerState, card: MinorImprovement)
       p.food += 2; pushLog(g, `🥣 「${p.name}」使用了「${card.name}」+2 食物`); break;
     case "mi.bigBarn":
       p.resources.grain += 1; p.resources.vegetable += 1;
-      pushLog(g, `🏚 「${p.name}」使用了「${card.name}」+1 谷 +1 菜`); break;
+      pushLog(g, `🏚 「${p.name}」使用了「${card.name}」+1 谷物 +1 蔬菜`); break;
     default:
       pushLog(g, `🎴 「${p.name}」使用了「${card.icon} ${card.name}」：${card.effect}`);
   }
@@ -1242,8 +1242,8 @@ function reclaimMoor(g: GameState, p: PlayerState, a: EngineAction): ActionResul
   if ((g.moorBoard || []).some((c) => c.x === x && c.y === y)) {
     return { ok: false, msg: "这块沼泽已经被开垦过了" };
   }
-  // 资源：1 木 + 1 芦苇（与 base game 修订版一致）
-  if ((p.resources.wood || 0) < 1) return { ok: false, msg: "需要 1 木" };
+  // 资源：1 木材 + 1 芦苇（与 base game 修订版一致）
+  if ((p.resources.wood || 0) < 1) return { ok: false, msg: "需要 1 木材" };
   if ((p.resources.reed || 0) < 1) return { ok: false, msg: "需要 1 芦苇" };
   p.resources.wood -= 1;
   p.resources.reed -= 1;
@@ -1264,20 +1264,20 @@ function sowMoor(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
   const x = Number(a.x), y = Number(a.y);
   const crop = String(a.crop) as "grain" | "vegetable";
   if (!Number.isInteger(x) || !Number.isInteger(y)) return { ok: false, msg: "无效坐标" };
-  if (crop !== "grain" && crop !== "vegetable") return { ok: false, msg: "作物必须是 谷 或 菜" };
+  if (crop !== "grain" && crop !== "vegetable") return { ok: false, msg: "作物必须是谷物或蔬菜" };
   const cell = (g.moorBoard || []).find((c) => c.x === x && c.y === y);
   if (!cell) return { ok: false, msg: "这块沼泽还没开垦" };
   if (cell.crop) return { ok: false, msg: "这块沼泽已经播过种了" };
   if (crop === "grain") {
-    if (p.resources.grain < 1) return { ok: false, msg: "没有谷种" };
+    if (p.resources.grain < 1) return { ok: false, msg: "库存中没有谷物种子" };
     p.resources.grain -= 1; g.supply.grain += 1;
     cell.crop = "grain"; cell.markers = SOW_GRAIN_TOTAL; cell.sownBy = p.id;
-    pushLog(g, `🌾 「${p.name}」在沼泽 (${x},${y}) 撒谷种（收获 3 次）`);
+    pushLog(g, `🌾 「${p.name}」在沼泽 (${x},${y}) 播种谷物（未来可收获 3 次）`);
   } else {
-    if (p.resources.vegetable < 1) return { ok: false, msg: "没有菜种" };
+    if (p.resources.vegetable < 1) return { ok: false, msg: "库存中没有蔬菜种子" };
     p.resources.vegetable -= 1; g.supply.vegetable += 1;
     cell.crop = "vegetable"; cell.markers = SOW_VEG_TOTAL; cell.sownBy = p.id;
-    pushLog(g, `🥕 「${p.name}」在沼泽 (${x},${y}) 撒菜种（收获 2 次）`);
+    pushLog(g, `🥕 「${p.name}」在沼泽 (${x},${y}) 播种蔬菜（未来可收获 2 次）`);
   }
   // 计入此玩家自己的 moorFields（fields 计分用）
   if (!p.moorFields) p.moorFields = [];
@@ -1308,7 +1308,7 @@ function harvestMoor(g: GameState, p: PlayerState): ActionResult {
       }
     }
   }
-  if (gainedG || gainedV) pushLog(g, `🌾 「${p.name}」收获沼泽 +${gainedG} 谷 +${gainedV} 蔬菜`);
+  if (gainedG || gainedV) pushLog(g, `🌾 「${p.name}」收获沼泽田：${gainedG ? `+${gainedG} 谷物 ` : ""}${gainedV ? `+${gainedV} 蔬菜` : ""}`.trim());
   return { ok: true };
 }
 
@@ -1365,7 +1365,7 @@ function seasonAutumn(g: GameState, p: PlayerState, a: EngineAction): ActionResu
     cell.markers -= 1;
     if (cell.markers <= 0) { cell.crop = undefined; cell.markers = 0; }
   }
-  if (gainedG || gainedV) pushLog(g, `🍂 「${p.name}」秋收田间阶段：+${gainedG} 谷 +${gainedV} 蔬菜`);
+  if (gainedG || gainedV) pushLog(g, `🍂 「${p.name}」秋收田间阶段：+${gainedG} 谷物 +${gainedV} 蔬菜`);
   if (a.takeVeg) {
     p.resources.vegetable += 1;
     pushLog(g, `🥕 「${p.name}」秋收额外拿 1 蔬菜`);
@@ -1382,7 +1382,7 @@ function seasonWinter(g: GameState, p: PlayerState): ActionResult {
   const guard = seasonGuard(g, "winter");
   if (guard) return guard;
   if (p.family >= MAX_FAMILY) return { ok: false, msg: "家里最多 5 人" };
-  if (p.resources.wood < 2) return { ok: false, msg: "冬季扩建需要 2 木" };
+  if (p.resources.wood < 2) return { ok: false, msg: "冬季扩建需要 2 木材" };
   if (p.food < 3) return { ok: false, msg: "冬季扩建需要 3 食物" };
   p.resources.wood -= 2;
   g.supply.wood += 2;
@@ -1566,7 +1566,7 @@ function runHarvest(g: GameState) {
         }
       }
     }
-    if (gainedG || gainedV) pushLog(g, `🌾 「${p.name}」收获 +${gainedG} 谷 +${gainedV} 蔬菜`);
+    if (gainedG || gainedV) pushLog(g, `🌾 「${p.name}」收获农田：${gainedG ? `+${gainedG} 谷物 ` : ""}${gainedV ? `+${gainedV} 蔬菜` : ""}`.trim());
     if (p.occupation?.id === "gardener") {
       p.resources.vegetable += 1;
       pushLog(g, `🥕 「${p.name}」园丁收获阶段额外直接得 1 蔬菜`);
@@ -1606,7 +1606,7 @@ function runHarvest(g: GameState) {
     p.food -= fromFood;
     needLeft -= fromFood;
 
-    // 不够 → 用谷物（1 谷 = 1 食物）
+    // 不够 → 用谷物（1 谷物 = 1 食物）
     let usedGrain = 0;
     while (needLeft > 0 && p.resources.grain > 0) {
       p.resources.grain -= 1;
@@ -1614,7 +1614,7 @@ function runHarvest(g: GameState) {
       usedGrain += 1;
       needLeft -= GRAIN_TO_FOOD;
     }
-    // 还不够 → 用蔬菜（1 菜 = 1 食物）
+    // 还不够 → 用蔬菜（1 蔬菜 = 1 食物）
     let usedVeg = 0;
     while (needLeft > 0 && p.resources.vegetable > 0) {
       p.resources.vegetable -= 1;
@@ -1639,7 +1639,7 @@ function runHarvest(g: GameState) {
       if (p.animals[t] < 2) return;
       // 仅当现有牧场（含马厩加成）确实还有空位时才繁殖
       if (addAnimal(g, p, t)) {
-        pushLog(g, `🐣 「${p.name}」的${labelAnimal(t)}繁殖 +1 只（共 ${p.animals[t]}）`);
+        pushLog(g, `🐣 「${p.name}」的${labelAnimal(t)}繁殖 +1 只（共 ${p.animals[t]} 只）`);
       } else {
         pushLog(g, `🚫 「${p.name}」的${labelAnimal(t)}无法繁殖（牧场容量已满）`);
       }
@@ -1658,7 +1658,7 @@ function runHarvest(g: GameState) {
     }
     if (p.occupation?.id === "milker" && (p.animals.cattle >= 1 || p.animals.sheep >= 1)) {
       p.food += 1;
-      pushLog(g, `🥛 「${p.name}」挤奶工鲜奶收获 +1 食物`);
+      pushLog(g, `🥛 「${p.name}」挤奶工鲜奶收获阶段 +1 食物`);
     }
     if (p.occupation?.id === "woolWeaver" && p.animals.sheep >= 1) {
       p.food += 1;
@@ -1676,7 +1676,7 @@ function runHarvest(g: GameState) {
   // 5. Farmers of the Moor：燃料消耗（每名家人 1 燃料，缺 = 1 张乞讨卡）
   if (g.dlc?.moor) {
     for (const p of g.players) {
-      // 「泥炭窑」大改进：每收获轮 +1 燃料
+      // 「泥炭窑」大改进：每次收获阶段 +1 燃料
       if ((p.improvements || []).includes("peatKiln")) {
         p.fuel += 1;
         pushLog(g, `🧱 「${p.name}」泥炭窑 +1 燃料`);
@@ -1703,16 +1703,16 @@ function runHarvest(g: GameState) {
         p.animals.cattle -= 1;
         g.supply.cattle += 1;
         lack -= 1;
-        pushLog(g, `💀 「${p.name}」的 1 头牛饿死了（缺干草）`);
+        pushLog(g, `💀 「${p.name}」的 1 头黄牛饿死了（缺少干草）`);
       }
       if (need > 0 && lack === 0) {
         // 全部喂饱
-        pushLog(g, `🐄 「${p.name}」用 ${need} 干草喂了 ${p.animals.cattle} 头牛`);
+        pushLog(g, `🐄 「${p.name}」用 ${need} 干草喂饱了 ${p.animals.cattle} 头黄牛`);
       }
     }
   }
 
-  pushLog(g, `✅ 第 ${g.round} 轮收获结束`);
+  pushLog(g, `✅ 第 ${g.round} 轮收获阶段结束`);
 }
 
 function totalAnimals(p: PlayerState): number {
@@ -1723,8 +1723,8 @@ function totalAnimals(p: PlayerState): number {
 function useDetail(fromFood: number, grain: number, veg: number): string {
   const parts: string[] = [];
   if (fromFood > 0) parts.push(`食物 ${fromFood}`);
-  if (grain > 0) parts.push(`谷 ${grain}`);
-  if (veg > 0) parts.push(`菜 ${veg}`);
+  if (grain > 0) parts.push(`谷物 ${grain}`);
+  if (veg > 0) parts.push(`蔬菜 ${veg}`);
   return parts.length ? `，用：${parts.join(" + ")}` : "";
 }
 
@@ -1734,7 +1734,7 @@ function workersOf(p: PlayerState): number {
 }
 
 function labelAnimal(t: AnimalType) {
-  return t === "sheep" ? "羊" : t === "boar" ? "猪" : "牛";
+  return t === "sheep" ? "绵羊" : t === "boar" ? "野猪" : "黄牛";
 }
 
 // ---------- 结算 ----------

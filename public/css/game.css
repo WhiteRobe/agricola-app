@@ -1330,3 +1330,124 @@ body[data-season="winter"] {
 .actions-left .al-dot.used { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
 .actions-left b { color: var(--leaf-dark); font-size: 14px; }
 .actions-left .al-of { font-size: 11px; color: var(--ink-3); }
+
+/* ============================================================
+   职业卡全图鉴抽屉（88 张官方经典职业图鉴）
+   ============================================================ */
+.occ-gallery-drawer {
+  width: min(780px, 95vw);
+}
+
+.gallery-search-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.gallery-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.18s ease;
+}
+
+.gallery-search-input:focus {
+  background: #fff;
+  border-color: var(--leaf);
+  box-shadow: 0 0 0 3px rgba(92, 141, 78, 0.18);
+}
+
+.gallery-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 10px;
+}
+
+.occ-gallery-card {
+  display: flex;
+  flex-direction: column;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background-color: var(--panel);
+  background-image:
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0),
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0);
+  background-position: 0 0, 3px 3px;
+  background-size: 6px 6px;
+  border: 1px solid var(--line);
+  border-top: 3.5px solid #d4af37;
+  box-shadow: 0 2px 6px rgba(45, 30, 10, 0.07);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.occ-gallery-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(45, 30, 10, 0.13);
+  border-color: var(--leaf);
+  border-top-color: #d4af37;
+  background-color: #fffefb;
+}
+
+.occ-gallery-card .gc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.occ-gallery-card .gc-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.occ-gallery-card .gc-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.occ-gallery-card .gc-cat {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.18);
+  color: #8a6414;
+  white-space: nowrap;
+}
+
+.occ-gallery-card .gc-effect {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  flex: 1;
+  margin-bottom: 6px;
+}
+
+.occ-gallery-card .gc-flavor {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-style: italic;
+  line-height: 1.35;
+  border-top: 1px dashed var(--line);
+  padding-top: 5px;
+}
+
+@media (max-width: 600px) {
+  .occ-gallery-drawer {
+    width: 100vw;
+  }
+  .gallery-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

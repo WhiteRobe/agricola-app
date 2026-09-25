@@ -2,6 +2,8 @@
 // 教程抽屉（右侧滑出，可被任意页面调用）
 // ============================================================
 
+import { OCCUPATIONS } from "./dlc-data.js";
+
 const TUT_HTML = `
 <div class="toc">
   <h4>📑 目录</h4>
@@ -644,4 +646,184 @@ export function closeStrategyDrawer() {
     setTimeout(() => { _stratBackdropEl?.remove(); _stratBackdropEl = null; }, 280);
   }
   document.removeEventListener("keydown", onStratEscClose);
+}
+
+// ============================================================
+// 职业全图鉴抽屉（88 张官方经典职业，7 大流派分类 + 实时搜索）
+// ============================================================
+
+let _occDrawerEl = null;
+let _occBackdropEl = null;
+let _curOccCat = "all";
+let _occSearchKey = "";
+
+const OCC_CATEGORIES = [
+  { id: "all", name: "全部", count: 88, icon: "🎴" },
+  { id: "resource", name: "基础资源", count: 15, icon: "🪵" },
+  { id: "farming", name: "农耕种植", count: 13, icon: "🌾" },
+  { id: "livestock", name: "牲畜畜牧", count: 11, icon: "🐑" },
+  { id: "building", name: "建造翻修", count: 12, icon: "🏠" },
+  { id: "cooking", name: "饮食烹饪", count: 19, icon: "🍳" },
+  { id: "family", name: "家庭运营", count: 10, icon: "👶" },
+  { id: "scoring", name: "终局声望", count: 8, icon: "🏆" },
+];
+
+export function openOccupationGalleryDrawer(defaultCat = "all") {
+  if (_occDrawerEl) {
+    switchOccCatTab(defaultCat);
+    return;
+  }
+  _curOccCat = defaultCat;
+  _occSearchKey = "";
+
+  _occBackdropEl = document.createElement("div");
+  _occBackdropEl.className = "tut-backdrop";
+  _occBackdropEl.onclick = closeOccupationGalleryDrawer;
+  document.body.appendChild(_occBackdropEl);
+
+  _occDrawerEl = document.createElement("aside");
+  _occDrawerEl.className = "tut-drawer occ-gallery-drawer";
+  _occDrawerEl.innerHTML = `
+    <div class="tut-drawer-head">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🎴</span>
+        <h2 class="mt0 mb0" style="font-size:16px;margin:0">经典职业卡全图鉴 (88 张)</h2>
+      </div>
+      <button class="btn ghost small" id="occGalleryClose">关闭 ×</button>
+    </div>
+    <div class="tut-drawer-body">
+      <!-- 规则误解消除与科普提示 -->
+      <div class="tip-box" style="margin-bottom:14px;font-size:13px;line-height:1.6">
+        <b>💡 《农家乐》卡池与手牌规则说明：</b><br>
+        本作完整收录 <b>88 张官方经典职业卡</b>（涵盖基础资源、农耕种植、牲畜畜牧、建造翻修、饮食烹饪、家庭运营、终局声望 7 大核心流派）。开局系统将从卡池中为每位玩家<b>随机盲抽 7 张候选手牌</b>（7 选 1），挑选 1 张作为本局终生职业。在这里您可以随时通览全部 88 张职业卡的效果与背景设定！
+      </div>
+
+      <!-- 搜索栏 -->
+      <div class="gallery-search-wrap" style="margin-bottom:12px">
+        <input type="search" id="occSearchInput" class="gallery-search-input" placeholder="🔍 实时搜索：职业名称、效果描述或风味传记..." />
+      </div>
+
+      <!-- 流派分类 Tab 栏 -->
+      <div class="strat-tabs" id="occCatTabList">
+        ${OCC_CATEGORIES.map((c) => `
+          <button class="strat-tab-btn ${c.id === _curOccCat ? "active" : ""}" data-cat="${c.id}" type="button">
+            ${c.icon} ${c.name} (${c.count})
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- 筛选统计信息 -->
+      <div id="occGalleryMeta" style="font-size:12.5px;color:var(--ink-2);margin-bottom:10px;font-weight:600"></div>
+
+      <!-- 卡牌网格展示区 -->
+      <div id="occGalleryGrid" class="gallery-cards-grid"></div>
+    </div>
+  `;
+  document.body.appendChild(_occDrawerEl);
+  _occDrawerEl.querySelector("#occGalleryClose").onclick = closeOccupationGalleryDrawer;
+
+  // 绑定分类 Tab
+  _occDrawerEl.querySelectorAll(".strat-tab-btn").forEach((btn) => {
+    btn.onclick = () => switchOccCatTab(btn.dataset.cat);
+  });
+
+  // 绑定搜索输入
+  const searchInput = _occDrawerEl.querySelector("#occSearchInput");
+  if (searchInput) {
+    searchInput.oninput = (e) => {
+      _occSearchKey = (e.target.value || "").trim().toLowerCase();
+      renderOccGalleryCards();
+    };
+  }
+
+  renderOccGalleryCards();
+
+  requestAnimationFrame(() => {
+    _occBackdropEl.classList.add("show");
+    _occDrawerEl.classList.add("show");
+  });
+  document.addEventListener("keydown", onOccEscClose);
+}
+
+function switchOccCatTab(cat) {
+  _curOccCat = cat;
+  if (!_occDrawerEl) return;
+  _occDrawerEl.querySelectorAll(".strat-tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.cat === cat);
+  });
+  renderOccGalleryCards();
+}
+
+function renderOccGalleryCards() {
+  if (!_occDrawerEl) return;
+  const grid = _occDrawerEl.querySelector("#occGalleryGrid");
+  const meta = _occDrawerEl.querySelector("#occGalleryMeta");
+  if (!grid) return;
+
+  const filtered = OCCUPATIONS.filter((o) => {
+    if (_curOccCat !== "all" && o.category !== _curOccCat) return false;
+    if (_occSearchKey) {
+      const text = `${o.name} ${o.effect} ${o.flavor || ""} ${o.categoryZh || ""}`.toLowerCase();
+      if (!text.includes(_occSearchKey)) return false;
+    }
+    return true;
+  });
+
+  if (meta) {
+    meta.innerHTML = `展示 <b>${filtered.length}</b> / 88 张职业卡${_occSearchKey ? `（包含关键词 "${escapeHtml(_occSearchKey)}"）` : ""}`;
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-hint" style="grid-column:1/-1;text-align:center;padding:36px 12px;color:var(--ink-2)">
+        <div style="font-size:28px;margin-bottom:8px">🔍</div>
+        <div>没有找到匹配 "${escapeHtml(_occSearchKey)}" 的职业卡</div>
+        <button class="btn btn-outline small" style="margin-top:10px" id="btnResetOccSearch">清空搜索条件</button>
+      </div>
+    `;
+    const resetBtn = grid.querySelector("#btnResetOccSearch");
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        _occSearchKey = "";
+        const input = _occDrawerEl.querySelector("#occSearchInput");
+        if (input) input.value = "";
+        renderOccGalleryCards();
+      };
+    }
+    return;
+  }
+
+  grid.innerHTML = filtered.map((occ) => `
+    <div class="gallery-card occ-gallery-card">
+      <div class="gc-head">
+        <span class="gc-icon">${occ.icon}</span>
+        <span class="gc-name">${escapeHtml(occ.name)}</span>
+        <span class="gc-cat">${escapeHtml(occ.categoryZh || "基础")}</span>
+      </div>
+      <div class="gc-effect">${escapeHtml(occ.effect)}</div>
+      ${occ.flavor ? `<div class="gc-flavor">“${escapeHtml(occ.flavor)}”</div>` : ""}
+    </div>
+  `).join("");
+}
+
+function onOccEscClose(e) {
+  if (e.key === "Escape") closeOccupationGalleryDrawer();
+}
+
+export function closeOccupationGalleryDrawer() {
+  if (_occDrawerEl) {
+    _occDrawerEl.classList.remove("show");
+    setTimeout(() => { _occDrawerEl?.remove(); _occDrawerEl = null; }, 280);
+  }
+  if (_occBackdropEl) {
+    _occBackdropEl.classList.remove("show");
+    setTimeout(() => { _occBackdropEl?.remove(); _occBackdropEl = null; }, 280);
+  }
+  document.removeEventListener("keydown", onOccEscClose);
+}
+
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, (m) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[m]);
 }

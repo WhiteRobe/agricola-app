@@ -1369,9 +1369,23 @@ function openOccupationPicker() {
     </button>
   `).join("");
   openModal("🎴 选职业（7 选 1）", `
-    <p class="muted" style="margin-top:0">从开局随机发的 7 张职业里挑 1 张，整局生效。<b>一旦选定无法更换</b>。</p>
+    <div class="tip-box" style="margin-top:0;margin-bottom:12px;font-size:12.5px;line-height:1.6">
+      <b>💡 卡池说明：</b>本作已收录官方全部 <b>88 张经典职业卡</b>（涵盖基础资源、农耕、畜牧、建造、烹饪、运营、声望 7 大流派）。开局系统随机<b>盲抽 7 张候选手牌</b>供您 7 选 1，选定后整局生效，<b>一旦选定无法更换</b>。
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <span class="muted" style="font-size:13px;font-weight:600">本局候选手牌（7 选 1）：</span>
+      <button type="button" class="btn btn-outline small" id="btnOpenOccGalleryFromPicker" style="display:inline-flex;align-items:center;gap:4px">
+        <span>📖</span><span>浏览全量职业图鉴 (88 张)</span>
+      </button>
+    </div>
     <div class="occ-hand">${cards}</div>
   `, (root) => {
+    const galBtn = root.querySelector("#btnOpenOccGalleryFromPicker");
+    if (galBtn) {
+      galBtn.onclick = () => {
+        import("/js/tutorial.js").then((m) => m.openOccupationGalleryDrawer());
+      };
+    }
     root.querySelectorAll(".occ-card").forEach((btn) => {
       btn.onclick = () => {
         const id = btn.dataset.occ;
@@ -1613,6 +1627,10 @@ function ensureFab(g) {
         <span class="fab-ic">💡</span>
         <span class="fab-txt">流派玩法</span>
       </button>
+      <button class="fab-item" data-fab="gallery">
+        <span class="fab-ic">🎴</span>
+        <span class="fab-txt">职业图鉴(88)</span>
+      </button>
       <button class="fab-item" data-fab="log">
         <span class="fab-ic">📜</span>
         <span class="fab-txt">动态日志</span>
@@ -1657,6 +1675,11 @@ function ensureFab(g) {
   const stratBtn = fab.querySelector('[data-fab="strategy"]');
   if (stratBtn) stratBtn.onclick = () => {
     import("/js/tutorial.js").then((m) => m.openStrategyDrawer());
+    fab.classList.remove("open");
+  };
+  const gallBtn = fab.querySelector('[data-fab="gallery"]');
+  if (gallBtn) gallBtn.onclick = () => {
+    import("/js/tutorial.js").then((m) => m.openOccupationGalleryDrawer());
     fab.classList.remove("open");
   };
   fab.querySelector('[data-fab="log"]').onclick = () => {

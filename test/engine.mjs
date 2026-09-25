@@ -664,13 +664,29 @@ console.log("\n⚙️ 效果结算（水井 / 小发展卡 / Moor 改进 / 建�
   ok(scK.breakdown.柴火 === 3, `柴火棚终局燃料分 = 3（实际 ${scK.breakdown.柴火}）`);
 }
 
-// ---- 测试 12：职业卡效果（每轮被动 / 行动加成 / 收获奖励 / 终局计分）----
-console.log("\n🎴 职业卡系统测试（48张卡池挂钩）");
+// ---- 测试 12：职业卡系统测试（88 张全量卡池与流派钩子）----
+console.log("\n🎴 职业卡系统测试（88张全量卡池与流派钩子）");
 {
+  // 1. 卡池总数与完整性
+  ok(Array.isArray(engine.OCCUPATIONS), "OCCUPATIONS 卡池已导出");
+  ok(engine.OCCUPATIONS.length === 88, `卡池总数严格为 88 张官方经典职业（实际：${engine.OCCUPATIONS.length}）`);
+  const catCounts = {};
+  for (const occ of engine.OCCUPATIONS) {
+    catCounts[occ.category] = (catCounts[occ.category] || 0) + 1;
+    ok(!!occ.id && !!occ.name && !!occ.icon && !!occ.effect && !!occ.category && !!occ.categoryZh && !!occ.flavor, `卡牌 [${occ.id}] ${occ.name} 具有完整元数据`);
+  }
+  ok(catCounts.resource === 15, `基础资源流派 15 张（实际：${catCounts.resource}）`);
+  ok(catCounts.farming === 13, `农耕种植流派 13 张（实际：${catCounts.farming}）`);
+  ok(catCounts.livestock === 11, `牲畜畜牧流派 11 张（实际：${catCounts.livestock}）`);
+  ok(catCounts.building === 12, `建造翻修流派 12 张（实际：${catCounts.building}）`);
+  ok(catCounts.cooking === 19, `饮食烹饪流派 19 张（实际：${catCounts.cooking}）`);
+  ok(catCounts.family === 10, `家庭运营流派 10 张（实际：${catCounts.family}）`);
+  ok(catCounts.scoring === 8, `终局声望流派 8 张（实际：${catCounts.scoring}）`);
+
   const gOcc = engine.createGame([{ id: "p1", name: "P1", seat: 0 }], { dlc: { occupations: true, minorImprovements: true, moor: false } });
   const p1 = gOcc.players[0];
 
-  // 1. 每轮被动（伐木工 +1 木）
+  // 2. 每轮被动（伐木工 +1 木）
   p1.occupation = { id: "woodcutter", name: "伐木工", icon: "🪓", effect: "每轮开始：额外获得 1 木" };
   const w0 = p1.resources.wood;
   // 推过 1 轮
@@ -678,7 +694,7 @@ console.log("\n🎴 职业卡系统测试（48张卡池挂钩）");
   engine.dispatchGame(gOcc, "p1", { type: "Take", space: "Fishing" });
   ok(p1.resources.wood === w0 + 1, `伐木工每轮开始 +1 木（${w0} → ${p1.resources.wood}）`);
 
-  // 2. 行动加成（柴夫拿木材 +1 木）
+  // 3. 行动加成（柴夫拿木材 +1 木）
   p1.occupation = { id: "lumberjack", name: "柴夫", icon: "🪵", effect: "拿木材行动：额外多拿 1 木" };
   gOcc.piles.Wood = 2;
   const wBefore = p1.resources.wood;
@@ -686,7 +702,7 @@ console.log("\n🎴 职业卡系统测试（48张卡池挂钩）");
   engine.dispatchGame(gOcc, "p1", { type: "Take", space: "Wood" });
   ok(p1.resources.wood === wBefore + 2 + 1, `柴夫拿木材额外 +1 木（${wBefore} + 2 + 1 = ${p1.resources.wood}）`);
 
-  // 3. 建造减免（木匠建造木屋节省 1 木）
+  // 4. 建造减免（木匠建造木屋节省 1 木）
   p1.occupation = { id: "carpenter", name: "木匠", icon: "📐", effect: "建造木屋：每间房节省 1 木材" };
   p1.resources.wood = 4; p1.resources.reed = 2;
   gOcc.usedSpaces = [];
@@ -694,12 +710,54 @@ console.log("\n🎴 职业卡系统测试（48张卡池挂钩）");
   ok(rRoom.ok, `木匠造木屋成功（原本需 5 木，木匠省 1 木仅需 4 木, msg=${rRoom.msg}）`);
   ok(p1.rooms === 3, "房间数增加到 3");
 
-  // 4. 终局加分（学者导师拥有 ≥3 项改进额外 +3 分）
+  // 5. 烘焙与烹饪加成（面包学徒烤面包 +1 食物，熏肉师傅肉类烹饪 +2 食物）
+  p1.occupation = { id: "breadBakerApprentice", name: "面包学徒", icon: "🥐", effect: "烤面包行动：额外多产 1 食物" };
+  p1.improvements = ["clayOven"];
+  p1.resources.grain = 1;
+  p1.food = 0;
+  gOcc.usedSpaces = [];
+  const rBake = engine.dispatchGame(gOcc, "p1", { type: "BakeBread", oven: "clayOven", grain: 1 });
+  ok(rBake.ok, `面包学徒烤面包成功（${rBake.msg}）`);
+  ok(p1.food === 5 + 1, `陶土烤炉出 5 食物 + 面包学徒额外 +1 食物（实际：${p1.food}）`);
+
+  p1.occupation = { id: "smokehouseMaster", name: "熏肉师傅", icon: "🥓", effect: "烹饪牲畜时：每次烹饪额外多产 2 食物" };
+  p1.improvements = ["fireplace"];
+  p1.animals.sheep = 2;
+  p1.food = 0;
+  const rCook = engine.dispatchGame(gOcc, "p1", { type: "Cook", improvement: "fireplace", used: { sheep: 2 } });
+  ok(rCook.ok, `熏肉师傅烹饪成功`);
+  ok(p1.food === 1 + 2, `壁炉 2 羊出 1 食物 + 熏肉师傅额外 +2 食物（实际：${p1.food}）`);
+
+  // 6. 终局加分验证（学者导师、育种大师、慈善家、农艺学者、牧场伯爵）
   p1.occupation = { id: "tutor", name: "学者导师", icon: "📜", effect: "拥有 ≥3 项改进额外 +3 分" };
   p1.improvements = ["well", "fireplace2"];
   p1.minorImprovements = ["mi.well"];
   const scTutor = engine.scorePlayer(p1);
   ok(scTutor.breakdown.职业 === 3, `学者导师终局加分生效（${scTutor.breakdown.职业} 分）`);
+
+  p1.occupation = { id: "masterBreeder", name: "育种大师", icon: "🏆", effect: "终局计分：羊/猪/牛三畜齐全额外 +4 分" };
+  p1.animals = { sheep: 1, boar: 1, cattle: 1 };
+  const scBreeder = engine.scorePlayer(p1);
+  ok(scBreeder.breakdown.职业 === 4, `育种大师三畜齐全终局加分生效（${scBreeder.breakdown.职业} 分）`);
+
+  p1.occupation = { id: "philanthropist", name: "慈善家", icon: "💖", effect: "终局计分：食物储备 ≥5 且无乞讨额外 +3 分" };
+  p1.food = 5;
+  p1.beggings = 0;
+  const scPhil = engine.scorePlayer(p1);
+  ok(scPhil.breakdown.职业 === 3, `慈善家丰足终局加分生效（${scPhil.breakdown.职业} 分）`);
+
+  p1.occupation = { id: "agronomist", name: "农艺学者", icon: "🌱", effect: "终局计分：耕地数量 ≥4 块时额外 +3 分" };
+  p1.grid[0][0] = { kind: "field" };
+  p1.grid[0][1] = { kind: "field" };
+  p1.grid[0][2] = { kind: "field" };
+  p1.grid[1][0] = { kind: "field" };
+  const scAgro = engine.scorePlayer(p1);
+  ok(scAgro.breakdown.职业 === 3, `农艺学者 ≥4 耕地终局加分生效（${scAgro.breakdown.职业} 分）`);
+
+  p1.occupation = { id: "pastureCount", name: "牧场伯爵", icon: "🏰", effect: "终局计分：封闭牧场数量 ≥3 处额外 +3 分" };
+  p1.pastures = [{ id: "p0", cells: ["0,0"] }, { id: "p1", cells: ["1,0"] }, { id: "p2", cells: ["2,0"] }];
+  const scPasture = engine.scorePlayer(p1);
+  ok(scPasture.breakdown.职业 === 3, `牧场伯爵 ≥3 牧场终局加分生效（${scPasture.breakdown.职业} 分）`);
 }
 
 console.log(`\n${fail === 0 ? "🎉" : "💥"} ${pass} 通过 / ${fail} 失败`);

@@ -247,10 +247,10 @@ export function openDlcDrawer(dlc) {
   const sections = [];
   if (occupations) {
     sections.push(`
-      <h3>🎴 职业（Occupations）</h3>
+      <h3>🎴 职业</h3>
       <div class="kb-card">
         <p><b>开局每位玩家从 7 张随机「职业」里精选 1 张就任，整局生效。</b>未选的不在本局里再用。每张职业赋予玩家独特的被动能力或资源收益。</p>
-        <p class="muted" style="font-size:12px">例：伐木工 → 每轮自动 +1 木；牧羊人 → 拿羊行动后额外 +1 只；烘焙师傅 → 烤面包每谷多换 2 食物。</p>
+        <p class="muted" style="font-size:12px">例：伐木工 → 每轮自动 +1 木；牧羊人 → 拿羊行动后额外 +1 只；面包师 → 烤面包每谷多换 1 食物。</p>
         <h4 style="margin:10px 0 6px">本局提示</h4>
         <p>游戏开局时，在弹出的「🎴 从手牌 7 选 1 张职业」面板中选择一张心仪的职业就任，全场生效。</p>
         <h4 style="margin:10px 0 6px">怎么打</h4>
@@ -259,13 +259,12 @@ export function openDlcDrawer(dlc) {
           <li>看到「免行动 / 不消耗」字样的（如「犁地不消耗行动」），触发该动作时自动跳过工人消耗</li>
           <li>根据所选职业的能力倾向，在中前期及早确立自己的核心流派（如农耕、畜牧、添丁或工坊）</li>
         </ul>
-        <p class="muted" style="font-size:12px">⚠ 本扩展已收录 <strong>48 张正统职业卡</strong>，涵盖农耕、畜牧、建造、烹饪、声望、资源等 7 大流派，开局 7 选 1，全部效果均在引擎规则中深度挂钩闭环。</p>
       </div>
     `);
   }
   if (minorImprovements) {
     sections.push(`
-      <h3>🎴 小发展卡（Minor Improvements）</h3>
+      <h3>🎴 小发展卡</h3>
       <div class="kb-card">
         <p><b>开房间时从牌库随机抽 1 张加入行动板</b>。任何玩家<b>消耗 1 名工人</b>就可以把它抢入个人持有；抢过之后这张卡就只属于该玩家（一次性卡当场结算并从场上移除）。</p>
         <h4 style="margin:10px 0 6px">场上在哪里</h4>
@@ -276,13 +275,12 @@ export function openDlcDrawer(dlc) {
           <li>永久加成卡：抢到后永久拥有，效果在你后续的相应操作中体现</li>
           <li>抢卡不便宜 —— 等同一次正常行动；如果场上卡不合算，可以等下轮再抢</li>
         </ul>
-        <p class="muted" style="font-size:12px">⚠ 本集合「小发展卡」是该 DLC 的<strong>精简子集（12 张）</strong>，全部效果均已实装结算：一次性卡（井/市集/厨助/大谷仓）抢到立刻生效；永久卡（柴堆/纺车/砖块/石堆每轮 +1 资源、蜂箱收获 +1 食物、羊/猪/牛圈买动物 +1 只）自动在相应时机结算，可从玩家卡 tag 看到持有。</p>
       </div>
     `);
   }
   if (moor) {
     sections.push(`
-      <h3>🌲 荒野之地（Farmers of the Moor）</h3>
+      <h3>🌲 荒野之地</h3>
       <div class="kb-card">
         <p><b>两条新生命线</b>：除了每轮<b>喂饱家人</b>（食物），每轮还要给家人<b>取暖</b>（燃料），每收获轮要给<b>牛喂干草</b>。任何资源不足 = 立刻<b>拿 1 张乞讨卡</b>（燃料）/ <b>减 1 头牛</b>（干草）。</p>
         <h4 style="margin:10px 0 6px">UI 入口</h4>
@@ -299,7 +297,7 @@ export function openDlcDrawer(dlc) {
           <li>拓荒后<b>不能还原沼泽</b>，但田地 marker 用完后可重新被任何人撒种</li>
           <li>本应用新增了 5 张「荒野之地」大改进，全部实装：<b>取暖炉</b>（每轮只烧 1 燃料）、<b>泥炭窑</b>（收获 +1 燃料）、<b>沼泽灶</b>（点标签随时烹饪，1 谷/菜/羊/猪 → 2 食物）、<b>瓷砖烤炉</b>（烤面包 2 谷 → 每谷 4 食物）、<b>柴火棚</b>（终局每份剩余燃料 +1 分）</li>
         </ul>
-        <p class="muted" style="font-size:12px">⚠ 本实现是「加法型」扩展，<b>与「职业 + 小发展卡」可叠加勾选</b>。勾选「荒野之地」后，所有相关代码用 <code>g.dlc?.moor</code> 守卫，<b>不勾选的老房间完全不变</b>。</p>
+        <p class="muted" style="font-size:12px">💡 与「职业 / 小发展卡」可叠加勾选；不勾选则完全不生效，老房间不受任何影响。</p>
       </div>
     `);
   }
@@ -320,13 +318,13 @@ export function openDlcDrawer(dlc) {
       <div class="toc" style="margin-bottom:14px">
         <h4 style="margin:0 0 6px">📑 本房间启用的扩展</h4>
         <ul style="margin:0;padding-left:18px;line-height:1.7">
-${occupations ? "<li>🎴 职业（Occupations）</li>" : ""}
-          ${minorImprovements ? "<li>🎴 小发展卡（Minor Improvements）</li>" : ""}
-          ${moor ? "<li>🌲 荒野之地（Farmers of the Moor）</li>" : ""}
+          ${occupations ? "<li>🎴 职业</li>" : ""}
+          ${minorImprovements ? "<li>🎴 小发展卡</li>" : ""}
+          ${moor ? "<li>🌲 荒野之地</li>" : ""}
           ${(!occupations && !minorImprovements && !moor) ? '<li class="muted">（未启用任何 DLC）</li>' : ""}
         </ul>
         <p class="muted" style="font-size:12px;margin-top:8px">
-          由本房间主持人在创建房间时勾选。仅显示本局用到的部分，其余扩展说明见 README / dlc.md。
+          由本房间主持人在创建房间时勾选。
         </p>
       </div>
       ${sections.join("")}

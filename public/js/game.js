@@ -467,18 +467,9 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
           ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false)}
         </div>
       </div>
-      ${p.improvements.length ? `<div class="stock-imp">
-        <span class="imp-tag-label">🔧 已建改进</span>
-        <div class="imp-tags">${p.improvements.map(impTagHTML).join("")}</div>
-      </div>` : ""}
-      ${p.occupation ? `<div class="stock-imp">
-        <span class="imp-tag-label">🎴 职业</span>
-        <div class="imp-tags"><span class="imp-tag">${p.occupation.icon} ${escapeHtml(p.occupation.name)}<span class="imp-tip">${escapeHtml(p.occupation.effect)}</span></span></div>
-      </div>` : ""}
-      ${p.minorImprovements && p.minorImprovements.length ? `<div class="stock-imp">
-        <span class="imp-tag-label">🎴 小发展卡</span>
-        <div class="imp-tags">${p.minorImprovements.map((id) => `<span class="imp-tag">${minorNameById(id)}<span class="imp-tip">${minorEffectById(id)}</span></span>`).join("")}</div>
-      </div>` : ""}
+      ${p.improvements.length ? `<div class="imp-tags">${p.improvements.map(impTagHTML).join("")}</div>` : ""}
+      ${p.occupation ? `<div class="imp-tags"><span class="imp-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span></div>` : ""}
+      ${p.minorImprovements && p.minorImprovements.length ? `<div class="imp-tags">${p.minorImprovements.map((id) => `<span class="imp-tag" data-tip="${escapeHtml(minorEffectById(id) || minorNameById(id))}">${escapeHtml(minorNameById(id))}</span>`).join("")}</div>` : ""}
     `;
     host.appendChild(card);
     // 自己卡上的「可烹饪」改进标签 → 点击打开烹饪模态
@@ -1253,9 +1244,9 @@ function onSpaceClick(sp, p) {
       const grid = root.querySelector("#mImpGrid");
       const list = [
         ["fireplace",     "壁炉",       "2 陶",        "1 分", "2 谷/菜/羊/猪 → 1 食物；3 牛 → 1 食物（随时）"],
-        ["fireplaceBig",  "大壁炉",     "3 陶",        "1 分", "同壁炉（自创可选卡）"],
+        ["fireplaceBig",  "大壁炉",     "3 陶",        "1 分", "与壁炉完全相同（适合陶多 / 想多占 1 分时建）"],
         ["cookingHearth", "烹饪灶",     "4 陶",        "1 分", "1 谷/菜/羊/猪 → 2 食物；3 牛 → 2 食物（随时）"],
-        ["cookingHearthBig","大烹饪灶",  "5 陶",        "1 分", "同烹饪灶（自创可选卡）"],
+        ["cookingHearthBig","大烹饪灶",  "5 陶",        "1 分", "与烹饪灶完全相同（适合陶多 / 想多占 1 分时建）"],
         ["clayOven",      "陶土烤炉",   "3 陶 + 1 石", "2 分", "烤面包：1 谷 → 5 食物"],
         ["stoneOven",     "石头烤炉",   "3 石 + 1 陶", "3 分", "烤面包：2 谷 → 每谷 4 食物"],
         ["well",          "水井",       "3 石 + 1 木", "4 分", "建成后 5 轮，每轮开始 +1 食物"],
@@ -1440,9 +1431,9 @@ const MAJOR_ZH = {
 /** 改进悬浮说明（费用 / 得分 / 效果）—— 修订版数值 */
 const MAJOR_TIP = {
   fireplace:        "壁炉 · 2 陶 · +1 分\n随时烹饪：2 谷/菜/羊/猪 → 1 食物；3 牛 → 1 食物\n👉 点此标签烹饪",
-  fireplaceBig:     "大壁炉 · 3 陶 · +1 分\n随时烹饪，比同壁炉（自创可选卡）\n👉 点此标签烹饪",
+  fireplaceBig:     "大壁炉 · 3 陶 · +1 分\n随时烹饪，效果与壁炉完全相同\n👉 点此标签烹饪",
   cookingHearth:    "烹饪灶 · 4 陶 · +1 分\n随时烹饪：1 谷/菜/羊/猪 → 2 食物；3 牛 → 2 食物\n👉 点此标签烹饪",
-  cookingHearthBig: "大烹饪灶 · 5 陶 · +1 分\n随时烹饪，比同烹饪灶（自创可选卡）\n👉 点此标签烹饪",
+  cookingHearthBig: "大烹饪灶 · 5 陶 · +1 分\n随时烹饪，效果与烹饪灶完全相同\n👉 点此标签烹饪",
   clayOven:         "陶土烤炉 · 3 陶 + 1 石 · +2 分\n烤面包：每次最多 1 谷 → 5 食物",
   stoneOven:        "石头烤炉 · 3 石 + 1 陶 · +3 分\n烤面包：每次最多 2 谷 → 每谷 4 食物",
   well:             "水井 · 3 石 + 1 木 · +4 分\n建成后 5 轮，每轮开始 +1 食物（自动结算）",
@@ -1809,9 +1800,9 @@ const RULES_DATA = {
   ],
   majors: [
     ["壁炉", "2 陶", "1 分", "2 谷/菜/羊/猪 → 1 食物；3 牛 → 1 食物（随时可用）"],
-    ["大壁炉", "3 陶", "1 分", "同壁炉（自创可选卡）"],
+    ["大壁炉", "3 陶", "1 分", "与壁炉完全相同（适合陶多 / 想多占 1 分时建）"],
     ["烹饪灶", "4 陶", "1 分", "1 谷/菜/羊/猪 → 2 食物；3 牛 → 2 食物（随时可用）"],
-    ["大烹饪灶", "5 陶", "1 分", "同烹饪灶（自创可选卡）"],
+    ["大烹饪灶", "5 陶", "1 分", "与烹饪灶完全相同（适合陶多 / 想多占 1 分时建）"],
     ["陶土烤炉", "3 陶 + 1 石", "2 分", "烤面包：最多 1 谷 → 5 食物"],
     ["石头烤炉", "3 石 + 1 陶", "3 分", "烤面包：最多 2 谷 → 每谷 4 食物"],
     ["水井", "3 石 + 1 木", "4 分", "未来 5 轮每轮开始 +1 食物"],

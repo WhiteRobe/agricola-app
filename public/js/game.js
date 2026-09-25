@@ -1029,6 +1029,15 @@ function renderSpaces(container, g, p, myTurn, kind) {
       desc = sp.desc;
     }
 
+    // 节气轮转：冬季鱼塘封冻（第 11 轮解冻）—— 置灰 + 冰面特效 + 原因说明
+    const frozen = sp.id === "Fishing" && g.dlc?.seasons
+      && ttsSeasonOf(g, g.round) === "winter" && g.round < 11;
+    if (frozen) {
+      stock = 0;
+      badge = "";
+      desc = "❄️ 冬季封冻 · 第 11 轮起解冻";
+    }
+
     const occupantId = g.spaceOccupants ? g.spaceOccupants[sp.id] : null;
     const occupant = occupantId ? g.players.find(pl => pl.id === occupantId) : null;
     const occupantColor = occupant ? (PLAYER_COLORS[occupant.seat] || "#8e2316") : "#8e2316";
@@ -1046,11 +1055,11 @@ function renderSpaces(container, g, p, myTurn, kind) {
       ? `<div class="worker-slot occupied" title="已由 ${escapeHtml(occupantName || "玩家")} 占用">${meepleSvg(occupantColor, 20)}</div>`
       : (open ? `<div class="worker-slot" title="空闲工人槽"></div>` : "");
 
-    const canAct = myTurn && open && stock > 0 && !used;
+    const canAct = myTurn && open && stock > 0 && !used && !frozen;
     const card = document.createElement("div");
-    card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "");
+    card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "") + (frozen ? " frozen" : "");
     // Buff 标注：当前视角玩家在该格取用时有职业加成 → 灰字 +1（悬浮注明来源）
-    const buffChip = p && !used && open ? buffChipHtml(p, sp.id) : "";
+    const buffChip = p && !used && open && !frozen ? buffChipHtml(p, sp.id) : "";
     card.innerHTML = `
       ${workerSlotHtml}
       <div class="action-woodcut">${actionWoodcutSvg(sp.id, 28)}</div>
@@ -1060,6 +1069,7 @@ function renderSpaces(container, g, p, myTurn, kind) {
       ${isMeOccupant ? '<div class="mine">我的</div>' : ""}
     `;
     if (canAct) card.onclick = () => onSpaceClick(sp, p);
+    else if (frozen) card.onclick = () => toast("❄️ 冬季鱼塘封冻，无法钓鱼（第 11 轮起解冻）", true);
     container.appendChild(card);
   });
 

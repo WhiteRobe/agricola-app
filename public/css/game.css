@@ -711,6 +711,51 @@
   box-shadow: inset 0 2px 5px rgba(45, 30, 10, 0.2);
 }
 .space.taken { opacity: 0.6; }
+
+/* 节气轮转 · 冬季鱼塘封冻：冰蓝蒙霜 + 灰化 + 摇曳雪花 */
+.space.frozen {
+  opacity: 0.85;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  border-color: rgba(140, 190, 220, 0.85) !important;
+  background:
+    linear-gradient(160deg, rgba(196, 228, 245, 0.5) 0%, rgba(226, 243, 250, 0.35) 45%, rgba(205, 232, 245, 0.45) 100%) !important;
+  box-shadow: inset 0 1px 4px rgba(120, 170, 205, 0.45), 0 0 6px rgba(160, 210, 240, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.space.frozen .action-woodcut,
+.space.frozen .name { filter: grayscale(0.7) opacity(0.75); }
+.space.frozen::after {
+  content: "❄";
+  position: absolute;
+  top: 4px; right: 7px;
+  font-size: 15px;
+  color: rgba(90, 150, 200, 0.9);
+  text-shadow: 0 0 6px rgba(170, 215, 245, 0.95), 0 0 12px rgba(170, 215, 245, 0.5);
+  animation: frost-sway 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.space.frozen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0 6px,
+    rgba(210, 235, 250, 0.28) 6px 8px,
+    rgba(255, 255, 255, 0) 8px 14px
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+@keyframes frost-sway {
+  0%, 100% { transform: rotate(-10deg) translateY(0); opacity: 0.95; }
+  50%      { transform: rotate(10deg) translateY(-1px); opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .space.frozen::after { animation: none; }
+}
 .space .action-woodcut {
   display: flex;
   align-items: center;

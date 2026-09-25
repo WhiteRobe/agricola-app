@@ -12,6 +12,15 @@ export function randCode(len: number): string {
   return s;
 }
 
+/** 纯数字码（房间码 / 旁观码统一为 4 位数字） */
+export function randDigits(len: number): string {
+  let s = "";
+  const buf = new Uint8Array(len);
+  crypto.getRandomValues(buf);
+  for (let i = 0; i < len; i++) s += String(buf[i] % 10);
+  return s;
+}
+
 export function randToken(): string {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);

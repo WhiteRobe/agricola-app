@@ -1,7 +1,7 @@
 // ============================================================
 // Worker 入口：静态资源 + API 路由
 // ============================================================
-import { Room, Registry, randCode } from "./dos";
+import { Room, Registry, randDigits } from "./dos";
 
 export { Room, Registry };
 
@@ -56,8 +56,8 @@ export default {
         }
 
         for (let i = 0; i < 10; i++) {
-          const roomCode = randCode(4);
-          const specCode = "S" + randCode(3);
+          const roomCode = randDigits(4);
+          const specCode = randDigits(4);
           const claim = await doFetch<{ ok: boolean; conflict?: boolean }>(env.REGISTRY, "registry", "/claim", {
             op: "claim",
             player: roomCode,

@@ -608,19 +608,23 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     }
     fuelFormula += `\n（沼泽农夫扩展：收获节缺少燃料将获得乞讨卡）`;
 
-    const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null, buffHtml = "") => {
+    const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null, buffHtml = "", incomeHtml = "") => {
       const tipText = formulaTip ? `${name} · ${formulaTip}` : name;
       return `<div class="stk" data-key="${key}" data-name="${name}" data-tip="${escapeHtml(tipText)}">
          <span class="stk-ic">${ic}</span>
          <div class="stk-val-wrap">
            <b class="stk-v${isNum ? " resource-num" : ""}" data-key="${key}">${val}</b>
            ${costHint !== null ? `<span class="stk-cost-hint">(-${costHint})</span>` : ""}
+           ${incomeHtml}
          </div>
          ${buffHtml}
        </div>`;
     };
     // Buff 标注：取用对应行动格时职业加成（灰字 +1，悬浮注明来源）
     const resBuff = (key) => buffChipHtml(p, RES_TO_SPACE[key]);
+    // 预计自动收入：下回合开始 / 下次收获会自动到账的资源（虚线框 +N）
+    const inc = autoIncomeFor(p, _state.game);
+    const resInc = (key) => incomeChipHtml(inc, key);
     const pScore = liveScorePlayer(p);
     card.innerHTML = `
       <h4>
@@ -635,32 +639,32 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       </h4>
       <div class="stock">
         <div class="stock-row stock-key">
-          ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula, resBuff("food"))}
+          ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula, resBuff("food"), resInc("food"))}
           ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false)}
           ${stk("beggings", "🃏", p.beggings, "乞讨卡", false)}
         </div>
         ${_state.game.dlc?.moor ? `<div class="stock-label">沼泽物资</div>
         <div class="stock-row stock-moor">
-          ${stk("fuel", tokenSvg("fuel", 20), p.fuel || 0, "燃料", true, estFuelNeed, fuelFormula)}
+          ${stk("fuel", tokenSvg("fuel", 20), p.fuel || 0, "燃料", true, estFuelNeed, fuelFormula, "", resInc("fuel"))}
           ${stk("hay", tokenSvg("hay", 20), p.hay || 0, "干草")}
         </div>` : ""}
         <div class="stock-label">建材</div>
         <div class="stock-row stock-mat">
-          ${stk("wood", tokenSvg("wood", 20), p.resources.wood, "木材", true, null, null, resBuff("wood"))}
-          ${stk("clay", tokenSvg("clay", 20), p.resources.clay, "陶土", true, null, null, resBuff("clay"))}
-          ${stk("reed", tokenSvg("reed", 20), p.resources.reed, "芦苇", true, null, null, resBuff("reed"))}
-          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石头", true, null, null, resBuff("stone"))}
+          ${stk("wood", tokenSvg("wood", 20), p.resources.wood, "木材", true, null, null, resBuff("wood"), resInc("wood"))}
+          ${stk("clay", tokenSvg("clay", 20), p.resources.clay, "陶土", true, null, null, resBuff("clay"), resInc("clay"))}
+          ${stk("reed", tokenSvg("reed", 20), p.resources.reed, "芦苇", true, null, null, resBuff("reed"), resInc("reed"))}
+          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石头", true, null, null, resBuff("stone"), resInc("stone"))}
         </div>
         <div class="stock-label">农产品</div>
         <div class="stock-row stock-crop">
-          ${stk("grain", tokenSvg("grain", 20), p.resources.grain, "谷物", true, null, null, resBuff("grain"))}
-          ${stk("vegetable", tokenSvg("vegetable", 20), p.resources.vegetable, "蔬菜", true, null, null, resBuff("vegetable"))}
+          ${stk("grain", tokenSvg("grain", 20), p.resources.grain, "谷物", true, null, null, resBuff("grain"), resInc("grain"))}
+          ${stk("vegetable", tokenSvg("vegetable", 20), p.resources.vegetable, "蔬菜", true, null, null, resBuff("vegetable"), resInc("vegetable"))}
         </div>
         <div class="stock-label">牲畜</div>
         <div class="stock-row stock-animal">
-          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "羊", false, null, null, resBuff("sheep"))}
-          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "猪", false, null, null, resBuff("boar"))}
-          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false, null, null, resBuff("cattle"))}
+          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "羊", false, null, null, resBuff("sheep"), resInc("sheep"))}
+          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "猪", false, null, null, resBuff("boar"), resInc("boar"))}
+          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false, null, null, resBuff("cattle"), resInc("cattle"))}
         </div>
       </div>
       ${(() => {
@@ -2163,12 +2167,103 @@ function annotatedCostLine(base, disc, notes) {
   }).join(" + ");
 }
 
+// ============================================================
+// 预计自动收入提示：下回合开始 / 下次收获会自动结算到账的资源
+// （水井、永久小发展卡、被动职业、田地阶段、蜂箱、繁殖等）
+// Stock 上显示虚线框 (+N)，悬浮注明每笔来源与结算时机
+// ============================================================
+const HARVEST_ROUNDS_ALL = [4, 7, 9, 11, 13, 14];
+function autoIncomeFor(p, g) {
+  const inc = {}; // resKey -> { amount, lines[] }
+  const add = (key, n, line) => {
+    if (!n) return;
+    (inc[key] = inc[key] || { amount: 0, lines: [] });
+    inc[key].amount += n;
+    if (line) inc[key].lines.push(line);
+  };
+  const nextRound = g.round + 1;
+  const nextHarvest = HARVEST_ROUNDS_ALL.find((r) => r > g.round);
+
+  // —— 下回合开始（每轮被动结算，按当前状态预估）——
+  if (nextRound >= 1 && nextRound <= 14) {
+    if (p.wellRounds > 0) add("food", 1, `下回合开始 · 水井（剩余 ${p.wellRounds} 轮）`);
+    const MI_INC = {
+      "mi.firewood": ["wood", "小发展卡·柴堆"],
+      "mi.spinning": ["reed", "小发展卡·纺车"],
+      "mi.brick": ["clay", "小发展卡·砖块"],
+      "mi.stoneHeap": ["stone", "小发展卡·石堆"],
+    };
+    for (const [card, [k, src]] of Object.entries(MI_INC)) {
+      if ((p.minorImprovements || []).includes(card)) add(k, 1, `下回合开始 · ${src}`);
+    }
+    const OCC_INC = {
+      woodcutter: ["wood", "伐木工"], clayworker: ["clay", "泥瓦工"],
+      reedcutter: ["reed", "芦苇工"], stonemason: ["stone", "石匠"],
+      grainMerchant: ["grain", "粮商"], fieldHand: ["grain", "田间工"],
+      innkeeper: ["food", "旅店老板"],
+    };
+    const occ = OCC_INC[p.occupation?.id];
+    if (occ) add(occ[0], 1, `下回合开始 · 职业「${occ[1]}」`);
+    if (p.occupation?.id === "seasonalWorker" && [1, 5, 8, 10, 12, 14].includes(nextRound)) {
+      add("grain", 1, `下回合开始 · 职业「季节工」（第 ${nextRound} 轮）`);
+      add("food", 1, `下回合开始 · 职业「季节工」（第 ${nextRound} 轮）`);
+    }
+    // 保底 / 条件类：按当前状态预估
+    if (p.occupation?.id === "woodMerchant" && p.resources.wood === 0) add("wood", 1, "下回合开始 · 职业「木柴商」（木材为 0 时保底）");
+    if (p.occupation?.id === "storehouseClerk" && p.food === 0) add("food", 1, "下回合开始 · 职业「仓库管理员」（食物为 0 时保底）");
+    if (p.occupation?.id === "greengrocer" && p.resources.vegetable >= 1) add("food", 1, "下回合开始 · 职业「菜贩」（有蔬菜时）");
+    if (p.occupation?.id === "pastureManager" && p.pastures.length >= 2) add("food", 1, "下回合开始 · 职业「牧场领班」（≥2 处牧场）");
+    if (p.occupation?.id === "fieldWatchman" && p.grid.some((row) => row.some((c) => c.kind === "field" && (c.markers || 0) > 0))) {
+      add("food", 1, "下回合开始 · 职业「守望者」（田里有作物）");
+    }
+  }
+
+  // —— 下次收获（自动结算：田地 / 蜂箱 / 繁殖等）——
+  if (nextHarvest) {
+    const when = `第 ${nextHarvest} 轮收获`;
+    let gf = 0, vf = 0;
+    p.grid.forEach((row) => row.forEach((c) => {
+      if (c.kind === "field" && c.crop && (c.markers || 0) > 0) {
+        if (c.crop === "grain") gf++; else vf++;
+      }
+    }));
+    if (gf) add("grain", gf, `${when} · ${gf} 块谷田各 +1`);
+    if (vf) add("vegetable", vf, `${when} · ${vf} 块菜田各 +1`);
+    if ((p.minorImprovements || []).includes("mi.beehive")) add("food", 1, `${when} · 蜂箱`);
+    if ((p.improvements || []).includes("peatKiln")) add("fuel", 1, `${when} · 泥炭窑`);
+    const oid = p.occupation?.id;
+    if (oid === "ratcatcher") add("grain", 1, `${when} · 职业「捕鼠人」`);
+    if (oid === "gardener") add("vegetable", 1, `${when} · 职业「园丁」`);
+    if (oid === "beekeeper") add("food", 2, `${when} · 职业「养蜂人」`);
+    if (oid === "milker" && (p.animals.sheep >= 1 || p.animals.cattle >= 1)) add("food", 1, `${when} · 职业「挤奶工」`);
+    if (oid === "woolWeaver" && p.animals.sheep >= 1) add("food", 1, `${when} · 职业「羊毛织工」`);
+    const fieldCnt = p.grid.flat().filter((c) => c.kind === "field").length;
+    if (oid === "smallholder" && fieldCnt <= 2) add("grain", 1, `${when} · 职业「小农」（田 ≤2 块）`);
+    // 繁殖：同类成对自动 +1（需牧场有空位）
+    (["sheep", "boar", "cattle"]).forEach((t) => {
+      if (p.animals[t] >= 2) {
+        add(t, 1, `${when} · 繁殖（${({ sheep: "羊", boar: "猪", cattle: "牛" })[t]}成对，需牧场有空位）`);
+      }
+    });
+  }
+  for (const k of Object.keys(inc)) if (inc[k].amount <= 0) delete inc[k];
+  return inc;
+}
+/** Stock 上的自动收入虚线徽章 */
+function incomeChipHtml(inc, key) {
+  const e = inc && inc[key];
+  if (!e || e.amount <= 0) return "";
+  const tip = "预计自动收入（无需派人行动）：\n" + (e.lines.filter(Boolean).map((l) => "· " + l).join("\n"));
+  return `<span class="stk-income-chip" data-tip="${escapeHtml(tip)}">+${e.amount}</span>`;
+}
+
 // 调试挂载：开发期从 console 调
 if (typeof window !== "undefined") {
   window.__gameDebug = {
     openLeaderboard, closeLeaderboard, toggleGuide, renderGuide, liveScores, applySeasonTheme,
     openModal, closeModal, onSpaceClick, sendAction,
     setFenceMode, toggleFence, refreshFenceUI,
+    autoIncomeFor, incomeChipHtml,
     /** 用当前内存中的 state 重渲染（调试用） */
     rerender() { renderGame(document.getElementById("gameRoot"), _state, _me, _conn); },
     get fenceSel() { return [..._selFences]; },

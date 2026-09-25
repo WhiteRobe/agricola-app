@@ -130,6 +130,25 @@
 }
 .stk .buff-chip { margin-left: 1px; font-size: 9.5px; padding: 0 3px; }
 
+/* ---- 预计自动收入：虚线框 +N（下回合开始 / 下次收获自动到账，悬浮注明来源） ---- */
+.stk-income-chip {
+  display: inline-flex; align-items: center;
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 5px;
+  border: 1.5px dashed rgba(92, 141, 78, 0.7);
+  color: var(--leaf-dark, #2e6b2e);
+  background: rgba(92, 141, 78, 0.08);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: help;
+  vertical-align: middle;
+}
+.stk .stk-income-chip { margin-left: 1px; font-size: 9.5px; padding: 0 3px; }
+
 /* ---- 资源面板网格（旧样式，保留给兼容） ---- */
 /* ---- 资源面板网格（紧凑 + 居中） ---- */
 .res-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;

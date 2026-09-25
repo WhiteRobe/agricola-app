@@ -154,21 +154,21 @@ function openRoomConfigModal() {
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgOcc">
           <div>
-            <div class="dlc-title">🎴 48 种正统职业 + 小发展卡</div>
-            <div class="muted" style="font-size:12px">开局每位玩家从 7 张随机职业中精选 1 张就任（全套 48 张正统职业涵盖 7 大流派）；场上抽 1 张「小发展卡」供争抢。极大丰富策略深度，强烈推荐！</div>
+            <div class="dlc-title">🎴 88 种经典职业 + 小发展卡</div>
+            <div class="muted" style="font-size:12px">开局每位玩家从 7 张随机职业中精选 1 张就任（全套 88 张官方经典职业涵盖 7 大流派）；场上抽 1 张「小发展卡」供争抢。极大丰富策略深度，强烈推荐！</div>
           </div>
         </label>
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgMoor">
           <div>
-            <div class="dlc-title">🌲 荒野之地（Farmers of the Moor）</div>
+            <div class="dlc-title">🌲 沼泽农夫（荒野之地扩展）</div>
             <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/撒种/收获）+ 4 张新大发展卡。收获阶段新增燃料取暖与喂干草，带来更拟真的农耕开拓体验。可与职业扩展自由叠加。</div>
           </div>
         </label>
         <label class="dlc-opt dlc-opt-dis">
           <input type="checkbox" disabled>
           <div>
-            <div class="dlc-title">📅 Through the Seasons（节气）<span class="muted" style="font-size:12px">（待开发）</span></div>
+            <div class="dlc-title">📅 节气轮转（Through the Seasons 扩展）<span class="muted" style="font-size:12px">（待开发）</span></div>
             <div class="muted" style="font-size:12px">改终局按轮数阶梯计分。</div>
           </div>
         </label>
@@ -241,7 +241,7 @@ async function createRoom(opts) {
         toast(data.msg || "创建失败", true);
         throw new Error("create_failed");
       }
-      const tag = dlc.occupations || dlc.moor ? `（${dlc.occupations ? "职业 DLC " : ""}${dlc.moor ? "荒野之地" : ""}）` : "";
+      const tag = dlc.occupations || dlc.moor ? `（${dlc.occupations ? "职业 DLC " : ""}${dlc.moor ? "沼泽农夫" : ""}）` : "";
       toast(`已创建房间 ${data.roomCode}${tag}`.replace(/\s+/g, " "));
       await refresh();
       openManage(data.roomCode);

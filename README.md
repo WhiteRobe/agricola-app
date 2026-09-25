@@ -9,8 +9,6 @@
 > 经典德式策略桌游《农家乐 / 农庄主》（*Agricola: Revised Edition 2016* by Uwe Rosenberg）高保真全功能电子化实现。  
 > 原生运行于 **Cloudflare 全球边缘网络（Workers + Durable Objects + Static Assets）**，提供 **1–4 人联机对弈**、**纯数字房间匹配**、**实时旁观模式** 与 **极致移动端适配**。
 
-🎮 **在线体验**：[https://farm.whiterobe.top](https://farm.whiterobe.top)  
-👑 **全局主持管理台**：[https://farm.whiterobe.top/host](https://farm.whiterobe.top/host)  
 📖 **详细 DLC 设计文档**：[dlc.md](dlc.md)
 
 ---
@@ -31,13 +29,13 @@
 
 ### 2. 🧩 模块化扩展包（DLC）独立开关
 可在主持开房时按需勾选，未开启时保证本体纯净度：
-- **🎴 48 张正统职业卡池（Occupations）**：
+- **🎴 88 张官方经典职业卡池（Occupations）**：
   - 涵盖农耕、畜牧、建造、烹饪、声望、资源等 7 大流派；
   - 开局 7 选 1 弹窗抽取，技能深度挂钩游戏引擎，全自动触发永久被动与即时收益；
   - 玩家卡区域以简洁 Tag 芯片展示，鼠标悬浮即弹出详细技能浮窗说明。
 - **🎴 小发展卡（Minor Improvements）**：
   - 包含一次性爆发卡（水井、市集、厨助、大谷仓）与永久增益卡（柴堆、纺车、砖块、蜂箱、专用畜圈），抢入个人持有并即刻结算。
-- **🌲 荒野之地（Farmers of the Moor）**：
+- **🌲 沼泽农夫（荒野之地扩展）**：
   - 引入「🔥 燃料」与「🌾 干草」两大全新资源体系；
   - 新增 4×4 公有沼泽拓荒板，支持沼泽拓荒、公共播种与产出收割；
   - 每轮必须消耗燃料为房屋取暖，收获阶段必须为牛群提供干草；
@@ -87,7 +85,7 @@
 ```text
                        ┌──────────────────────────────────────────────┐
                        │          Cloudflare Edge Network             │
-                       │           (farm.whiterobe.top)               │
+                       │        (Workers + Durable Objects)           │
                        └──────────────────────┬───────────────────────┘
                                               │
               ┌───────────────────────────────┴───────────────────────────────┐
@@ -189,10 +187,10 @@ npm run typecheck
 npm test
 ```
 
-亦可运行端到端网络对局验证（支持传入自定义域名）：
+亦可运行端到端网络对局验证（支持传入自定义服务地址）：
 ```bash
-# 测试本地或线上双人完整 14 轮推进
-node test/ws-twoplay.js https://farm.whiterobe.top
+# 测试本地或私有部署双人完整 14 轮推进
+node test/ws-twoplay.js http://127.0.0.1:8787
 ```
 
 ---
@@ -208,7 +206,7 @@ npx wrangler deploy
 绑定自定义域名时，在 `wrangler.jsonc` 中配置：
 ```jsonc
 "routes": [
-  { "pattern": "farm.whiterobe.top", "custom_domain": true }
+  { "pattern": "your-domain.example.com", "custom_domain": true }
 ]
 ```
 
@@ -219,7 +217,7 @@ npx wrangler deploy
 - **游戏设计**：Uwe Rosenberg
 - **规则规范**：[Agricola: Revised Edition (Lookout Games, 2016)](https://boardgamegeek.com/boardgame/200680/agricola-revised-edition)
 - **机制深度解析**：[AndyVenture 农家乐深度规则指南](https://andyventure.com/boardgame-agricola/)
-- **扩展设计**：*Agricola: Farmers of the Moor*
+- **扩展设计**：《农家乐：沼泽农夫》（荒野之地扩展）
 
 ---
 

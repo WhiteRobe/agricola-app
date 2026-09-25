@@ -218,7 +218,7 @@ export function tokenSvg(kind, size = 26) {
       </svg>`;
 
     case "fuel":
-      // 燃料（Farmers of the Moor）：切块深黑泥炭块堆叠
+      // 燃料（沼泽农夫扩展）：切块深黑泥炭块堆叠
       return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" class="agri-token token-fuel" aria-label="燃料" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="peatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -242,7 +242,7 @@ export function tokenSvg(kind, size = 26) {
       </svg>`;
 
     case "hay":
-      // 干草（Farmers of the Moor）：扎绑好的长方形金黄干草捆
+      // 干草（沼泽农夫扩展）：扎绑好的长方形金黄干草捆
       return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" class="agri-token token-hay" aria-label="干草" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="hayGrad" x1="0%" y1="0%" x2="100%" y2="100%">

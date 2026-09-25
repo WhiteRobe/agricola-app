@@ -35,7 +35,7 @@
 |---|---|---|---|---|---|
 | 1 | 🎴 职业（Occupations）+ 小发展卡（Minor Improvements） | 卡牌（房间级） | 开局发 7 选 1 张职业；场上抽 1 张小发展卡可抢 | ★ | ✅ **已上线**（v`994a2dfd`） |
 | 2 | 🌍 World Championship Deck / Gamers' Deck | 卡牌（房间级） | 8 套预组职业 / 8 套预组小发展卡 | ★ | ⏳ 占位 |
-| 3 | 🌲 Farmers of the Moor（荒野之地） | 机制（房间级） | 燃料 / 干草 / 沼泽 + 4 张新大改进 + 收获阶段 2 步 | ★★★ | ✅ **已上线** |
+| 3 | 🌲 沼泽农夫（荒野之地） | 机制（房间级） | 燃料 / 干草 / 沼泽 + 4 张新大改进 + 收获阶段 2 步 | ★★★ | ✅ **已上线** |
 | 4 | 📅 Through the Seasons（节气） | 全局终局 | 改终局按轮数阶梯计分 | ★★ | ⏳ 占位 |
 | 5 | 🎨 Decorated Farms / Christmas | 主题装饰 | 装饰卡 / 农场主题背景 / 边框 | ★ | ⏳ 占位 |
 | 6 | Family A / B / C / D 变体 | 全局预设 | 季节 / 永久卡 / 起始资源等基调切换 | ★★★ | 待讨论 |
@@ -190,7 +190,7 @@
 
 ---
 
-## 2.3 已落地：DLC #3（Farmers of the Moor 荒野之地）
+## 2.3 已落地：DLC #3（沼泽农夫 · 荒野之地）
 
 **改动文件**
 
@@ -203,16 +203,16 @@
 | `src/index.ts` | `/api/host/create` 与 `/api/host/list` 透传 moor |
 | `public/host.html` | moor 勾选框从 disabled 改为可选 |
 | `public/js/host.js` | 新建房间弹窗加 moor 勾选；hint 文案更新；提交 dlc.moor |
-| `public/js/game.js` | 玩家状态条加 fuel/hay；行动板加「🌲 Moor」燃料堆/干草堆行 + 4×4 沼泽板；拓荒/撒谷/撒菜按钮 + 选中态；DLC 规则按钮条件加 moor |
+| `public/js/game.js` | 玩家状态条加 fuel/hay；行动板加「🌲 沼泽农夫」燃料堆/干草堆行 + 4×4 沼泽板；拓荒/撒谷/撒菜按钮 + 选中态；DLC 规则按钮条件加 moor |
 | `public/js/tutorial.js` | DLC 抽屉增加 Moor 章节 + TOC 项 + 顶部条件 |
 | `public/css/main.css` | `.moor-board-wrap` / `.moor-board` / `.moor-cell` / `.moor-actions` / `.moor-banner` / `.stock-moor` 样式 |
 | `test/engine.mjs` | 新增 22 条 Moor 断言：累积堆 + GatherFuel + CutMeadow + ReclaimMoor + SowMoor + 资源校验 + 收获阶段乞讨/牛死 + scorePlayer 字段计分 + 未启用拒绝 |
 
 **用户流程**
 
-1. 主持人在「🚜 新建房间配置」弹窗勾选「🌲 Farmers of the Moor」
+1. 主持人在「🚜 新建房间配置」弹窗勾选「🌲 沼泽农夫（荒野之地扩展）」
 2. 玩家加入 → 玩家卡顶部「🔥 燃料 / 🌾 干草」两格可见
-3. 行动板多出「🌲 Farmers of the Moor」一行（燃料堆 / 干草堆各 1 张卡，点击拿走全部累积）
+3. 行动板多出「🌲 沼泽农夫」一行（燃料堆 / 干草堆各 1 张卡，点击拿走全部累积）
 4. 行动板再下方 4×4 公有沼泽板：点格子选中，弹「🌱 拓荒」（1 木 + 1 芦苇 + 1 燃料奖励）/「🌾 撒谷」「🥕 撒菜」按钮
 5. 自己撒过种的沼泽田，收获阶段自动按 marker 收 1 个谷/菜，计入 fields break-point
 6. 每收获轮：先字段 → 再喂养 → 再繁殖 → **再沼泽收获** → **再燃料取暖**（缺 = 乞讨卡）→ **再喂牛**（缺 = 牛 -1）

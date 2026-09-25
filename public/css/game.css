@@ -109,7 +109,16 @@
 }
 .stk:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
 .stk-ic { font-size: 18px; line-height: 1; }
+.stk-val-wrap {
+  display: inline-flex; align-items: baseline; justify-content: center;
+  gap: 2px; line-height: 1;
+}
 .stk-v { font-family: ui-monospace, Consolas, monospace; font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1; }
+.stk-cost-hint {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px; font-weight: 700; color: #8c8273;
+  line-height: 1; letter-spacing: -0.3px;
+}
 
 /* 分组配色（半透明，让底层时间轮透出来） */
 .stock-key .stk {
@@ -123,19 +132,50 @@
 .stock-crop .stk  { background: linear-gradient(180deg, rgba(242,247,234,.075), rgba(230,239,219,.075)); border-color: #cde0ba; }
 .stock-animal .stk{ background: linear-gradient(180deg, rgba(239,244,248,.075), rgba(227,237,244,.075)); border-color: #c5d8e6; }
 
-/* 悬停 tooltip 显示资源名 */
-.stk::after {
-  content: attr(data-name);
-  position: absolute; bottom: calc(100% + 4px); left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: var(--ink); color: #f6efdc;
-  font-size: 11px; font-weight: 600;
-  padding: 3px 8px; border-radius: 6px;
-  white-space: nowrap; pointer-events: none; opacity: 0;
-  transition: opacity .15s ease, transform .15s ease;
-  z-index: 5; box-shadow: var(--shadow);
+/* ---- 全局智能视口浮窗（防超屏截断、自适应视口贴靠） ---- */
+.app-tooltip {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  background: rgba(32, 24, 16, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f6efdc;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.42), 0 1px 3px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(230, 210, 175, 0.22);
+  white-space: pre-line;
+  text-align: left;
+  max-width: min(300px, calc(100vw - 20px));
+  word-break: break-word;
+  opacity: 0;
+  transform: translateY(2px) scale(0.98);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  display: none;
 }
-.stk:hover::after, .stk.show-tip::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.app-tooltip.measuring {
+  display: block;
+  opacity: 0;
+  visibility: hidden;
+}
+.app-tooltip.visible {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* 隐藏旧伪元素浮窗，防止双重弹窗与视口裁剪超屏 */
+.stk::after,
+.imp-tag::after,
+.res::after {
+  display: none !important;
+  content: none !important;
+}
 
 /* ---- 已建改进：tag 形式 + 悬浮说明 ---- */
 .stock-imp {
@@ -158,21 +198,6 @@
   transition: background .15s ease, transform .12s ease;
 }
 .imp-tag:hover { background: rgba(217, 164, 65, 0.4); transform: translateY(-1px); }
-/* 悬浮说明气泡 */
-.imp-tag::after {
-  content: attr(data-tip);
-  position: absolute; bottom: calc(100% + 7px); left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: var(--ink); color: #f6efdc;
-  font-size: 11.5px; font-weight: 500; line-height: 1.5;
-  padding: 7px 10px; border-radius: 9px;
-  white-space: pre-line; text-align: left;
-  width: max-content; max-width: 230px;
-  pointer-events: none; opacity: 0; z-index: 20;
-  box-shadow: var(--shadow-lg);
-  transition: opacity .16s ease, transform .16s ease;
-}
-.imp-tag:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .col-card.is-current-turn,
 .farm-card.is-current-turn {
@@ -181,24 +206,6 @@
   box-shadow: 0 0 0 4px rgba(92,141,78,0.18), var(--shadow-lg);
   animation: current-turn-pulse 2s ease-in-out infinite;
   position: relative;
-}
-/* 悬停 tooltip 显示资源名（替代常驻文字） */
-.res::after {
-  content: attr(data-name);
-  position: absolute; bottom: calc(100% + 4px); left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: var(--ink); color: #f6efdc;
-  font-size: 11px; font-weight: 600;
-  padding: 3px 8px; border-radius: 6px;
-  white-space: nowrap; pointer-events: none; opacity: 0;
-  transition: opacity .15s ease, transform .15s ease;
-  z-index: 5;
-  box-shadow: var(--shadow);
-}
-.res:hover::after,
-.res:focus-within::after,
-.res.show-tip::after {
-  opacity: 1; transform: translateX(-50%) translateY(0);
 }
 
 /* ---- 农场卡 ---- */

@@ -19,7 +19,7 @@ export const OCCUPATIONS = [
   { id: "reedCollector", name: "割苇人", icon: "🌿", category: "resource", categoryZh: "基础资源", effect: "拿芦苇行动：额外多拿 1 芦苇", flavor: "深谙沼泽水岸芦苇生长的巧匠" },
   { id: "gravelCarrier", name: "砾石搬运工", icon: "🪨", category: "resource", categoryZh: "基础资源", effect: "拿陶土行动：顺带捡拾获得 1 石头", flavor: "泥土与沙砾混杂中的意外收获" },
   { id: "silviculturist", name: "林农", icon: "🌲", category: "resource", categoryZh: "基础资源", effect: "拿木材行动：若取走 ≥3 木额外获得 1 食物", flavor: "科学伐木并在林下采集浆果" },
-  { id: "peatCutter", name: "泥炭割工", icon: "🧱", category: "resource", categoryZh: "基础资源", effect: "拿陶土行动：额外获得 1 食物（Moor 下获 1 燃料）", flavor: "深层湿地割取可燃黑泥炭" },
+  { id: "peatCutter", name: "泥炭割工", icon: "🧱", category: "resource", categoryZh: "基础资源", effect: "拿陶土行动：额外获得 1 食物（沼泽农夫扩展下获 1 燃料）", flavor: "深层湿地割取可燃黑泥炭" },
 
   // ==========================================
   // 2. 农耕种植流派（13 张）

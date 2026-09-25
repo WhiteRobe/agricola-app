@@ -165,7 +165,7 @@ function choosePlayerAction(p, g) {
 async function main() {
   console.log(`▶ 双真实玩家端到端完整对局测试（房主 + 玩家一 + 玩家二）→ ${BASE}`);
 
-  // 1. 创建房间（开启 Farmers of the Moor 扩展）
+  // 1. 创建房间（开启「沼泽农夫」扩展）
   const room = await http("/api/host/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

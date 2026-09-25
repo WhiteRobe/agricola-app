@@ -322,7 +322,7 @@ export function openDlcDrawer(dlc) {
         <ul style="margin:0;padding-left:18px;line-height:1.7">
           ${occupations ? "<li>🎴 职业</li>" : ""}
           ${minorImprovements ? "<li>🎴 小发展卡</li>" : ""}
-          ${moor ? "<li>🌲 荒野之地</li>" : ""}
+          ${moor ? "<li>🌲 沼泽农夫（荒野之地）</li>" : ""}
           ${(!occupations && !minorImprovements && !moor) ? '<li class="muted">（未启用任何 DLC）</li>' : ""}
         </ul>
         <p class="muted" style="font-size:12px;margin-top:8px">
@@ -453,9 +453,9 @@ export const STRATEGIES = [
     id: "moor",
     name: "🌲 荒野拓荒保暖流",
     shortName: "🌲 荒野拓荒",
-    subtitle: "Farmers of the Moor 专属 · 燃料生金 · 沼泽开拓",
-    tag: "Moor专属",
-    summary: "专精 Moor 扩展的“燃料与泥炭”体系，尽早开垦公有沼泽板并建造专属保暖设施，终局将剩余燃料转化为真金白银的胜利点。",
+    subtitle: "沼泽农夫专属 · 燃料生金 · 沼泽开拓",
+    tag: "沼泽农夫专属",
+    summary: "专精「沼泽农夫（荒野之地）」扩展的“燃料与泥炭”体系，尽早开垦公有沼泽板并建造专属保暖设施，终局将剩余燃料转化为真金白银的胜利点。",
     phases: [
       { round: "前期 (第 1-4 轮)", desc: "积极拿取「收集燃料」与「沼泽拓荒」，利用拓荒赠送的燃料轻松熬过第 4 轮收获的保暖检查。" },
       { round: "中期 (第 5-8 轮)", desc: "抢建「取暖炉」（全家只消耗 1 燃料）或「泥炭窑」（收获期自动获赠燃料）。在公有沼泽板上播种作物计入农田得分。" },
@@ -469,7 +469,7 @@ export const STRATEGIES = [
       { name: "割草甸", icon: "🌾", desc: "专属行动：包揽全部干草堆，喂饱牛群" }
     ],
     pros: "化严寒为动力，彻底免去缺燃料扣分，终局凭借庞大燃料储量爆发额外 5~8 分。",
-    cons: "仅在房间启用 Farmers of the Moor 扩展时生效；需要合理分配木材与芦苇以兼顾拓荒成本。"
+    cons: "仅在房间启用「沼泽农夫（荒野之地）」扩展时生效；需要合理分配木材与芦苇以兼顾拓荒成本。"
   },
   {
     id: "balanced",

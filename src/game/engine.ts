@@ -1097,7 +1097,7 @@ function useMinorImprovement(g: GameState, p: PlayerState, a: EngineAction): Act
 
 /** 收集燃料：拿走 moorFuelPile 全部燃料归己（不消耗工人，按 round card 每轮一次） */
 function gatherFuel(g: GameState, p: PlayerState): ActionResult {
-  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用 Farmers of the Moor" };
+  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用「沼泽农夫（荒野之地）」扩展" };
   if (g.moorFuelPile <= 0) return { ok: false, msg: "燃料堆是空的（每轮 +1）" };
   const got = g.moorFuelPile;
   p.fuel += got;
@@ -1108,7 +1108,7 @@ function gatherFuel(g: GameState, p: PlayerState): ActionResult {
 
 /** 割草甸：拿走 moorHayPile 全部干草归己 */
 function cutMeadow(g: GameState, p: PlayerState): ActionResult {
-  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用 Farmers of the Moor" };
+  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用「沼泽农夫（荒野之地）」扩展" };
   if (g.moorHayPile <= 0) return { ok: false, msg: "草甸是空的（每轮 +1）" };
   const got = g.moorHayPile;
   p.hay += got;
@@ -1119,7 +1119,7 @@ function cutMeadow(g: GameState, p: PlayerState): ActionResult {
 
 /** 拓荒：标记 (x, y) 为已开垦的公有田，自身 +1 燃料；消耗 1 木 + 1 芦苇 */
 function reclaimMoor(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
-  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用 Farmers of the Moor" };
+  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用「沼泽农夫（荒野之地）」扩展" };
   const x = Number(a.x), y = Number(a.y);
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= MOOR_W || y < 0 || y >= MOOR_H) {
     return { ok: false, msg: `沼泽坐标越界（应在 0..${MOOR_W - 1} / 0..${MOOR_H - 1}）` };
@@ -1145,7 +1145,7 @@ function reclaimMoor(g: GameState, p: PlayerState, a: EngineAction): ActionResul
 
 /** 在已开垦的沼泽田 (x,y) 撒种（计入 p.moorFields 以便计 fields break-point） */
 function sowMoor(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
-  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用 Farmers of the Moor" };
+  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用「沼泽农夫（荒野之地）」扩展" };
   const x = Number(a.x), y = Number(a.y);
   const crop = String(a.crop) as "grain" | "vegetable";
   if (!Number.isInteger(x) || !Number.isInteger(y)) return { ok: false, msg: "无效坐标" };
@@ -1172,7 +1172,7 @@ function sowMoor(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
 
 /** 收获沼泽田：按 moorBoard 扫描，对自己撒过种的格子按 marker -1 取 1 个谷/菜 */
 function harvestMoor(g: GameState, p: PlayerState): ActionResult {
-  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用 Farmers of the Moor" };
+  if (!g.dlc?.moor) return { ok: false, msg: "本房间未启用「沼泽农夫（荒野之地）」扩展" };
   let gainedG = 0, gainedV = 0;
   for (const cell of (g.moorBoard || [])) {
     if (cell.sownBy !== p.id) continue;

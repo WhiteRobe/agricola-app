@@ -167,7 +167,7 @@ let _occPromptedFor = null;
 let _fenceMode = false;
 /** 当前渲染的农场上下文（用于局部刷新棋盘） */
 let _farmCtx = null;
-/** 行动板内部分页：'resources' (资源&市场) | 'actions' (行动&回合卡) | 'moor' (荒野之地) */
+/** 行动板内部分页：'resources' (资源&市场) | 'actions' (行动&回合卡) | 'moor' (沼泽农夫) */
 let _actionSubTab = "resources";
 
 function switchActionSubTab(tab) {
@@ -178,6 +178,83 @@ function switchActionSubTab(tab) {
   document.querySelectorAll(".action-sub-panel").forEach((p) => {
     p.classList.toggle("active", p.dataset.panel === tab);
   });
+}
+
+// ---- 全局智能视口浮窗（防超屏、防裁剪截断、自适应视口贴靠） ----
+let _globalTip = null;
+let _tipActiveEl = null;
+
+function initSmartTooltip() {
+  if (typeof document === "undefined" || document.getElementById("appTooltip")) return;
+  _globalTip = document.createElement("div");
+  _globalTip.id = "appTooltip";
+  _globalTip.className = "app-tooltip";
+  document.body.appendChild(_globalTip);
+
+  function hideTip() {
+    if (!_globalTip) return;
+    _tipActiveEl = null;
+    _globalTip.className = "app-tooltip";
+    _globalTip.style.display = "none";
+  }
+
+  function showTip(target) {
+    if (!target) return;
+    const el = target.closest("[data-tip], .stk[data-name], .res[data-name]");
+    if (!el) { hideTip(); return; }
+    const tipText = el.getAttribute("data-tip") || el.getAttribute("data-name");
+    if (!tipText) { hideTip(); return; }
+
+    _tipActiveEl = el;
+    _globalTip.textContent = tipText;
+    _globalTip.className = "app-tooltip measuring";
+    _globalTip.style.left = "-9999px";
+    _globalTip.style.top = "-9999px";
+    _globalTip.style.display = "block";
+
+    const rect = el.getBoundingClientRect();
+    const tipRect = _globalTip.getBoundingClientRect();
+
+    const pad = 10;
+    // 水平居中并安全贴靠视口边界，杜绝任何超屏
+    let left = rect.left + (rect.width - tipRect.width) / 2;
+    const maxLeft = window.innerWidth - tipRect.width - pad;
+    left = Math.max(pad, Math.min(maxLeft, left));
+
+    // 垂直定位：优先放在上方，若上方空间不足则翻转至下方
+    let top = rect.top - tipRect.height - 8;
+    if (top < pad) {
+      top = rect.bottom + 8;
+      if (top + tipRect.height > window.innerHeight - pad) {
+        top = Math.max(pad, window.innerHeight - tipRect.height - pad);
+      }
+    }
+
+    _globalTip.style.left = `${Math.round(left)}px`;
+    _globalTip.style.top = `${Math.round(top)}px`;
+    _globalTip.className = "app-tooltip visible";
+  }
+
+  document.addEventListener("mouseover", (e) => showTip(e.target), { passive: true });
+  document.addEventListener("mouseout", (e) => {
+    if (_tipActiveEl && !_tipActiveEl.contains(e.relatedTarget)) hideTip();
+  }, { passive: true });
+
+  // 移动端轻触与点按支持
+  document.addEventListener("touchstart", (e) => {
+    const el = e.target.closest("[data-tip], .stk[data-name]");
+    if (el) {
+      if (_tipActiveEl === el) {
+        hideTip();
+      } else {
+        showTip(el);
+      }
+    } else {
+      hideTip();
+    }
+  }, { passive: true });
+
+  window.addEventListener("scroll", hideTip, { passive: true });
 }
 
 export function renderGame(root, s, me, conn) {
@@ -242,6 +319,9 @@ export function renderGame(root, s, me, conn) {
   // 右下角悬浮球（排行榜 / 新手引导 / 教程）
   ensureFab(g);
 
+  // 全局视口防超屏浮窗初始化
+  initSmartTooltip();
+
   // 移动端 tab bar（仅 < 768px 显示）
   if (viewportKind().startsWith("phone") || window.innerWidth < 768) {
     const tabs = document.createElement("nav");
@@ -281,20 +361,20 @@ export function renderGame(root, s, me, conn) {
   layout.innerHTML = `
     <div class="pairs" id="pairsGrid"></div>
     <div class="action-board" id="actionBoard">
-      <h3><span class="ab-title">📋 行动板</span> <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 荒野之地</span>' : ""}</h3>
+      <h3><span class="ab-title">📋 行动板</span> <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 沼泽农夫</span>' : ""}</h3>
       
       <!-- 行动板内部分页 -->
       <div class="action-tabs">
         <button class="action-tab-btn ${_actionSubTab === "resources" ? "active" : ""}" data-act-tab="resources" type="button">🌾 资源 & 市场</button>
         <button class="action-tab-btn ${_actionSubTab === "actions" ? "active" : ""}" data-act-tab="actions" type="button">🎯 行动 & 回合卡</button>
-        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 荒野之地</button>` : ""}
+        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 沼泽农夫</button>` : ""}
       </div>
 
       <!-- 分页 1: 永久资源 + 动物市场 -->
       <div class="action-sub-panel ${_actionSubTab === "resources" ? "active" : ""}" data-panel="resources">
-        <div class="section-sub">🪵 永久资源格（每轮累积，取走全部）</div>
+        <div class="section-sub">🪵 永久资源格（每轮累积）</div>
         <div id="alwaysGrid" class="spaces-grid"></div>
-        <div class="section-sub">🐑 动物市场（每轮 +1，取走全部 · 免费）</div>
+        <div class="section-sub">🐑 动物市场（每轮 +1）</div>
         <div id="animalGrid" class="spaces-grid"></div>
       </div>
 
@@ -309,10 +389,10 @@ export function renderGame(root, s, me, conn) {
         <div id="minorGrid" class="spaces-grid"></div>` : ""}
       </div>
 
-      <!-- 分页 3: 荒野之地扩展（燃料/干草 + 沼泽板） -->
+      <!-- 分页 3: 沼泽农夫扩展（燃料/干草 + 沼泽板） -->
       ${g.dlc?.moor ? `
       <div class="action-sub-panel ${_actionSubTab === "moor" ? "active" : ""}" data-panel="moor">
-        <div class="section-sub">🌲 荒野之地（燃料 / 干草 · 每轮累积）</div>
+        <div class="section-sub">🌲 沼泽农夫（燃料 / 干草 · 每轮累积）</div>
         <div id="moorPileGrid" class="spaces-grid"></div>
         <div class="section-sub">🌱 沼泽板（公有 · 4×4 · 拓荒后撒种 / 收获）</div>
         <div class="moor-board-wrap">
@@ -426,11 +506,47 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     card.className = "col-card" + (_intro ? " anim-pop-in" : "") + (isMe ? " me" : "") + (isTurn ? " is-current-turn" : "");
     card.dataset.pid = p.id;
     card.dataset.panel = `p${i}`;
-    const stk = (key, ic, val, name, isNum = true) =>
-      `<div class="stk" data-key="${key}" data-name="${name}">
+
+    // 计算预计收获轮口粮消耗（成年人 2 食物/人，当轮出生的婴儿 1 食物/人，保姆免食，厨娘总减免 1）
+    const adults = Math.max(0, (p.family || 0) - (p.babiesThisRound || 0));
+    const babies = p.babiesThisRound || 0;
+    const hasWetNurse = p.occupation?.id === "wetNurse";
+    const hasCook = p.occupation?.id === "cook";
+    const babyFoodRate = hasWetNurse ? 0 : 1;
+    const cookDiscount = hasCook ? 1 : 0;
+    const estFoodNeed = Math.max(0, adults * 2 + babies * babyFoodRate - cookDiscount);
+
+    let foodFormula = `预计收获消耗: ${adults}名家人×2`;
+    if (babies > 0) {
+      foodFormula += ` + ${babies}名婴儿×${babyFoodRate}${hasWetNurse ? "(保姆免食)" : ""}`;
+    }
+    if (cookDiscount > 0) {
+      foodFormula += ` - 厨娘减免1`;
+    }
+    foodFormula += ` = ${estFoodNeed}食物\n（每逢收获节结算：第 4, 7, 9, 11, 13, 14 轮）`;
+
+    // 计算预计收获轮柴火消耗（取暖炉保底 1 燃料，否则每名家人 1 燃料）
+    const hasHeatingStove = (p.improvements || []).includes("heatingStove");
+    const estFuelNeed = hasHeatingStove ? (p.family > 0 ? 1 : 0) : ((p.family || 0) * 1);
+
+    let fuelFormula = `预计收获消耗: `;
+    if (hasHeatingStove) {
+      fuelFormula += `取暖炉加成(全家保底1燃料) = ${estFuelNeed}燃料`;
+    } else {
+      fuelFormula += `${p.family || 0}名家人×1 = ${estFuelNeed}燃料`;
+    }
+    fuelFormula += `\n（沼泽农夫扩展：收获节缺少燃料将获得乞讨卡）`;
+
+    const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null) => {
+      const tipText = formulaTip ? `${name} · ${formulaTip}` : name;
+      return `<div class="stk" data-key="${key}" data-name="${name}" data-tip="${escapeHtml(tipText)}">
          <span class="stk-ic">${ic}</span>
-         <b class="stk-v${isNum ? " resource-num" : ""}" data-key="${key}">${val}</b>
+         <div class="stk-val-wrap">
+           <b class="stk-v${isNum ? " resource-num" : ""}" data-key="${key}">${val}</b>
+           ${costHint !== null ? `<span class="stk-cost-hint">(-${costHint})</span>` : ""}
+         </div>
        </div>`;
+    };
     card.innerHTML = `
       <h4>
         <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
@@ -440,13 +556,13 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       </h4>
       <div class="stock">
         <div class="stock-row stock-key">
-          ${stk("food", tokenSvg("food", 20), p.food, "食物")}
+          ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula)}
           ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false)}
           ${stk("beggings", "🃏", p.beggings, "乞讨卡", false)}
         </div>
-        ${_state.game.dlc?.moor ? `<div class="stock-label">荒野物资</div>
+        ${_state.game.dlc?.moor ? `<div class="stock-label">沼泽物资</div>
         <div class="stock-row stock-moor">
-          ${stk("fuel", tokenSvg("fuel", 20), p.fuel || 0, "燃料")}
+          ${stk("fuel", tokenSvg("fuel", 20), p.fuel || 0, "燃料", true, estFuelNeed, fuelFormula)}
           ${stk("hay", tokenSvg("hay", 20), p.hay || 0, "干草")}
         </div>` : ""}
         <div class="stock-label">建材</div>
@@ -861,7 +977,7 @@ function renderSpaces(container, g, p, myTurn, kind) {
 }
 
 /**
- * DLC（Farmers of the Moor）：渲染燃料 / 干草累积堆
+ * DLC（沼泽农夫 · 荒野之地）：渲染燃料 / 干草累积堆
  *  - 燃料堆 (GatherFuel): 每轮 +1
  *  - 干草堆 (CutMeadow): 每轮 +1
  * 两者都在 round card 揭示后占用 1 名工人，取走时拿全部。
@@ -906,7 +1022,7 @@ function renderMoorPile(container, g, p, myTurn) {
 let _moorSel = null;
 
 /**
- * DLC（Farmers of the Moor）：渲染 4×4 公有沼泽板
+ * DLC（沼泽农夫 · 荒野之地）：渲染 4×4 公有沼泽板
  *  - 未开垦：浅棕色
  *  - 已开垦未播种：土色
  *  - 已开垦已播种：撒种者头像 + 谷/菜图标 + markers 数
@@ -1235,7 +1351,7 @@ function onSpaceClick(sp, p) {
   }
   if (sp.id === "BuildMajor") {
     openModal("🔧 重大改进", `
-      <p class="muted" style="margin-top:0">重大改进先到先得（每种只能建一个）${_state.game.dlc?.moor ? "；含「荒野之地」专属 5 张" : ""}。</p>
+      <p class="muted" style="margin-top:0">重大改进先到先得（每种只能建一个）${_state.game.dlc?.moor ? "；含「沼泽农夫」专属 5 张" : ""}。</p>
       <div class="imp-list" id="mImpGrid"></div>
       <p class="muted" style="margin-top:10px;font-size:12px">
         🍳 壁炉/烹饪灶：<b>随时</b>可把谷物/蔬菜/牲畜换成食物（不占行动，点玩家卡上的改进标签即可烹饪）。<br>
@@ -1479,7 +1595,7 @@ function impTagHTML(k) {
   const name = MAJOR_ZH[k] || k;
   const tip = MAJOR_TIP[k] || name;
   const cookable = !!COOK_RULES[k];
-  return `<span class="imp-tag${cookable ? " imp-tag-cook" : ""}" data-imp="${escapeHtml(k)}" data-tip="${escapeHtml(tip)}" title="${escapeHtml(tip).replace(/\n/g, " · ")}">${escapeHtml(name)}${cookable ? " 🍳" : ""}</span>`;
+  return `<span class="imp-tag${cookable ? " imp-tag-cook" : ""}" data-imp="${escapeHtml(k)}" data-tip="${escapeHtml(tip)}">${escapeHtml(name)}${cookable ? " 🍳" : ""}</span>`;
 }
 
 /** 烹饪模态：列出该改进可消耗的原料与数量，实时预览食物产出 */

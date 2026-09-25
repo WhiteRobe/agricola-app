@@ -127,7 +127,39 @@ function liveScorePlayer(p) {
     "乞讨": p.beggings * SCORE_T.begging,
     "改进": (p.improvements || []).reduce((sum, k) => sum + (MAJOR_VP_MAP[k] || 0), 0),
   };
-  return { id: p.id, name: p.name, total: Object.values(breakdown).reduce((a, b) => a + b, 0), breakdown };
+  // 职业终局加成
+  let occBonus = 0;
+  if (p.occupation?.id === "tutor") {
+    if (((p.improvements || []).length + (p.minorImprovements?.length || 0)) >= 3) occBonus += 3;
+  } else if (p.occupation?.id === "villageElder") {
+    if (p.beggings === 0) occBonus += 3;
+  } else if (p.occupation?.id === "architect") {
+    occBonus += (p.roomType === "clay" || p.roomType === "stone" ? p.rooms : 0);
+  } else if (p.occupation?.id === "estateAgent") {
+    if (p.family >= 5) occBonus += 3;
+  } else if (p.occupation?.id === "agronomist") {
+    if (fields >= 4) occBonus += 3;
+  } else if (p.occupation?.id === "pastureCount") {
+    if (pastures >= 3) occBonus += 3;
+  } else if (p.occupation?.id === "masterBreeder") {
+    if (p.animals.sheep >= 1 && p.animals.boar >= 1 && p.animals.cattle >= 1) occBonus += 4;
+  } else if (p.occupation?.id === "philanthropist") {
+    if (p.food >= 5 && p.beggings === 0) occBonus += 3;
+  }
+  if (occBonus > 0) breakdown["职业"] = occBonus;
+
+  // 「柴火棚」大改进（沼泽农夫扩展）
+  if ((p.improvements || []).includes("firewood") && (p.fuel || 0) > 0) {
+    breakdown["柴火"] = p.fuel * 1;
+  }
+
+  const stats = {
+    fields, pastures, grain, veg,
+    sheep: p.animals.sheep, boar: p.animals.boar, cattle: p.animals.cattle,
+    roomType: p.roomType, rooms: p.rooms, family: p.family,
+    unusedSpaces, beggings: p.beggings, improvements: p.improvements, occBonus
+  };
+  return { id: p.id, name: p.name, total: Object.values(breakdown).reduce((a, b) => a + b, 0), breakdown, stats };
 }
 function liveScores(g) {
   const arr = g.players.map(p => liveScorePlayer(p));
@@ -307,11 +339,24 @@ export function renderGame(root, s, me, conn) {
         ${myTurn && !me.spectator ? '<span class="badge green anim-my-turn" style="display:inline-block">👉 该你行动</span>' : me.spectator ? '<span class="badge">👀 旁观模式</span>' : '<span class="badge">等待中…</span>'}
         ${myPlayer ? buildActionsLeft(g, myPlayer) : ""}
         ${buildGauge(g.round)}
-        ${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor) ? '<button class="btn ghost small" id="btnDlcHelp" type="button">🎴 DLC 规则</button>' : ""}
       </div>
     </div>
   `;
   root.appendChild(top);
+
+  // 顶栏「🎴 DLC 规则」按钮更新（开任意 DLC 时展示，位于顶部 title 教程与连接状态中间）
+  const topDlcBtn = document.getElementById("topDlcBtn");
+  const hasDlc = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor));
+  if (topDlcBtn) {
+    if (hasDlc) {
+      topDlcBtn.classList.remove("hidden");
+      topDlcBtn.onclick = () => {
+        import("/js/tutorial.js").then((m) => m.openDlcDrawer(g.dlc));
+      };
+    } else {
+      topDlcBtn.classList.add("hidden");
+    }
+  }
 
   // 季节主题 + 背景时间轮
   applySeasonTheme(g.round);
@@ -436,9 +481,6 @@ export function renderGame(root, s, me, conn) {
     renderMoorBoard(layout.querySelector("#moorBoard"), g, focusPlayer, myTurn);
     bindMoorActions(g, focusPlayer, myTurn);
   }
-  // 顶栏「🎴 DLC 规则」按钮（仅在游戏内容渲染后存在）
-  const btnDlc = document.querySelector("#btnDlcHelp");
-  if (btnDlc) btnDlc.onclick = () => import("/js/tutorial.js").then((m) => m.openDlcDrawer(g.dlc));
 
   // 日志（独立面板：移动端 tab / 桌面抽屉）
   renderLogInto(layout.querySelector("#liveLog"), g.log, prev);
@@ -547,12 +589,17 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
          </div>
        </div>`;
     };
+    const pScore = liveScorePlayer(p);
     card.innerHTML = `
       <h4>
         <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
         <span class="nm">${escapeHtml(p.name)}</span>
         ${isMe ? '<span class="badge green">你</span>' : ""}
         ${isTurn ? '<span class="turn">行动中</span>' : ""}
+        <button type="button" class="stock-score-badge" data-score-pid="${p.id}" data-tip="点击查看得分计算面板\n当前实时得分: ${pScore.total} 分">
+          <span class="score-crown">👑</span>
+          <span class="score-num">${pScore.total}</span>
+        </button>
       </h4>
       <div class="stock">
         <div class="stock-row stock-key">
@@ -585,10 +632,17 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
         </div>
       </div>
       ${p.improvements.length ? `<div class="imp-tags">${p.improvements.map(impTagHTML).join("")}</div>` : ""}
-      ${p.occupation ? `<div class="imp-tags"><span class="imp-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span></div>` : ""}
-      ${p.minorImprovements && p.minorImprovements.length ? `<div class="imp-tags">${p.minorImprovements.map((id) => `<span class="imp-tag" data-tip="${escapeHtml(minorEffectById(id) || minorNameById(id))}">${escapeHtml(minorNameById(id))}</span>`).join("")}</div>` : ""}
+      ${p.occupation ? `<div class="imp-tags occ-tags"><span class="imp-tag occ-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span></div>` : ""}
+      ${p.minorImprovements && p.minorImprovements.length ? `<div class="imp-tags minor-tags">${p.minorImprovements.map((id) => `<span class="imp-tag" data-tip="${escapeHtml(minorEffectById(id) || minorNameById(id))}">${escapeHtml(minorNameById(id))}</span>`).join("")}</div>` : ""}
     `;
     host.appendChild(card);
+    // 点击 stock 右上角皇冠得分徽章 → 打开该玩家详细得分计算面板
+    card.querySelectorAll(".stock-score-badge").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        openScoreBreakdownModal(btn.dataset.scorePid, _state && _state.game);
+      };
+    });
     // 自己卡上的「可烹饪」改进标签 → 点击打开烹饪模态
     if (isMe) {
       card.querySelectorAll(".imp-tag-cook").forEach((el) => {
@@ -1436,30 +1490,36 @@ function makeFakeBtn(key) {
 }
 
 // ---- 模态 ----
-function openModal(title, bodyHTML, onMount) {
+function openModal(title, bodyHTML, onMount, options = {}) {
+  const { closable = true, hideCancel = false } = options;
+  window.__modalClosable = closable;
   const mask = document.getElementById("modalRoot");
   const box = document.getElementById("modalBox");
   mask.classList.remove("hiding");
   box.innerHTML = `
-    <div class="act-modal entering">
+    <div class="act-modal entering${!closable ? " modal-unclosable" : ""}">
       <div class="act-modal-head">
         <h3>${title}</h3>
-        <button class="act-modal-x" type="button" data-modal-close aria-label="关闭">×</button>
+        ${closable ? `<button class="act-modal-x" type="button" data-modal-close aria-label="关闭">×</button>` : ""}
       </div>
       <div class="act-modal-body">${bodyHTML}</div>
+      ${closable && !hideCancel ? `
       <div class="act-modal-foot">
         <button class="btn ghost" type="button" data-modal-close>取消</button>
-      </div>
+      </div>` : ""}
     </div>`;
   mask.classList.remove("hidden");
   bindRipples(box);
   // 所有 data-modal-close（右上角 × 与底部「取消」）统一关闭
-  box.querySelectorAll("[data-modal-close]").forEach((el) => { el.onclick = closeModal; });
-  // ESC 关闭（仅本模态，不影响其他弹层）
+  box.querySelectorAll("[data-modal-close]").forEach((el) => {
+    el.onclick = () => closeModal();
+  });
+  // ESC 关闭（仅本模态，且仅在 closable 时允许）
   if (!window.__modalEscBound) {
     window.__modalEscBound = true;
     window.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
+      if (window.__modalClosable === false) return; // 必选模态禁止按 ESC 退出
       const m = document.getElementById("modalRoot");
       if (m && !m.classList.contains("hidden")) closeModal();
     });
@@ -1484,12 +1544,12 @@ function openOccupationPicker() {
       <span class="occ-eff">${escapeHtml(occ.effect)}</span>
     </button>
   `).join("");
-  openModal("🎴 选职业（7 选 1）", `
+  openModal("🎴 选职业（7 选 1 · 必选）", `
     <div class="tip-box" style="margin-top:0;margin-bottom:12px;font-size:12.5px;line-height:1.6">
-      <b>💡 卡池说明：</b>本作已收录官方全部 <b>88 张经典职业卡</b>（涵盖基础资源、农耕、畜牧、建造、烹饪、运营、声望 7 大流派）。开局系统随机<b>盲抽 7 张候选手牌</b>供您 7 选 1，选定后整局生效，<b>一旦选定无法更换</b>。
+      <b>💡 卡池说明：</b>本作已收录官方全部 <b>88 张经典职业卡</b>（涵盖基础资源、农耕、畜牧、建造、烹饪、运营、声望 7 大流派）。开局系统随机<b>盲抽 7 张候选手牌</b>供您 7 选 1，选定后整局生效，<b>职业为必选项，不可取消，一旦选定无法更换</b>。
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <span class="muted" style="font-size:13px;font-weight:600">本局候选手牌（7 选 1）：</span>
+      <span class="muted" style="font-size:13px;font-weight:600">本局候选手牌（请任选一张）：</span>
       <button type="button" class="btn btn-outline small" id="btnOpenOccGalleryFromPicker" style="display:inline-flex;align-items:center;gap:4px">
         <span>📖</span><span>浏览全量职业图鉴 (88 张)</span>
       </button>
@@ -1506,12 +1566,14 @@ function openOccupationPicker() {
       btn.onclick = () => {
         const id = btn.dataset.occ;
         doWithLoading(`choose-occ-${id}`, "选职业…", () => sendAction({ type: "ChooseOccupation", id }));
-        closeModal();
+        closeModal(true);
       };
     });
-  });
+  }, { closable: false });
 }
-function closeModal() {
+function closeModal(force = false) {
+  if (!force && window.__modalClosable === false) return;
+  window.__modalClosable = true;
   const mask = document.getElementById("modalRoot");
   if (!mask) return;
   if (reducedMotion()) { mask.classList.add("hidden"); return; }
@@ -1520,6 +1582,93 @@ function closeModal() {
     mask.classList.add("hidden");
     mask.classList.remove("hiding");
   }, 160);
+}
+
+/** 打开玩家得分详细计算面板（实时依据 2016 正统规则核算细分项） */
+function openScoreBreakdownModal(pid, g) {
+  g = g || (_state && _state.game);
+  if (!g) return;
+  const p = g.players.find(x => x.id === pid) || g.players[0];
+  if (!p) return;
+  const s = liveScorePlayer(p);
+  const st = s.stats;
+
+  const playerTabs = g.players.length > 1 ? `
+    <div class="score-modal-tabs">
+      ${g.players.map(pl => {
+        const plScore = liveScorePlayer(pl);
+        return `<button type="button" class="btn small ${pl.id === p.id ? 'primary' : 'ghost'} score-tab-btn" data-score-tab="${pl.id}">${escapeHtml(pl.name)} (👑 ${plScore.total})</button>`;
+      }).join("")}
+    </div>
+  ` : "";
+
+  const breakdownRows = [
+    { name: "🌾 耕地", count: `${st.fields} 块（含沼泽田）`, score: s.breakdown["田块"], rule: "0-1块:-1分, 2块:1分, 3块:2分, 4块:3分, ≥5块:4分" },
+    { name: "🏡 牧场", count: `${st.pastures} 处封闭牧场`, score: s.breakdown["牧场"], rule: "0处:-1分, 1处:1分, 2处:2分, 3处:3分, ≥4处:4分" },
+    { name: "🌾 谷物", count: `${st.grain} 份（存货+田地）`, score: s.breakdown["谷物"], rule: "0份:-1分, 1-3份:1分, 4-5份:2分, 6-7份:3分, ≥8份:4分" },
+    { name: "🥕 蔬菜", count: `${st.veg} 份（存货+田地）`, score: s.breakdown["蔬菜"], rule: "0份:-1分, 1份:1分, 2份:2分, 3份:3分, ≥4份:4分" },
+    { name: "🐑 羊", count: `${st.sheep} 只`, score: s.breakdown["羊"], rule: "0只:-1分, 1-3只:1分, 4-5只:2分, 6-7只:3分, ≥8只:4分" },
+    { name: "🐗 猪", count: `${st.boar} 只`, score: s.breakdown["猪"], rule: "0只:-1分, 1-2只:1分, 3-4只:2分, 5-6只:3分, ≥7只:4分" },
+    { name: "🐄 牛", count: `${st.cattle} 只`, score: s.breakdown["牛"], rule: "0只:-1分, 1只:1分, 2-3只:2分, 4-5只:3分, ≥6只:4分" },
+    { name: "🏠 房间", count: `${st.rooms} 间${houseLabel(st.roomType)}`, score: s.breakdown["陶屋"] || s.breakdown["石屋"] || s.breakdown["木屋"] || 0, rule: "木屋0分/间, 陶屋1分/间, 石屋2分/间" },
+    { name: "👨‍👩‍👧 家人", count: `${st.family} 名成员`, score: s.breakdown["家人"], rule: "每名已出生家庭成员 +3 分" },
+    { name: "🟩 空地", count: `${st.unusedSpaces} 格未利用`, score: s.breakdown["空地"], rule: "农庄15格中未利用的每格 -1 分" },
+    { name: "🃏 乞讨卡", count: `${st.beggings} 张`, score: s.breakdown["乞讨"], rule: "每张乞讨卡惩罚 -3 分" },
+    { name: "🔧 改进设施", count: `${(st.improvements || []).length} 项`, score: s.breakdown["改进"], rule: "主要/次要发展卡卡面胜利点" },
+    ...(s.breakdown["职业"] ? [{ name: "🎴 职业加成", count: p.occupation ? p.occupation.name : "职业", score: s.breakdown["职业"], rule: "职业终局达成条件加成" }] : []),
+    ...(s.breakdown["柴火"] ? [{ name: "🪵 柴火得分", count: `${p.fuel || 0} 份燃料`, score: s.breakdown["柴火"], rule: "柴火棚大改进终局燃料折算分" }] : []),
+  ];
+
+  const html = `
+    ${playerTabs}
+    <div class="score-summary-card">
+      <div class="score-summary-head">
+        <span class="avatar" style="width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 28)}</span>
+        <div>
+          <b style="font-size:15px">${escapeHtml(p.name)}</b>
+          <div class="muted" style="font-size:11.5px">第 ${g.round} / 14 轮实时核算 · 依据正统 2016 计分规则</div>
+        </div>
+        <div class="score-badge-large">
+          <span class="score-crown">👑</span>
+          <span class="score-num">${s.total}</span>
+          <span class="score-unit">分</span>
+        </div>
+      </div>
+    </div>
+    <div class="score-grid-table">
+      ${breakdownRows.map(row => `
+        <div class="score-grid-row">
+          <div class="score-col-item">
+            <span class="score-row-name">${escapeHtml(row.name)}</span>
+            <span class="score-row-detail">${escapeHtml(row.count)}</span>
+          </div>
+          <div class="score-col-rule">${escapeHtml(row.rule)}</div>
+          <div class="score-col-val ${row.score > 0 ? 'pos' : row.score < 0 ? 'neg' : 'zero'}">
+            ${row.score > 0 ? '+' : ''}${row.score}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+    <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <button type="button" class="btn ghost small" id="btnOpenFullLeaderboard">🏆 查看全员实时排行榜</button>
+      <div class="muted" style="font-size:11px">点击右上角 × 或按 ESC 可关闭本面板</div>
+    </div>
+  `;
+
+  openModal("📊 得分计算面板", html, (root) => {
+    root.querySelectorAll(".score-tab-btn").forEach(btn => {
+      btn.onclick = () => {
+        openScoreBreakdownModal(btn.dataset.scoreTab, g);
+      };
+    });
+    const lbBtn = root.querySelector("#btnOpenFullLeaderboard");
+    if (lbBtn) {
+      lbBtn.onclick = () => {
+        closeModal();
+        openLeaderboard(g);
+      };
+    }
+  });
 }
 
 // ---- resize 监听 + 移动端 tab 刷新 ----

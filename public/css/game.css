@@ -186,7 +186,17 @@
   display: block; font-size: 10.5px; color: var(--ink-3);
   letter-spacing: 1px; font-weight: 700; margin-bottom: 5px;
 }
-.imp-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.imp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.occ-tags { margin-top: 10px; }
+.minor-tags { margin-top: 8px; }
+.occ-tag {
+  background: rgba(85, 138, 204, 0.16) !important;
+  border-color: rgba(85, 138, 204, 0.5) !important;
+  color: #234873 !important;
+}
+.occ-tag:hover {
+  background: rgba(85, 138, 204, 0.3) !important;
+}
 .imp-tag {
   position: relative;
   display: inline-flex; align-items: center;
@@ -198,6 +208,78 @@
   transition: background .15s ease, transform .12s ease;
 }
 .imp-tag:hover { background: rgba(217, 164, 65, 0.4); transform: translateY(-1px); }
+
+/* ---- 实时得分徽章（Stock 右上角 · 皇冠 + 得分数字） ---- */
+.stock-score-badge {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2.5px 8px; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(230, 180, 50, 0.26), rgba(217, 164, 65, 0.14));
+  border: 1px solid rgba(217, 164, 65, 0.65);
+  color: #704b12;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px; font-weight: 800;
+  cursor: pointer; line-height: 1;
+  box-shadow: 0 1px 3px rgba(90, 70, 35, 0.12);
+  transition: transform .12s ease, background .15s ease, box-shadow .12s ease;
+  flex-shrink: 0; user-select: none;
+}
+.stock-score-badge:hover {
+  transform: translateY(-1px) scale(1.05);
+  background: linear-gradient(135deg, rgba(230, 180, 50, 0.42), rgba(217, 164, 65, 0.24));
+  box-shadow: 0 2px 7px rgba(90, 70, 35, 0.22);
+}
+.stock-score-badge:active { transform: translateY(0) scale(0.98); }
+.stock-score-badge .score-crown { font-size: 13px; line-height: 1; }
+.stock-score-badge .score-num { line-height: 1; }
+
+/* ---- 得分计算面板模态 ---- */
+.score-modal-tabs {
+  display: flex; gap: 6px; overflow-x: auto;
+  margin-bottom: 12px; padding-bottom: 4px;
+}
+.score-summary-card {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(254, 248, 235, 0.92), rgba(247, 236, 210, 0.92));
+  border: 1px solid #e2caa0;
+  border-radius: 10px; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(90, 70, 35, 0.08);
+}
+.score-summary-head { display: flex; align-items: center; gap: 10px; }
+.score-badge-large {
+  margin-left: auto; display: inline-flex; align-items: baseline; gap: 4px;
+  padding: 4px 12px; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(230, 180, 50, 0.35), rgba(217, 164, 65, 0.2));
+  border: 1px solid rgba(217, 164, 65, 0.7);
+  color: #6d4a13;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 20px; font-weight: 800;
+}
+.score-badge-large .score-crown { font-size: 18px; }
+.score-badge-large .score-unit { font-size: 12px; font-weight: 600; color: #8c6827; }
+.score-grid-table {
+  display: flex; flex-direction: column; gap: 5px;
+  max-height: 52vh; overflow-y: auto; padding-right: 4px;
+}
+.score-grid-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(220, 205, 175, 0.5);
+  font-size: 12.5px; gap: 8px;
+}
+.score-grid-row:hover { background: rgba(255, 255, 255, 0.85); }
+.score-col-item { display: flex; flex-direction: column; min-width: 100px; }
+.score-row-name { font-weight: 700; color: var(--ink); }
+.score-row-detail { font-size: 11px; color: var(--ink-3); }
+.score-col-rule { font-size: 11px; color: var(--ink-3); flex: 1; text-align: left; }
+.score-col-val {
+  font-family: ui-monospace, Consolas, monospace;
+  font-weight: 800; font-size: 14px; min-width: 36px; text-align: right;
+}
+.score-col-val.pos { color: #2e7d32; }
+.score-col-val.neg { color: #c62828; }
+.score-col-val.zero { color: #888; }
 
 .col-card.is-current-turn,
 .farm-card.is-current-turn {

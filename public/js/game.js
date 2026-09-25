@@ -212,6 +212,7 @@ export function renderGame(root, s, me, conn) {
   const season = seasonOfRound(g.round);
   const seasonInfo = SEASONS.find((s) => s.key === season);
   const top = document.createElement("div");
+  top.id = "gameHeaderCard";
   top.className = "card mb16";
   top.style.padding = "12px 16px";
   top.innerHTML = `
@@ -2045,179 +2046,296 @@ function applySeasonTheme(round) {
 const GUIDE_STEPS = [
   {
     title: "🚜 欢迎来到《农场主》",
-    body: "你是一个 17 世纪的农场主，要在 14 轮内把一片荒地发展成兴旺的农场。轮次多、点在行动板上执行每回合的工作，收获阶段越多越好。<br><br>每轮：揭卡 → 累积资源 → 工人做工 → 回家 → 收获（仅指定轮次）。",
-    selector: "#gameRoot",
+    body: "你是一个 17 世纪的农场主，要在 14 轮内把一片荒地发展成兴旺的农庄。顶部显示当前轮次、季节与下一次收获倒计时。<br><br>每轮核心循环：揭开新行动 → 累积资源 → 派工人做工 → 回家 → 关键轮次触发收获。",
+    selector: "#gameHeaderCard",
+    tab: "home",
   },
   {
-    title: "🪵 资源格",
-    body: "木🪵、陶🧱、芦苇🎋、石⛏ 是建房间用的建材。谷🌾、菜🥕 收获后用于喂家人。食物🍞 是每轮喂家人必需的。",
+    title: "🪵 基础资源格",
+    body: "木🪵、陶🧱、芦苇🎋、石⛏ 是建房与造栅栏的建材。谷🌾、菜🥕 可播种或烹饪，食物🍞 是每轮喂饱家人的必需品。点击即可派遣工人取走格内累积的全部资源。",
     selector: "#alwaysGrid",
+    tab: "common",
+    subTab: "resources",
   },
   {
     title: "🐑 动物市场",
-    body: "轮 5 起可买羊、轮 9 起买猪、轮 13 起买牛。要先在棋盘上围出矩形牧场才能容纳动物，每格牧场可养 2 只。围好栅栏不会自动来动物，要自己去市场取。",
+    body: "轮 5 起买羊、轮 9 起买猪、轮 13 起买牛。每轮免费自动新增 1 只。注意：要在棋盘上先用栅栏围出矩形牧场才能养动物（每格牧场可养 2 只）。",
     selector: "#animalGrid",
+    tab: "common",
+    subTab: "resources",
   },
   {
-    title: "🎯 回合卡行动",
-    body: "每轮会揭示新的行动卡；<b>揭出后就永久留在版图上</b>（同一格每轮仍只能被使用一次）。<br>· <b>起始玩家</b>：拿走标记 +1 食物<br>· <b>建房间/犁地/撒种/建栅栏/添丁/翻修/大改进</b>：点击卡看说明后在棋盘操作<br>· <b>撒种/烤面包</b>：需要选择格或输入烤面包数",
+    title: "🎯 常规与回合卡行动",
+    body: "每轮揭示新的行动卡（揭出后永久可用，每轮每格限 1 人）。<br>· <b>起始玩家</b>：拿走标记 +1 食物<br>· <b>建房/犁地/播种/建栅栏/添丁/翻修</b>：点击卡看要求后在棋盘操作<br>· <b>播种/烤面包</b>：点击后选择田地或烤面包数量",
     selector: "#roundGrid",
+    tab: "common",
+    subTab: "actions",
   },
   {
-    title: "👨‍🌾 你的回合（绿框）",
-    body: "当前轮到的玩家：资源卡 + 农场卡都加亮绿色边框 + 右上角「👉 该他行动」徽章。其他玩家灰色。",
+    title: "👨‍🌾 你的家园与当前回合",
+    body: "轮到行动的玩家：资源卡 + 农场卡都加亮绿色边框 + 右上角「👉 该他行动」徽章。<br>在个人面板可清晰查看你的工人剩余数、仓库库存与已就任的职业/小发展卡。",
     selector: ".col-card.is-current-turn",
+    tab: "current_player",
   },
   {
-    title: "🏆 实时排行榜",
-    body: "顶栏的「🏆 排行榜」按钮随时查看当前分数。每块田/牧场/动物/家人/房间都按规则加分，乞讨卡扣分。",
-    selector: ".leaderboard-btn",
+    title: "🧰 工具箱与实时排行榜",
+    body: "点击右下角 🧰 悬浮球，即可随时查看实时排行榜（得分细则）、流派玩法攻略、价格与规则速查表、完整游玩教程，或在此随时再次开启引导。",
+    selector: "#gameFab",
+    tab: null,
   },
 ];
 
+export function closeGuide() {
+  _showGuide = false;
+  cleanupGuideOverlay();
+  const guideBtn = document.querySelector(".guide-btn");
+  if (guideBtn) guideBtn.classList.remove("active");
+  const fabGuide = document.querySelector('[data-fab="guide"]');
+  if (fabGuide) fabGuide.classList.remove("on");
+  document.body.style.paddingBottom = "";
+}
+
+function cleanupGuideOverlay() {
+  document.querySelectorAll(".guide-overlay").forEach((el) => {
+    if (el._cleanup) el._cleanup();
+    el.remove();
+  });
+}
+
 function toggleGuide() {
-  _showGuide = !_showGuide;
-  if (_showGuide) _guideStep = 0;
-  renderGuide();
-  if (window.__debug) window.__debug = window.__debug; // keep debug accessor
+  if (_showGuide) {
+    closeGuide();
+    toast("已关闭新手引导");
+  } else {
+    _showGuide = true;
+    _guideStep = 0;
+    renderGuide();
+  }
+  if (window.__debug) window.__debug = window.__debug;
 }
 
 function renderGuide() {
-  document.querySelectorAll(".guide-overlay").forEach((el) => {
-    if (el._cleanupResize) el._cleanupResize();
-    el.remove();
-  });
+  cleanupGuideOverlay();
+
   const guideBtn = document.querySelector(".guide-btn");
   if (guideBtn) guideBtn.classList.toggle("active", _showGuide);
-  if (!_showGuide || _state.phase !== "playing") return;
+  const fabGuide = document.querySelector('[data-fab="guide"]');
+  if (fabGuide) fabGuide.classList.toggle("on", _showGuide);
+  if (!_showGuide || !_state || _state.phase !== "playing") return;
 
   const step = GUIDE_STEPS[_guideStep] || GUIDE_STEPS[0];
-  // 引导高亮对应行动格时，自动切到对应分页确保目标可见
-  if (step.selector === "#alwaysGrid" || step.selector === "#animalGrid") {
-    switchActionSubTab("resources");
-  } else if (step.selector === "#roundGrid" || step.selector === "#actionGrid") {
-    switchActionSubTab("actions");
+  const isLast = _guideStep === GUIDE_STEPS.length - 1;
+
+  // 1. 移动端 tab / 内部 subTab 响应式联动切换
+  if (step.tab === "common") {
+    if (isNarrowLayout()) switchMobileTab("common");
+    if (step.subTab) switchActionSubTab(step.subTab);
+  } else if (step.subTab) {
+    switchActionSubTab(step.subTab);
+  } else if (step.tab === "current_player") {
+    if (isNarrowLayout() && _state.game) {
+      const g = _state.game;
+      const turnPid = g.waitingFor && g.waitingFor[0];
+      const curIdx = g.players.findIndex((p) => p.id === turnPid);
+      switchMobileTab(`p${curIdx >= 0 ? curIdx : 0}`);
+    }
   }
 
+  // 2. 创建 overlay DOM
   const overlay = document.createElement("div");
   overlay.className = "guide-overlay active";
-  overlay.innerHTML = `<div class="guide-spotlight" id="guideSpot"></div><div class="guide-card" id="guideCard"></div>`;
+  overlay.id = "guideOverlay";
+  overlay.innerHTML = `
+    <div class="guide-spotlight" id="guideSpot" style="display:none"></div>
+    <div class="guide-card" id="guideCard" role="dialog" aria-modal="true">
+      <div class="guide-card-header">
+        <div class="guide-card-title-group">
+          <span class="guide-card-icon">💡</span>
+          <h4 class="guide-card-title">${step.title}</h4>
+        </div>
+        <div class="guide-card-actions">
+          <span class="guide-step-badge">${_guideStep + 1} / ${GUIDE_STEPS.length}</span>
+          <button class="guide-close-btn" id="gClose" title="退出引导" aria-label="退出引导">✕</button>
+        </div>
+      </div>
+      <div class="guide-card-body">
+        <p>${step.body}</p>
+      </div>
+      <div class="guide-card-footer">
+        <button class="btn ghost small" id="gSkip" type="button">退出引导</button>
+        <div class="guide-nav-btns">
+          ${_guideStep > 0 ? '<button class="btn ghost small" id="gPrev" type="button">← 上一步</button>' : ""}
+          <button class="btn small" id="gNext" type="button">${isLast ? "完成 ✅" : "下一步 →"}</button>
+        </div>
+      </div>
+    </div>
+  `;
   document.body.appendChild(overlay);
 
   const card = overlay.querySelector("#guideCard");
   const spot = overlay.querySelector("#guideSpot");
-  const target = step.selector ? document.querySelector(step.selector) : null;
 
-  const place = (opts = {}) => {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const narrow = vw < 640;
-    const M = 12;   // 视口最小边距
-    const pad = 8;  // spotlight 外扩
-
-    // 窄屏：给页面底部留出卡片空间（可滚动区域变大，目标能被滚到卡片上方）
-    if (narrow && opts.first) {
-      document.body.style.paddingBottom = ((card.offsetHeight || 220) + 28) + "px";
-    }
-    const reservedBottom = narrow ? ((card.offsetHeight || 220) + M + 8) : pad;
-    const spotMaxBottom = narrow ? Math.max(60, vh - reservedBottom) : vh;
-
-    // ---- 高亮框：裁剪到视口内（窄屏还要避开底部卡片）----
-    if (target) {
-      const r = target.getBoundingClientRect();
-      const l = Math.max(0, Math.min(r.left - pad, vw - 24));
-      const t = Math.max(0, Math.min(r.top - pad, spotMaxBottom - 24));
-      const w = Math.max(24, Math.min(vw - l, r.width + pad * 2));
-      const h = Math.max(24, Math.min(spotMaxBottom - t, r.height + pad * 2));
-      spot.style.display = "";
-      spot.style.left = l + "px";
-      spot.style.top = t + "px";
-      spot.style.width = w + "px";
-      spot.style.height = h + "px";
-    } else {
-      spot.style.display = "none";
-    }
-
-    // ---- 卡片：窄屏固定底部（bottom sheet），完全展开，无内部滚动条 ----
-    card.style.transform = "none";
-    if (narrow || !target) {
-      card.style.left = M + "px";
-      card.style.right = M + "px";
-      card.style.top = "auto";
-      card.style.bottom = M + "px";
-      card.style.maxWidth = "none";
-      card.style.maxHeight = "none";
-      card.style.overflow = "visible";
-      return;
-    }
-
-    card.style.right = "auto";
-    card.style.bottom = "auto";
-    card.style.maxWidth = "";
-    card.style.maxHeight = "none";
-    card.style.overflow = "visible";
-
-    const r = target.getBoundingClientRect();
-    const cw = card.offsetWidth || 380;
-    const ch = card.offsetHeight || 200;
-
-    // 竖直：优先目标下方，放不下则上方，再不行居中（结果再夹到视口内）
-    let top = r.bottom + 16;
-    if (top + ch > vh - M) top = r.top - ch - 16;
-    top = Math.max(M, Math.min(top, vh - ch - M));
-
-    // 水平：与目标左对齐，但裁剪在视口内
-    let left = r.left;
-    left = Math.min(Math.max(M, left), Math.max(M, vw - cw - M));
-
-    card.style.left = left + "px";
-    card.style.top = top + "px";
+  // 3. 事件绑定
+  const exitGuide = () => {
+    closeGuide();
+    toast("已退出新手引导");
   };
 
-  // ★ 关键：先把内容写进卡片，再定位（否则量到的高度是 0，会算出屏幕外坐标）
-  const isLast = _guideStep === GUIDE_STEPS.length - 1;
-  card.innerHTML = `
-    <h4>${step.title}</h4>
-    <p>${step.body}</p>
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <div class="progress">${_guideStep + 1} / ${GUIDE_STEPS.length}</div>
-      <div class="row" style="gap:8px">
-        ${_guideStep > 0 ? '<button class="btn ghost small" id="gPrev">上一步</button>' : ""}
-        <button class="btn small" id="gNext">${isLast ? "完成 ✅" : "下一步 →"}</button>
-      </div>
-    </div>
-  `;
-
-  place({ first: true });
-  // 窄屏：立即滚动，让目标落在「卡片上方可见区」的中间
-  if (window.innerWidth < 640 && target) {
-    const vh0 = window.innerHeight;
-    const ch0 = card.offsetHeight || 220;
-    const availH = Math.max(120, vh0 - ch0 - 28);
-    const r0 = target.getBoundingClientRect();
-    const delta = (r0.top + r0.height / 2) - availH / 2;
-    if (Math.abs(delta) > 8) {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const next = Math.max(0, Math.min(maxScroll, window.scrollY + delta));
-      window.scrollTo(0, next);   // 立即滚动（smooth 会被后续重渲染打断）
+  overlay.onclick = (e) => {
+    // 点击卡片外且非高亮框区域退出
+    if (!card.contains(e.target) && (!spot || !spot.contains(e.target))) {
+      exitGuide();
     }
+  };
+
+  overlay.querySelector("#gClose").onclick = (e) => {
+    e.stopPropagation();
+    exitGuide();
+  };
+
+  overlay.querySelector("#gSkip").onclick = (e) => {
+    e.stopPropagation();
+    exitGuide();
+  };
+
+  overlay.querySelector("#gNext").onclick = (e) => {
+    e.stopPropagation();
+    if (isLast) {
+      closeGuide();
+      toast("新手引导完成！祝你游玩愉快 🌾");
+    } else {
+      _guideStep++;
+      renderGuide();
+    }
+  };
+
+  const prevBtn = overlay.querySelector("#gPrev");
+  if (prevBtn) {
+    prevBtn.onclick = (e) => {
+      e.stopPropagation();
+      _guideStep--;
+      renderGuide();
+    };
   }
-  // 字体/布局稳定后再校正一次（防止内容换行导致高度变化）
-  requestAnimationFrame(() => place());
-  // 窗口尺寸变化时重新定位（含横竖屏切换）
-  const onResize = () => place({ first: true });
+
+  // 4. 定位与高亮计算
+  const updateLayout = () => {
+    if (!document.body.contains(overlay)) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const narrow = isNarrowLayout() || vw < 640;
+    const pad = 6;
+    const M = 12;
+
+    const target = step.selector ? document.querySelector(step.selector) : null;
+
+    if (narrow) {
+      // 窄屏：卡片通过 CSS 已经固定在底部，设置底部 padding 确保页面可滚到底
+      const cardH = card.offsetHeight || 200;
+      document.body.style.paddingBottom = (cardH + 24) + "px";
+
+      if (target) {
+        const r = target.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          const l = Math.max(4, r.left - pad);
+          const t = Math.max(4, r.top - pad);
+          const w = Math.min(vw - l - 4, r.width + pad * 2);
+          const maxH = Math.max(20, vh - (cardH + 16) - t);
+          const h = Math.min(maxH, r.height + pad * 2);
+          spot.style.display = "block";
+          spot.style.left = l + "px";
+          spot.style.top = t + "px";
+          spot.style.width = w + "px";
+          spot.style.height = h + "px";
+        } else {
+          spot.style.display = "none";
+        }
+      } else {
+        spot.style.display = "none";
+      }
+    } else {
+      // 桌面端：卡片优先跟在目标附近
+      document.body.style.paddingBottom = "";
+      if (target) {
+        const r = target.getBoundingClientRect();
+        spot.style.display = "block";
+        spot.style.left = (r.left - pad) + "px";
+        spot.style.top = (r.top - pad) + "px";
+        spot.style.width = (r.width + pad * 2) + "px";
+        spot.style.height = (r.height + pad * 2) + "px";
+
+        const cw = card.offsetWidth || 380;
+        const ch = card.offsetHeight || 200;
+        let top = r.bottom + 14;
+        if (top + ch > vh - M) top = r.top - ch - 14;
+        top = Math.max(M, Math.min(top, vh - ch - M));
+        let left = Math.min(Math.max(M, r.left), Math.max(M, vw - cw - M));
+        card.style.left = left + "px";
+        card.style.top = top + "px";
+        card.style.bottom = "auto";
+        card.style.right = "auto";
+        card.style.transform = "none";
+      } else {
+        spot.style.display = "none";
+        card.style.left = "50%";
+        card.style.top = "50%";
+        card.style.transform = "translate(-50%, -50%)";
+        card.style.bottom = "auto";
+        card.style.right = "auto";
+      }
+    }
+  };
+
+  // 5. 自动滚动居中（窄屏）
+  const scrollToTarget = () => {
+    const target = step.selector ? document.querySelector(step.selector) : null;
+    if (!target || !isNarrowLayout()) return;
+    const topBarH = document.getElementById("mobileTabs")?.offsetHeight || 46;
+    const cardH = card.offsetHeight || 200;
+    const vh = window.innerHeight;
+    const availTop = topBarH + 8;
+    const availBottom = Math.max(availTop + 80, vh - cardH - 12);
+    const availCenter = (availTop + availBottom) / 2;
+
+    const r = target.getBoundingClientRect();
+    const curCenter = r.top + r.height / 2;
+    const delta = curCenter - availCenter;
+    if (Math.abs(delta) > 12) {
+      window.scrollBy({ top: delta, behavior: "smooth" });
+    }
+  };
+
+  // 延迟一帧等待 Tab 切换重绘完成
+  requestAnimationFrame(() => {
+    updateLayout();
+    scrollToTarget();
+    setTimeout(updateLayout, 80);
+  });
+
+  // 6. 滚动与尺寸变化监听
+  let scrollTicking = false;
+  const onScroll = () => {
+    if (!scrollTicking) {
+      requestAnimationFrame(() => {
+        updateLayout();
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
+  };
+  const onResize = () => {
+    updateLayout();
+    scrollToTarget();
+  };
+
+  window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onResize);
-  overlay._cleanupResize = () => {
+
+  overlay._cleanup = () => {
+    window.removeEventListener("scroll", onScroll);
     window.removeEventListener("resize", onResize);
     document.body.style.paddingBottom = "";
   };
-
-  card.querySelector("#gNext").onclick = () => {
-    if (isLast) { _showGuide = false; renderGuide(); }
-    else { _guideStep++; renderGuide(); }
-  };
-  const p = card.querySelector("#gPrev");
-  if (p) p.onclick = () => { _guideStep--; renderGuide(); };
 }
 
 // 重新渲染后引导位置失效，每次 renderGame 完成后若引导开启则重新挂载

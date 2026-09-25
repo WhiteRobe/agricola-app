@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "agricola-game",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    { "pattern": "farm.whiterobe.top", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" },
+      { "name": "REGISTRY", "class_name": "Registry" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room", "Registry"] }
+  ],
+  "observability": { "enabled": true }
+}

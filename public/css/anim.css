@@ -1,0 +1,250 @@
+/* ============================================================
+   動畫與微交互系統
+   - 12 個關鍵影格 + 工具類
+   - 預設尊重 prefers-reduced-motion
+   ============================================================ */
+
+/* -------- 通用工具類 -------- */
+.anim-pop-in { animation: card-pop-in 0.35s cubic-bezier(.2,1.2,.4,1) both; }
+.anim-reveal-flip { animation: reveal-flip 0.45s cubic-bezier(.2,1.4,.4,1) both; transform-origin: 50% 50% -20px; backface-visibility: hidden; }
+.anim-my-turn { animation: my-turn-pulse 2s ease-in-out infinite; }
+
+/* -------- 關鍵影格 -------- */
+@keyframes toast-in  { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-8px) scale(.96); } }
+.toast.leaving { animation: toast-out 0.2s ease forwards; }
+
+@keyframes modal-in  { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes modal-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.96); } }
+.modal-mask.hiding { animation: modal-mask-out 0.15s ease forwards; }
+@keyframes modal-mask-out { from { background-color: rgba(56,44,26,0.45); backdrop-filter: blur(2px); } to { background-color: rgba(56,44,26,0); backdrop-filter: none; } }
+.act-modal.entering { animation: modal-in 0.2s cubic-bezier(.2,1.1,.4,1) both; }
+
+@keyframes card-pop-in { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes reveal-flip  { 0%   { opacity: 0; transform: rotateY(-90deg) scale(.8); } 100% { opacity: 1; transform: none; } }
+@keyframes my-turn-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(92,141,78,0.12), var(--shadow); }
+  50%      { box-shadow: 0 0 0 6px rgba(92,141,78,0.22), 0 6px 20px rgba(92,141,78,0.18); }
+}
+
+@keyframes cell-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.farm-board .cell.cell-pop { animation: cell-pop 0.32s cubic-bezier(.2,1.4,.4,1); }
+
+/* 撒種/收獲瞬間掃光 */
+@keyframes cell-shine {
+  0%   { box-shadow: inset 0 0 0 0 rgba(255,255,255,0); }
+  35%  { box-shadow: inset 0 0 0 3px rgba(255,255,255,.85), 0 0 18px rgba(255,255,255,.55); }
+  100% { box-shadow: inset 0 0 0 0 rgba(255,255,255,0); }
+}
+.farm-board .cell.cell-shine { animation: cell-shine 0.6s ease-out; }
+
+/* 數字 +1 脈衝 */
+@keyframes count-pulse { 0% { transform: scale(1); color: inherit; } 35% { transform: scale(1.28); color: var(--leaf-dark); } 100% { transform: scale(1); color: inherit; } }
+.res .v.pulse, .resource-num.pulse { display: inline-block; animation: count-pulse 0.5s ease-out; }
+
+/* 柵欄畫線 */
+@keyframes fence-draw-h {
+  from { transform: scaleX(0); background-color: rgba(107,74,38,.35); }
+  to   { transform: scaleX(1); background-color: #6b4a26; }
+}
+@keyframes fence-draw-v {
+  from { transform: scaleY(0); background-color: rgba(107,74,38,.35); }
+  to   { transform: scaleY(1); background-color: #6b4a26; }
+}
+.fence-layer .fh.drawing { animation: fence-draw-h 0.22s ease-out forwards; transform-origin: left center; }
+.fence-layer .fv.drawing { animation: fence-draw-v 0.22s ease-out forwards; transform-origin: center top; }
+
+/* 日誌行滑入 */
+@keyframes log-slide-in {
+  from { opacity: 0; transform: translateY(-6px); max-height: 0; padding-top: 0; padding-bottom: 0; margin-top: 0; }
+  to   { opacity: 1; transform: none; max-height: 200px; }
+}
+.mini-log .li.new, .log .li.new { animation: log-slide-in 0.28s ease-out both; }
+.mini-log .li.harvest { border-left: 3px solid var(--gold); }
+.mini-log .li.build   { border-left: 3px solid var(--barn); }
+.mini-log .li.resource{ border-left: 3px solid var(--leaf); }
+.mini-log .li.breed   { border-left: 3px solid var(--sky); }
+.mini-log .li.warning { border-left: 3px solid var(--barn); background: #fbf0e7; }
+
+/* 收獲爆裂提示 */
+@keyframes harvest-burst {
+  0%   { opacity: 0; transform: scale(.4) rotate(-6deg); }
+  60%  { opacity: 1; transform: scale(1.06) rotate(2deg); }
+  100% { opacity: 1; transform: none; }
+}
+.harvest-banner {
+  position: absolute; top: 18px; right: 18px;
+  background: linear-gradient(135deg, #fdf3da, #f1e2b3);
+  border: 2px dashed var(--gold); border-radius: var(--radius);
+  padding: 12px 20px; font-weight: 800; color: #8a6414;
+  box-shadow: var(--shadow-lg);
+  animation: harvest-burst 0.6s cubic-bezier(.2,1.4,.4,1) both;
+  z-index: 10;
+}
+.harvest-banner::before { content: "🌾 "; }
+
+/* 骨架佔位 */
+@keyframes shimmer { from { background-position: -200px 0; } to { background-position: calc(200px + 100%) 0; } }
+.skeleton {
+  background: linear-gradient(90deg, var(--panel-2) 0px, #fff 40px, var(--panel-2) 80px);
+  background-size: 200px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 8px;
+  min-height: 12px;
+}
+
+/* 教學章節標題淡入 */
+article.tut h2 { animation: card-pop-in 0.4s ease-out both; }
+article.tut h3 { animation: card-pop-in 0.35s ease-out both; }
+
+/* -------- 按钮加载态（防重复点击） -------- */
+.btn {
+  /* 保留位置防止按钮文字变化时按钮宽度抖动 */
+  min-width: 80px;
+}
+.btn.is-loading {
+  cursor: wait !important;
+  pointer-events: none !important;
+  filter: saturate(0.4) brightness(0.95);
+}
+.btn.is-loading::before {
+  content: "";
+  display: inline-block;
+  width: 14px; height: 14px;
+  margin-right: 8px;
+  border: 2px solid rgba(255,255,255,0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+  vertical-align: -2px;
+}
+.btn.is-loading > * { opacity: 0.85; }
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 不可点灰态（区别于 loading：loading 是 spinner，禁用是静态灰） */
+.btn.is-pending:not(.is-loading) { opacity: 0.55; cursor: wait; pointer-events: none; }
+
+/* -------- 按钮涟漪（纯 CSS，使用 JS 设定 --ripple-x/y） -------- */
+/* 不用 overflow:hidden（会裁掉 focus outline）；改用 box-shadow 实现涟漪 */
+.btn { /* nothing needed */ }
+.btn::after {
+  content: ""; position: absolute; border-radius: 50%;
+  width: 8px; height: 8px;
+  background: rgba(255,255,255,0);
+  left: var(--ripple-x, 50%); top: var(--ripple-y, 50%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(255,255,255,0);
+}
+.btn.rippling::after {
+  animation: ripple 0.5s ease-out;
+}
+@keyframes ripple {
+  0%   { transform: translate(-50%, -50%) scale(0);   opacity: .65; box-shadow: 0 0 0 0 rgba(255,255,255,.55); background: rgba(255,255,255,.55); }
+  100% { transform: translate(-50%, -50%) scale(20);  opacity: 0;   box-shadow: 0 0 0 6px rgba(255,255,255,0); background: rgba(255,255,255,0); }
+}
+
+/* -------- 行動揭示卡片小圖示閃爍 -------- */
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .55; transform: scale(.85); }
+}
+.dot.blink { animation: dot-blink 1.2s ease-in-out infinite; }
+
+/* -------- 玩家標籤切換 -------- */
+@keyframes tab-pop {
+  0%   { transform: scale(.9); }
+  60%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.player-tab.sel { animation: tab-pop 0.3s cubic-bezier(.2,1.5,.4,1); }
+
+/* -------- 农场格子微高亮（hover/我的回合） -------- */
+@keyframes cell-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(92,141,78,0); }
+  50%      { box-shadow: 0 0 0 3px rgba(92,141,78,.35) inset; }
+}
+.farm-board .cell.hoverable:hover { animation: cell-glow 1.4s ease-in-out infinite; }
+
+/* -------- 庆祝效果（游戏结束） -------- */
+@keyframes trophy-bounce {
+  0%   { transform: scale(0) rotate(-15deg); }
+  60%  { transform: scale(1.2) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.trophy-icon { display: inline-block; animation: trophy-bounce 0.8s cubic-bezier(.2,1.5,.4,1); }
+
+/* ============================================================
+   教程抽屉（右侧滑出）
+   ============================================================ */
+.tut-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0);
+  z-index: 280; transition: background .25s ease;
+  pointer-events: none;
+}
+.tut-backdrop.show { background: rgba(0,0,0,.4); pointer-events: auto; }
+
+.tut-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(560px, 92vw);
+  background: var(--panel);
+  border-left: 2px solid var(--leaf);
+  box-shadow: -8px 0 24px rgba(0,0,0,.18);
+  z-index: 290;
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.2,1.1,.4,1);
+}
+.tut-drawer.show { transform: translateX(0); }
+.tut-drawer-head {
+  padding: 14px 18px; border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+  background: linear-gradient(180deg, #fffdf6, #fdf6e3);
+}
+.tut-drawer-body {
+  padding: 16px 22px 40px;
+  overflow-y: auto;
+  flex: 1;
+}
+.tut-drawer-body h2 { margin: 18px 0 8px; font-size: 17px; color: var(--leaf-dark); border-bottom: 2px solid var(--leaf); padding-bottom: 4px; }
+.tut-drawer-body h3 { margin: 14px 0 6px; font-size: 14px; }
+.tut-drawer-body p { margin: 6px 0; line-height: 1.55; font-size: 13.5px; color: var(--ink); }
+.tut-drawer-body ul, .tut-drawer-body ol { padding-left: 20px; }
+.tut-drawer-body li { padding: 2px 0; font-size: 13.5px; }
+.tut-drawer-body .toc { background: var(--panel-2); border-radius: 10px; padding: 12px 16px; }
+.tut-drawer-body .toc ol li a { color: var(--leaf-dark); font-weight: 600; }
+.tut-drawer-body .toc ol li a:hover { text-decoration: underline; }
+.tut-drawer-body .kb-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.tut-drawer-body .kb-card h4 { margin: 0 0 6px; color: var(--leaf-dark); font-size: 13.5px; }
+.tut-drawer-body .flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; }
+.tut-drawer-body .flow-step { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 6px; text-align: center; font-size: 12px; }
+.tut-drawer-body .tip-box { background: linear-gradient(135deg, #fdf3da, #f1e2b3); border-left: 4px solid var(--gold); padding: 10px 14px; border-radius: 8px; font-size: 13.5px; }
+
+/* ============================================================
+   媒體查詢：動效保護 + 設備適配
+   ============================================================ */
+
+/* 觸摸設備：避免 hover-only 效果留下"粘住"狀態 */
+@media (hover: none) {
+  .btn:hover { filter: none; }
+  .space:hover { background: var(--panel-2); border-color: var(--line); transform: none; }
+  .farm-board .cell:hover { filter: none; }
+  .btn:active { transform: translateY(1px); filter: brightness(1.05); }
+}
+
+/* 用戶偏好降低動效：保留快速淡入淡出供必要反饋，取消裝飾 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.18s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.12s !important;
+  }
+  .anim-my-turn { animation: none !important; }
+  .anim-reveal-flip { animation: card-pop-in 0.2s ease both !important; }
+  .cell-pop { animation: none !important; }
+  .fence-draw-h, .fence-draw-v { animation-duration: 0.05s !important; }
+}

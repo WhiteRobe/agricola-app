@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Cloudflare Wrangler & Miniflare state
+.wrangler/
+
+# Temporary files & build artifacts
+.tmp/
+dist/
+*.log
+.dev*.log
+.tmp-dev.log
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

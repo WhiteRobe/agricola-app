@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>農家樂 Agricola · 游戏房</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+<link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="/css/game.css">
+<link rel="stylesheet" href="/css/anim.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><div class="logo">🌾</div><div>農家樂<small>游戏房 <span id="roomTag"></span></small></div></div>
+    <div class="row" style="gap:10px;align-items:center">
+      <a class="btn ghost small" data-open-tutorial href="javascript:void(0)">📖 教程</a>
+      <span id="connState" class="conn hidden"><span class="dot on"></span>已连接</span>
+    </div>
+  </div>
+
+  <!-- 输入昵称 -->
+  <div id="joinMask" class="modal-mask hidden">
+    <div class="modal">
+      <h3 class="mt0">🧑‍🌾 进入农场</h3>
+      <p class="muted mt0">给自己起个响亮的农家名字（12 字以内）</p>
+      <input id="nameInput" class="input" maxlength="12" placeholder="你的昵称" autocomplete="off">
+      <button id="btnEnter" class="btn big mt16" style="width:100%">进入房间</button>
+    </div>
+  </div>
+
+  <!-- 大厅 -->
+  <div id="lobby" class="hidden col">
+    <div class="card">
+      <h2 class="mt0">⏳ 等待开局 <span id="lobbyCount" class="muted"></span></h2>
+      <p class="muted">《农场主》支持 1–4 人。<b>当房间里的所有人都点「同意开始」时，游戏立即开始</b>——不必人满。</p>
+      <div id="lobbyPlayers" class="players-grid mt8"></div>
+      <div class="row mt16" id="lobbyBtns">
+        <button id="btnVoteYes" class="btn big">✅ 同意开始</button>
+        <button id="btnVoteNo" class="btn ghost" style="display:none">✋ 取消同意</button>
+        <button id="btnLeave" class="btn danger-ghost">离开房间</button>
+      </div>
+      <div id="specNotice" class="hidden mt16">
+        <span class="badge">👀 你正在旁观房间</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📜 房间动态</h3>
+      <div id="logBox" class="log"></div>
+    </div>
+  </div>
+
+  <!-- 游戏界面 -->
+  <div id="gameRoot" class="hidden"></div>
+  <!-- 操作模态 -->
+  <div id="modalRoot" class="modal-mask hidden"><div id="modalBox"></div></div>
+
+  <!-- 结算 -->
+  <div id="finishedRoot" class="hidden col"></div>
+</div>
+
+<script type="module" src="/js/play.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>農家樂 Agricola · 电子桌游</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+<link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="/css/anim.css">
+</head>
+<body>
+<div class="wrap home">
+  <div class="topbar">
+    <div class="brand"><div class="logo">🌾</div><div>農家樂<small>AGRICOLA</small></div></div>
+    <a class="btn ghost small" data-open-tutorial href="javascript:void(0)">📖 游玩教程</a>
+  </div>
+
+  <div class="hero">
+    <div class="emoji-farm">🚜 🐑 🌾 🥕 🐄</div>
+    <h1>经营你的农场</h1>
+    <div class="sub">经典德式桌游《农场主》电子版 · 家庭变体规则 · 支持 <b>1–4 人</b>同房间游玩 · 可实时旁观</div>
+    <div class="edition"><span class="badge gold">👨‍👩‍👧‍👦 家庭变体（无职业/小发展卡）</span> <span class="badge">⏱ 约 30–60 分钟</span></div>
+  </div>
+
+  <div class="mode-cards">
+    <div class="mode-card">
+      <div class="ic">🎮</div>
+      <h3>加入游戏</h3>
+      <p>输入主持人给你的 4 位房间码，设置昵称后进入农场。全员同意即可立即开局。</p>
+      <input id="joinCode" class="input code" maxlength="4" placeholder="房间码" autocomplete="off">
+      <button id="btnJoin" class="btn big">进入农场 →</button>
+    </div>
+    <div class="mode-card">
+      <div class="ic">👀</div>
+      <h3>旁观游戏</h3>
+      <p>输入 4 位旁观码（S 开头），即可实时围观整场对局，不会打扰任何人。</p>
+      <input id="specCode" class="input code" maxlength="4" placeholder="旁观码" autocomplete="off">
+      <button id="btnSpec" class="btn big blue">进入观战 →</button>
+    </div>
+    <div class="mode-card">
+      <div class="ic">🏠</div>
+      <h3>我要主持</h3>
+      <p>创建房间，获得房间码与旁观码，邀请朋友加入。你可随时解散房间。</p>
+      <p class="muted" style="flex:0">主持不需要购买任何东西，手机/电脑均可。</p>
+      <button id="btnHost" class="btn big gold">创建房间 →</button>
+    </div>
+  </div>
+
+  <p class="muted mt24" style="text-align:center">
+    灵感来源于 Uwe Rosenberg 的经典桌游 <a href="https://boardgamegeek.com/boardgame/200680/agricola-revised-edition" target="_blank" rel="noopener">Agricola</a><br>
+    犁地 · 播种 · 圈养牲畜 · 生儿育女 · 修缮房屋 —— 十四轮之后，谁的农场最兴旺？
+  </p>
+</div>
+
+<script type="module">
+import { qs, toast } from "/js/common.js";
+import { bindTutorialTriggers } from "/js/tutorial.js";
+import { bindSfx } from "/js/sfx.js";
+bindTutorialTriggers();
+bindSfx();
+const $ = (id) => document.getElementById(id);
+
+// 带参直达：/?code=XXXX / ?spec=XXXX
+if (qs("code") || qs("spec") || qs("watch")) {
+  location.replace("/play.html" + location.search);
+}
+
+function norm(v) { return (v || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); }
+
+$("btnJoin").onclick = () => {
+  const c = norm($("joinCode").value);
+  if (c.length !== 4) return toast("请输入 4 位房间码", true);
+  location.href = `/play.html?code=${c}`;
+};
+$("btnSpec").onclick = () => {
+  const c = norm($("specCode").value);
+  if (c.length !== 4) return toast("请输入 4 位旁观码", true);
+  location.href = `/play.html?spec=${c}`;
+};
+$("btnHost").onclick = () => { location.href = "/host.html"; };
+</script>
+</body>
+</html>

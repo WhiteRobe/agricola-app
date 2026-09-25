@@ -44,7 +44,9 @@
 }
 .col-card.me { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(92,141,78,0.12), var(--shadow); }
 .col-card h4 { margin: 0 0 8px; font-size: 14px; display:flex; align-items:center; gap:8px; }
-.col-card h4 .nm { font-weight: 800; }
+.col-card h4 .nm { font-weight: 800; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-card h4 .badge,
+.col-card h4 .turn { flex-shrink: 0; }
 .col-card h4 .turn { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: var(--leaf); color:#fff; font-weight:700; }
 
 /* 当前轮到的玩家：强烈高亮（亮绿边框 + pulse；底色/透明度见下方统一控制） */
@@ -285,6 +287,16 @@
 .stock-score-badge:active { transform: translateY(0) scale(0.98); }
 .stock-score-badge .score-crown { font-size: 13px; line-height: 1; }
 .stock-score-badge .score-num { line-height: 1; }
+/* 窄卡 / 窄屏：省略皇冠图标，优先保住得分数字不溢出 */
+.col-card { container-type: inline-size; }
+@container (max-width: 230px) {
+  .stock-score-badge .score-crown { display: none; }
+  .stock-score-badge { padding: 2.5px 7px; gap: 3px; }
+}
+@media (max-width: 560px) {
+  .stock-score-badge .score-crown { display: none; }
+  .stock-score-badge { padding: 2.5px 7px; gap: 3px; }
+}
 
 /* ---- 得分计算面板模态 ---- */
 .score-modal-tabs {

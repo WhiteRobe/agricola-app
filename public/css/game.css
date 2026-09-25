@@ -326,6 +326,52 @@
 .action-board h3 { margin: 0 0 10px; font-size: 16px; display:flex; align-items:center; gap:8px; }
 .action-board .head-info { font-size: 12px; color: var(--ink-3); margin-left: auto; }
 
+/* ---- 行动板内部分页 (Tab) ---- */
+.action-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.action-tab-btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  text-align: center;
+  user-select: none;
+}
+.action-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink);
+}
+.action-tab-btn.active {
+  background: var(--leaf);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(78, 124, 76, 0.35);
+}
+.action-sub-panel {
+  display: none;
+}
+.action-sub-panel.active {
+  display: block;
+  animation: tab-fade-in 0.2s ease-out;
+}
+@keyframes tab-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .spaces-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .space {
   background: rgba(251, 245, 230, 0.06);
@@ -762,7 +808,7 @@ body[data-season="winter"] {
 }
 .guide-card {
   position: absolute;
-  width: min(360px, calc(100vw - 24px));
+  width: min(380px, calc(100vw - 24px));
   max-width: none;
   background: var(--panel);
   border: 2px solid var(--leaf);
@@ -772,34 +818,28 @@ body[data-season="winter"] {
   pointer-events: auto;
   box-sizing: border-box;
   animation: card-pop-in .25s ease-out both;
-  /* 保险：任何情况下都不超出视口（高度上限由 JS 精确控制） */
-  max-height: calc(100vh - 24px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  /* 自然完全展开，无内部滚动条 */
+  max-height: none;
+  overflow: visible;
 }
 .guide-card h4 { margin: 0 0 8px; font-size: 16px; color: var(--leaf-dark); }
 .guide-card p { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
 .guide-card .row { display: flex; gap: 8px; margin-top: 12px; }
 .guide-card .progress { font-size: 11px; color: var(--ink-3); margin-top: 8px; text-align: right; }
-/* 顶部/底部渐隐提示可滚动 */
-.guide-card::after {
-  content: ""; position: sticky; bottom: -18px; left: 0; right: 0; display: block; height: 14px;
-  background: linear-gradient(transparent, var(--panel));
-  margin: 0 -18px -18px; pointer-events: none;
-}
 
-/* 窄屏：卡片固定底部（bottom sheet），更易阅读与点击 */
+/* 窄屏：卡片固定底部（bottom sheet），完全展开，更易阅读与点击 */
 @media (max-width: 639px) {
   .guide-card {
     width: auto !important;
     left: 12px !important; right: 12px !important;
     top: auto !important; bottom: 12px !important;
     padding: 16px;
+    max-height: none !important;
+    overflow: visible !important;
   }
   .guide-card p { font-size: 13px; }
   .guide-card h4 { font-size: 15px; }
-  /* 底部按钮常驻可见（内容多时内部滚动） */
-  .guide-card .row { position: sticky; bottom: -16px; background: var(--panel); padding: 10px 0 4px; margin-top: 8px; }
+  .guide-card .row { background: var(--panel); padding: 6px 0 0; margin-top: 8px; }
 }
 
 /* 移动端 tab 系统已在上面 */

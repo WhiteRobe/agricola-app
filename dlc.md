@@ -51,16 +51,16 @@
 
 | 文件 | 改动 |
 |---|---|
-| `src/game/dlc.ts` | DLC 配置类型、18 张职业、12 张小发展卡、抽卡工具 `sample()` |
-| `src/game/engine.ts` | PlayerState 加 `occupation` / `occupationHand` / `minorImprovements`；GameState 加 `dlc` / `minorImprovementCards`；`ChooseOccupation` / `TakeMinorImprovement` / `UseMinorImprovement` 三个新 action |
+| `src/game/dlc.ts` | DLC 配置类型、48 张经典官方职业卡池（7 大流派）、12 张小发展卡、抽卡工具 `sample()` |
+| `src/game/engine.ts` | PlayerState 加 `occupation` / `occupationHand` / `minorImprovements`；GameState 加 `dlc` / `minorImprovementCards`；挂钩 48 张职业卡完整效果（每轮自然产出、行动格加成、建房/翻修/大改进折扣、烤面包/烹饪食物倍增、收获阶段奖励、终局计分突破） |
 | `src/dos.ts` | RoomState 加 `dlc` 字段；`/init` 接收 dlc；`/peek` 回传 dlc |
 | `src/index.ts` | `/api/host/create` 接收 dlc 并下发；`/api/host/list` 在房间快照里附带 dlc |
-| `public/js/dlc-data.js` | 客户端卡牌 lookup（精简 JS 副本） |
-| `public/js/game.js` | 玩家卡加「职业 / 小发展卡」tag；新建手牌选职业面板；新增 `renderMinorCards` 行动格 |
+| `public/js/dlc-data.js` | 客户端 48 张职业 + 小发展卡 lookup（精简 JS 副本） |
+| `public/js/game.js` | 玩家卡加「职业 / 小发展卡」tag；新建手牌选职业面板；行动板支持 3-Tab 内部分页；新增 `renderMinorCards` 行动格 |
 | `public/js/host.js` | 创建房间时收集勾选；列表里带 DLC 的房间显示「🎴 含 DLC」徽章 |
 | `public/host.html` | 「⚙ 启用扩展（DLC）」折叠勾选区 |
 | `public/css/main.css` | `.dlc-grid` / `.dlc-opt` / `.occ-card` / `.minor-card` / `.dlc-panel` 等样式 |
-| `test/engine.mjs` | 新增 17 条 DLC 断言（手牌 7 张、选/重选/不消耗工人、抢卡/一次性/移除、未启用拒绝 等） |
+| `test/engine.mjs` | 新增职业系统测试（木匠减免、柴夫额外木、伐木工每轮自然产出、学者导师终局加分等） |
 
 **用户流程**
 
@@ -68,25 +68,28 @@
 2. 创建房间 → 房间元数据带 `dlc: { occupations: true, minorImprovements: true }`
 3. 玩家加入 → 玩家卡下方出现「🎴 从手牌 7 选 1 张职业」面板（点击直接进 WS）
 4. 行动板顶部新增「🎴 小发展卡」一行可抢卡，点击消耗 1 名工人
-5. 玩家卡库存下方多出「🎴 职业」/「🎴 小发展卡」tag，悬浮显示效果说明
+5. 玩家卡库存下方多出「🎴 职业」/「🎴 小发展卡」tag，悬浮显示效果说明与生效数值
+6. 职业效果全部在引擎核心循环中实时结算：回合初自增、拿取行动附加、建造折减、烹饪增益、收获阶段补贴、终局计分加成
 
-**协议边界 / 已知简化**
+**协议边界与完整规则**
 
-- 「选职业」不消耗工人，可在开局阶段无限重选（直到全部人都选好）；
-  原版是「选后锁定」。这是为了配合 4 人在线时的异步行为。
-- 「小发展卡」本轮抽 1 张加入场上（原版每种都可能引入，但只 1 张生效）；
-  后续可改回每局抽 N 张。
-- 永久小发展卡的效果（每轮 +1 资源、买动物 +1 只、收获 +1 食物等）
-  **当前仅在前端 tag 里以文字展示，未触发实际结算**。
-  要让它们真的生效，需要在 `startRound` / `handleTake` / `runHarvest`
-  里逐个 patch 卡牌 id 的特殊分支。
+- 「选职业」不消耗工人，可在开局阶段手牌 7 选 1（开局弹窗，选定后锁定）。
+- 「职业卡池」全面扩充至 48 张经典《农家乐》职业，涵盖 7 大流派：
+  1. 基础资源流派（伐木工、泥瓦工、芦苇工、石匠、柴夫、运泥工、采石工、林业管理员、采菇人）
+  2. 农耕种植流派（谷物商人、粮商种子贩、犁地工、播种者、看田人、捕鼠人）
+  3. 牲畜畜牧流派（牧羊人、养猪人、牧牛人、兽医、修篱人）
+  4. 建造翻修流派（木匠、砌砖工、车匠、房屋翻修匠、桶匠、铁匠）
+  5. 饮食烹饪流派（渔夫、猎人、日工助手、面包师傅、磨坊主、酿酒师、养蜂人、屠夫、制革匠、草药师、主厨、制篮工、烧炭人）
+  6. 运营家庭流派（乳母、旅店老板、季节工、仓库管理员、农工）
+  7. 终局计分流派（学者导师、村中长者、建筑总监、房产中介）
+- 所有职业卡的被动、主动触发、消耗折扣与加分项全部在 `src/game/engine.ts` 中完成自动化规则判定。
 - 一次性卡（井 +1、市集 +3、厨助 +2）已经在引擎内立即结算并从场上移除。
 
 **测试**
 
-- 引擎 `100/100`（DLC 部分 17 条断言全绿）
-- WebSocket 冒烟 + 14 轮端到端全通过
-- `tsc --noEmit` 干净
+- 引擎 `139/139` 全部通过（含 48 张职业卡机制、Moor 沼泽燃料干草机制）
+- WebSocket 冒烟 + 14 轮双真实玩家端到端全通过
+- `tsc --noEmit` 干净通过
 
 **前置 bug 修复（顺手）**
 

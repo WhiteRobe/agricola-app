@@ -50,7 +50,13 @@ const SPACES = [
 
 // id → 中文名；用于把服务端揭示的英文 token 渲染成中文
 const SPACE_NAME_ZH = Object.fromEntries(SPACES.map((s) => [s.id, s.name]));
-const SPACE_NAME_FALLBACK = { Ore: "矿" };
+const SPACE_NAME_FALLBACK = {
+  Ore: "采矿",
+  GatherFuel: "收集燃料",
+  CutMeadow: "割草甸",
+  ReclaimMoor: "沼泽拓荒",
+  SowMoor: "沼泽撒种",
+};
 function spaceName(id) { return SPACE_NAME_ZH[id] || SPACE_NAME_FALLBACK[id] || id; }
 
 // 实时计分（与 src/game/engine.ts scorePlayer 同源；客户端实时显示）
@@ -140,6 +146,18 @@ let _occPromptedFor = null;
 let _fenceMode = false;
 /** 当前渲染的农场上下文（用于局部刷新棋盘） */
 let _farmCtx = null;
+/** 行动板内部分页：'resources' (资源&市场) | 'actions' (行动&回合卡) | 'moor' (荒野之地) */
+let _actionSubTab = "resources";
+
+function switchActionSubTab(tab) {
+  _actionSubTab = tab;
+  document.querySelectorAll(".action-tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.actTab === tab);
+  });
+  document.querySelectorAll(".action-sub-panel").forEach((p) => {
+    p.classList.toggle("active", p.dataset.panel === tab);
+  });
+}
 
 export function renderGame(root, s, me, conn) {
   _state = s; _me = me; _conn = conn;
@@ -233,6 +251,8 @@ export function renderGame(root, s, me, conn) {
     root.appendChild(tabs);
   }
 
+  if (!g.dlc?.moor && _actionSubTab === "moor") _actionSubTab = "resources";
+
   // 主体布局（日志已独立成页，不再占用网格）
   const layout = document.createElement("div");
   layout.className = "game-layout";
@@ -240,37 +260,63 @@ export function renderGame(root, s, me, conn) {
     <div class="pairs" id="pairsGrid"></div>
     <div class="action-board" id="actionBoard">
       <h3>📋 行动板 <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 荒野之地</span>' : ""}</h3>
-      ${g.dlc && g.dlc.minorImprovements ? `
-      <div class="section-sub">🎴 小发展卡（抢一次入个人持有）</div>
-      <div id="minorGrid" class="spaces-grid"></div>` : ""}
+      
+      <!-- 行动板内部分页 -->
+      <div class="action-tabs">
+        <button class="action-tab-btn ${_actionSubTab === "resources" ? "active" : ""}" data-act-tab="resources" type="button">🌾 资源 & 市场</button>
+        <button class="action-tab-btn ${_actionSubTab === "actions" ? "active" : ""}" data-act-tab="actions" type="button">🎯 行动 & 回合卡</button>
+        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 荒野之地</button>` : ""}
+      </div>
+
+      <!-- 分页 1: 永久资源 + 动物市场 -->
+      <div class="action-sub-panel ${_actionSubTab === "resources" ? "active" : ""}" data-panel="resources">
+        <div class="section-sub">🪵 永久资源格（每轮累积，取走全部）</div>
+        <div id="alwaysGrid" class="spaces-grid"></div>
+        <div class="section-sub">🐑 动物市场（每轮 +1，取走全部 · 免费）</div>
+        <div id="animalGrid" class="spaces-grid"></div>
+      </div>
+
+      <!-- 分页 2: 常规行动 + 回合卡 + 小发展卡 -->
+      <div class="action-sub-panel ${_actionSubTab === "actions" ? "active" : ""}" data-panel="actions">
+        <div class="section-sub">🌱 常规行动（第 1 轮起永久可用）</div>
+        <div id="actionGrid" class="spaces-grid"></div>
+        <div class="section-sub">🎴 回合卡行动（揭示后永久可用 · 每轮每格一次）</div>
+        <div id="roundGrid" class="spaces-grid"></div>
+        ${g.dlc && g.dlc.minorImprovements ? `
+        <div class="section-sub">🎴 小发展卡（抢一次入个人持有）</div>
+        <div id="minorGrid" class="spaces-grid"></div>` : ""}
+      </div>
+
+      <!-- 分页 3: 荒野之地扩展（燃料/干草 + 沼泽板） -->
       ${g.dlc?.moor ? `
-      <div class="section-sub">🌲 荒野之地（燃料 / 干草 · 每轮累积）</div>
-      <div id="moorPileGrid" class="spaces-grid"></div>
-      <div class="section-sub">🌱 沼泽板（公有 · 4×4 · 拓荒后撒种 / 收获）</div>
-      <div class="moor-board-wrap">
-        <div id="moorBoard" class="moor-board"></div>
-        <div class="moor-actions">
-          <button class="btn small" id="moorReclaimBtn" type="button" disabled>🌱 拓荒 (-1 木 +1 芦苇)</button>
-          <div class="moor-actions-row">
-            <button class="btn small" id="moorSowGBtn" type="button" disabled>🌾 撒谷</button>
-            <button class="btn small" id="moorSowVBtn" type="button" disabled>🥕 撒菜</button>
+      <div class="action-sub-panel ${_actionSubTab === "moor" ? "active" : ""}" data-panel="moor">
+        <div class="section-sub">🌲 荒野之地（燃料 / 干草 · 每轮累积）</div>
+        <div id="moorPileGrid" class="spaces-grid"></div>
+        <div class="section-sub">🌱 沼泽板（公有 · 4×4 · 拓荒后撒种 / 收获）</div>
+        <div class="moor-board-wrap">
+          <div id="moorBoard" class="moor-board"></div>
+          <div class="moor-actions">
+            <button class="btn small" id="moorReclaimBtn" type="button" disabled>🌱 拓荒 (-1 木 +1 芦苇)</button>
+            <div class="moor-actions-row">
+              <button class="btn small" id="moorSowGBtn" type="button" disabled>🌾 撒谷</button>
+              <button class="btn small" id="moorSowVBtn" type="button" disabled>🥕 撒菜</button>
+            </div>
+            <p class="muted moor-hint">先点沼泽格，再点拓荒或撒种按钮</p>
           </div>
-          <p class="muted moor-hint">先点沼泽格，再点拓荒或撒种按钮</p>
         </div>
       </div>` : ""}
-      <div class="section-sub">🪵 永久资源格（每轮累积，取走全部）</div>
-      <div id="alwaysGrid" class="spaces-grid"></div>
-      <div class="section-sub">🌱 常规行动（第 1 轮起永久可用）</div>
-      <div id="actionGrid" class="spaces-grid"></div>
-      <div class="section-sub">🐑 动物市场（每轮 +1，取走全部 · 免费）</div>
-      <div id="animalGrid" class="spaces-grid"></div>
-      <div class="section-sub">🎴 回合卡行动（揭示后永久可用 · 每轮每格一次）</div>
-      <div id="roundGrid" class="spaces-grid"></div>
     </div>
   `;
   root.appendChild(layout);
 
   bindRipples(root);
+
+  // 绑定行动板 Tab 切换
+  layout.querySelectorAll(".action-tab-btn").forEach((btn) => {
+    btn.onclick = () => {
+      switchActionSubTab(btn.dataset.actTab);
+    };
+  });
 
   // ★ 每个玩家一行：[stock | farm]，同一行内两张卡自动等高（改进 tag 增多也不会错位）
   renderPlayersAndFarms(layout.querySelector("#pairsGrid"), g.players, me, g.waitingFor[0], myTurn, myPlayer);
@@ -601,7 +647,19 @@ function renderFarm(wrap, p, myTurn) {
       }
     }
     el.innerHTML = html;
-    el.title = `(${x},${y}) · ${cell.kind}${cell.crop ? " · " + cell.crop : ""}${cell.markers ? " · markers=" + cell.markers : ""}`;
+    const kindNames = { empty: "荒地", room: `${houseLabel(p.roomType)}房屋`, field: "耕地" };
+    const cropNames = { grain: "小麦", vegetable: "蔬菜" };
+    let tip = `坐标 (${x}, ${y}) · ${kindNames[cell.kind] || cell.kind}`;
+    if (cell.kind === "field") {
+      if (cell.crop) tip += ` · 已播种${cropNames[cell.crop] || cell.crop}（剩余 ${cell.markers ?? 0} 个）`;
+      else tip += " · 闲置田（可撒种）";
+    }
+    const pasture = p.pastures.find(ps => ps.cells.includes(`${x},${y}`));
+    if (pasture) {
+      const anNames = { sheep: "羊", boar: "野猪", cattle: "牛" };
+      tip += ` · 牧场${pasture.animal ? `（放牧 ${anNames[pasture.animal] || pasture.animal}）` : "（空闲）"}`;
+    }
+    el.title = tip;
     el.dataset.x = x; el.dataset.y = y;
     if (myTurn && !_fenceMode) el.onclick = () => onCellClick(p, x, y, cell);
     board.appendChild(el);
@@ -763,20 +821,27 @@ function renderSpaces(container, g, p, myTurn, kind) {
 function renderMoorPile(container, g, p, myTurn) {
   if (!container) return;
   container.innerHTML = "";
-  const mk = (kind, icon, name, pile, used, onclick) => {
+  const fuelOpen = (g.revealed || []).includes("GatherFuel");
+  const hayOpen = (g.revealed || []).includes("CutMeadow");
+
+  const mk = (kind, icon, name, pile, used, open, openRound, onclick) => {
     const card = document.createElement("div");
-    const canAct = myTurn && pile > 0 && !used;
+    const canAct = myTurn && pile > 0 && !used && open;
     card.className = "minor-card" + (canAct ? " actable" : " disabled");
+    let eff = "";
+    if (!open) eff = `第 ${openRound} 轮揭示开放`;
+    else if (used) eff = "本轮已被占用 · 下轮再用";
+    else eff = `累积 ${pile} · 可取全部${pile > 0 ? `（${pile}）` : "（空）"}`;
     card.innerHTML = `
       <div class="occ-ic">${icon}</div>
       <div class="minor-name">${name}</div>
-      <div class="minor-eff">累积 ${pile} · 可取全部${pile > 0 ? `（${pile}）` : "（空）"}</div>
+      <div class="minor-eff">${eff}</div>
     `;
     if (canAct) card.onclick = onclick;
     container.appendChild(card);
   };
-  mk("fuel", "🔥", "燃料堆", g.moorFuelPile || 0, (g.usedSpaces || []).includes("GatherFuel"), () => sendAction({ type: "GatherFuel" }));
-  mk("hay",  "🌾", "干草堆", g.moorHayPile  || 0, (g.usedSpaces || []).includes("CutMeadow"),  () => sendAction({ type: "CutMeadow" }));
+  mk("fuel", "🔥", "燃料堆", g.moorFuelPile || 0, (g.usedSpaces || []).includes("GatherFuel"), fuelOpen, 2, () => sendAction({ type: "GatherFuel" }));
+  mk("hay",  "🌾", "干草堆", g.moorHayPile  || 0, (g.usedSpaces || []).includes("CutMeadow"),  hayOpen, 7, () => sendAction({ type: "CutMeadow" }));
 }
 
 /** 当前选中的沼泽格（私存在 _moorSel） */
@@ -804,21 +869,32 @@ function renderMoorBoard(container, g, p, myTurn) {
       cell.dataset.y = String(y);
       if (data) {
         cell.classList.add("is-reclaimed");
+        const ownerPlayer = (g.players || []).find((pl) => pl.id === data.sownBy);
+        const ownerName = ownerPlayer ? ownerPlayer.name : (data.sownBy || "未知");
         if (data.crop) {
           cell.classList.add("is-sown");
           const cropIcon = data.crop === "grain" ? "🌾" : "🥕";
-          const sownBy = data.sownBy ? data.sownBy.slice(0, 4) : "?";
-          cell.innerHTML = `<span class="moor-crop">${cropIcon}</span><span class="moor-marker">×${data.markers || 0}</span><span class="moor-owner" title="撒种者">${sownBy}</span>`;
+          const cropZh = data.crop === "grain" ? "小麦" : "蔬菜";
+          cell.innerHTML = `<span class="moor-crop">${cropIcon}</span><span class="moor-marker">×${data.markers || 0}</span><span class="moor-owner" title="撒种者：${escapeHtml(ownerName)}">${escapeHtml(ownerName.slice(0, 3))}</span>`;
+          cell.title = `已拓荒田 (${x}, ${y}) · ${cropZh}（剩余 ${data.markers || 0} 个）· 撒种者：${ownerName}`;
         } else {
           cell.innerHTML = `<span class="moor-empty">▢</span>`;
+          cell.title = `已拓荒田 (${x}, ${y}) · 闲置（可撒谷或撒菜）`;
         }
       } else {
         cell.innerHTML = `<span class="moor-locked">#</span>`;
+        cell.title = `沼泽荒地 (${x}, ${y}) · 未拓荒（需 1 木 + 1 芦苇拓荒）`;
       }
       if (sel) cell.classList.add("is-sel");
       if (myTurn) cell.onclick = () => {
         _moorSel = { x, y };
         renderMoorBoard(container, g, p, myTurn);
+        bindMoorActions(g, p, myTurn);
+      };
+      container.appendChild(cell);
+    }
+  }
+}
         bindMoorActions(g, p, myTurn);
       };
       container.appendChild(cell);
@@ -1905,6 +1981,13 @@ function renderGuide() {
   if (!_showGuide || _state.phase !== "playing") return;
 
   const step = GUIDE_STEPS[_guideStep] || GUIDE_STEPS[0];
+  // 引导高亮对应行动格时，自动切到对应分页确保目标可见
+  if (step.selector === "#alwaysGrid" || step.selector === "#animalGrid") {
+    switchActionSubTab("resources");
+  } else if (step.selector === "#roundGrid" || step.selector === "#actionGrid") {
+    switchActionSubTab("actions");
+  }
+
   const overlay = document.createElement("div");
   overlay.className = "guide-overlay active";
   overlay.innerHTML = `<div class="guide-spotlight" id="guideSpot"></div><div class="guide-card" id="guideCard"></div>`;
@@ -1944,30 +2027,28 @@ function renderGuide() {
       spot.style.display = "none";
     }
 
-    // ---- 卡片：窄屏固定底部（bottom sheet），宽屏跟随目标 ----
+    // ---- 卡片：窄屏固定底部（bottom sheet），完全展开，无内部滚动条 ----
     card.style.transform = "none";
     if (narrow || !target) {
-      // 窄屏：底部抽屉，限高可滚动，永远可见可点
       card.style.left = M + "px";
       card.style.right = M + "px";
       card.style.top = "auto";
       card.style.bottom = M + "px";
       card.style.maxWidth = "none";
-      card.style.maxHeight = Math.round(vh * 0.56) + "px";
-      card.style.overflowY = "auto";
+      card.style.maxHeight = "none";
+      card.style.overflow = "visible";
       return;
     }
 
     card.style.right = "auto";
     card.style.bottom = "auto";
     card.style.maxWidth = "";
-    // 宽屏限高：超高时内部滚动，避免超出视口
-    card.style.maxHeight = Math.round(vh - M * 2) + "px";
-    card.style.overflowY = "auto";
+    card.style.maxHeight = "none";
+    card.style.overflow = "visible";
 
     const r = target.getBoundingClientRect();
-    const cw = card.offsetWidth || 360;
-    const ch = Math.min(card.offsetHeight || 200, vh - M * 2);
+    const cw = card.offsetWidth || 380;
+    const ch = card.offsetHeight || 200;
 
     // 竖直：优先目标下方，放不下则上方，再不行居中（结果再夹到视口内）
     let top = r.bottom + 16;

@@ -664,5 +664,43 @@ console.log("\n⚙️ 效果结算（水井 / 小发展卡 / Moor 改进 / 建�
   ok(scK.breakdown.柴火 === 3, `柴火棚终局燃料分 = 3（实际 ${scK.breakdown.柴火}）`);
 }
 
+// ---- 测试 12：职业卡效果（每轮被动 / 行动加成 / 收获奖励 / 终局计分）----
+console.log("\n🎴 职业卡系统测试（48张卡池挂钩）");
+{
+  const gOcc = engine.createGame([{ id: "p1", name: "P1", seat: 0 }], { dlc: { occupations: true, minorImprovements: true, moor: false } });
+  const p1 = gOcc.players[0];
+
+  // 1. 每轮被动（伐木工 +1 木）
+  p1.occupation = { id: "woodcutter", name: "伐木工", icon: "🪓", effect: "每轮开始：额外获得 1 木" };
+  const w0 = p1.resources.wood;
+  // 推过 1 轮
+  engine.dispatchGame(gOcc, "p1", { type: "Take", space: "DayLaborer" });
+  engine.dispatchGame(gOcc, "p1", { type: "Take", space: "Fishing" });
+  ok(p1.resources.wood === w0 + 1, `伐木工每轮开始 +1 木（${w0} → ${p1.resources.wood}）`);
+
+  // 2. 行动加成（柴夫拿木材 +1 木）
+  p1.occupation = { id: "lumberjack", name: "柴夫", icon: "🪵", effect: "拿木材行动：额外多拿 1 木" };
+  gOcc.piles.Wood = 2;
+  const wBefore = p1.resources.wood;
+  gOcc.usedSpaces = []; // 清空本轮占用以便测试
+  engine.dispatchGame(gOcc, "p1", { type: "Take", space: "Wood" });
+  ok(p1.resources.wood === wBefore + 2 + 1, `柴夫拿木材额外 +1 木（${wBefore} + 2 + 1 = ${p1.resources.wood}）`);
+
+  // 3. 建造减免（木匠建造木屋节省 1 木）
+  p1.occupation = { id: "carpenter", name: "木匠", icon: "📐", effect: "建造木屋：每间房节省 1 木材" };
+  p1.resources.wood = 4; p1.resources.reed = 2;
+  gOcc.usedSpaces = [];
+  const rRoom = engine.dispatchGame(gOcc, "p1", { type: "BuildRoom", x: 2, y: 3 });
+  ok(rRoom.ok, `木匠造木屋成功（原本需 5 木，木匠省 1 木仅需 4 木, msg=${rRoom.msg}）`);
+  ok(p1.rooms === 3, "房间数增加到 3");
+
+  // 4. 终局加分（学者导师拥有 ≥3 项改进额外 +3 分）
+  p1.occupation = { id: "tutor", name: "学者导师", icon: "📜", effect: "拥有 ≥3 项改进额外 +3 分" };
+  p1.improvements = ["well", "fireplace2"];
+  p1.minorImprovements = ["mi.well"];
+  const scTutor = engine.scorePlayer(p1);
+  ok(scTutor.breakdown.职业 === 3, `学者导师终局加分生效（${scTutor.breakdown.职业} 分）`);
+}
+
 console.log(`\n${fail === 0 ? "🎉" : "💥"} ${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

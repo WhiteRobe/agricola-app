@@ -264,6 +264,40 @@ function startRound(g: GameState) {
     }
   }
 
+  // 职业：每轮开始被动结算
+  for (const p of g.players) {
+    if (!p.occupation) continue;
+    const oid = p.occupation.id;
+    if (oid === "woodcutter") { p.resources.wood += 1; pushLog(g, `🪓 「${p.name}」伐木工 +1 木`); }
+    else if (oid === "clayworker") { p.resources.clay += 1; pushLog(g, `🏺 「${p.name}」泥瓦工 +1 陶`); }
+    else if (oid === "reedcutter") { p.resources.reed += 1; pushLog(g, `🎋 「${p.name}」芦苇工 +1 芦苇`); }
+    else if (oid === "stonemason") { p.resources.stone += 1; pushLog(g, `⛏ 「${p.name}」石匠 +1 石`); }
+    else if (oid === "grainMerchant" || oid === "fieldHand") { p.resources.grain += 1; pushLog(g, `🌾 「${p.name}」${p.occupation.name} +1 谷`); }
+    else if (oid === "innkeeper") { p.food += 1; pushLog(g, `🏮 「${p.name}」旅店老板 +1 食物`); }
+    else if (oid === "storehouseClerk" && p.food === 0) { p.food += 1; pushLog(g, `📦 「${p.name}」仓库管理员补贴 +1 食物`); }
+    else if (oid === "fieldWatchman") {
+      const hasCrops = p.grid.some(row => row.some(c => c.kind === "field" && (c.markers || 0) > 0));
+      if (hasCrops) { p.food += 1; pushLog(g, `👀 「${p.name}」守望者 +1 食物`); }
+    }
+    else if (oid === "brewer" && p.resources.grain >= 1) {
+      p.resources.grain -= 1;
+      p.food += 4;
+      pushLog(g, `🍺 「${p.name}」酿酒师 1 谷换 4 食物`);
+    }
+    else if (oid === "basketmaker" && p.resources.reed >= 1) {
+      p.resources.reed -= 1;
+      p.food += 3;
+      pushLog(g, `🧺 「${p.name}」编筐工 1 芦苇换 3 食物`);
+    }
+    else if (oid === "seasonalWorker") {
+      if ([1, 5, 8, 10, 12, 14].includes(g.round)) {
+        p.resources.grain += 1;
+        p.food += 1;
+        pushLog(g, `🍂 「${p.name}」季节工 +1 谷 +1 食物`);
+      }
+    }
+  }
+
   // 揭回合卡（累积：已揭示的永久保留，这里只记录本轮新翻出的）
   // Moor 回合卡只在勾选了「荒野之地」的房间揭示
   const newlyRevealed: string[] = [];
@@ -551,6 +585,22 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
     p.resources[resKey] += got;
     g.piles[poolKey] = 0;
     pushLog(g, `${resIcon(resKey)} 「${p.name}」取走 ${zhSpace(space)}上的全部 ${got} ${resZh(resKey)}`);
+
+    // 职业资源额外加成
+    if (space === "Wood") {
+      if (p.occupation?.id === "lumberjack") { p.resources.wood += 1; pushLog(g, `🪵 「${p.name}」柴夫额外 +1 木`); }
+      if (p.occupation?.id === "forestCustodian") { p.resources.reed += 1; pushLog(g, `🌲 「${p.name}」护林员额外 +1 芦苇`); }
+      if (p.occupation?.id === "mushroomCollector") { p.food += 1; pushLog(g, `🍄 「${p.name}」蘑菇采摘人额外 +1 食物`); }
+      if (p.occupation?.id === "hunter") { p.food += 1; pushLog(g, `🏹 「${p.name}」猎人额外 +1 食物`); }
+      if (p.occupation?.id === "charcoalBurner") {
+        if (g.dlc?.moor) p.fuel += 1; else p.food += 1;
+        pushLog(g, `🔥 「${p.name}」炭烧工额外 +1 燃料/食物`);
+      }
+    } else if (space === "Clay") {
+      if (p.occupation?.id === "clayCarrier") { p.resources.clay += 1; pushLog(g, `🧱 「${p.name}」运泥工额外 +1 陶`); }
+    } else if (space === "Grain" || space === "Vegetable") {
+      if (p.occupation?.id === "seedMerchant") { p.resources[resKey] += 1; pushLog(g, `🌱 「${p.name}」种子商人多得 1 份种子`); }
+    }
     return { ok: true };
   }
   if (space === "Stone") {
@@ -560,6 +610,7 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
     p.resources.stone += got;
     g.piles.Stone = 0;
     pushLog(g, `⛏ 「${p.name}」取走石场上的全部 ${got} 石`);
+    if (p.occupation?.id === "quarryman") { p.resources.stone += 1; pushLog(g, `⛰️ 「${p.name}」采石工额外 +1 石`); }
     return { ok: true };
   }
   if (space === "Fishing") {
@@ -568,11 +619,14 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
     p.food += got;
     g.piles.Fishing = 0;
     pushLog(g, `🐟 「${p.name}」钓鱼 +${got} 食物`);
+    if (p.occupation?.id === "fisher") { p.food += 1; pushLog(g, `🎣 「${p.name}」渔夫额外 +1 食物`); }
+    if (p.occupation?.id === "hunter") { p.food += 1; pushLog(g, `🏹 「${p.name}」猎人额外 +1 食物`); }
     return { ok: true };
   }
   if (space === "DayLaborer") {
     p.food += LEFT_BOARD.dayLaborer.food;
     pushLog(g, `🛠 「${p.name}」日工 +${LEFT_BOARD.dayLaborer.food} 食物（无须成本，但用掉 1 名家人）`);
+    if (p.occupation?.id === "dayLaborer") { p.food += 1; pushLog(g, `🛠 「${p.name}」打工达人额外 +1 食物（共 3 食物）`); }
     return { ok: true };
   }
   // ---- 动物市场（累积格）：拿走该格全部动物，不花食物；养不下的跑回供应区 ----
@@ -599,6 +653,17 @@ function handleTake(g: GameState, p: PlayerState, space: string): ActionResult {
       kept += 1;
       pushLog(g, `🎴 「${p.name}」${zh}圈额外 +1 只${zh}`);
     }
+    // 职业牲畜奖励
+    if (t === "sheep" && p.occupation?.id === "shepherd" && addAnimal(g, p, "sheep")) {
+      kept += 1;
+      pushLog(g, `🐑 「${p.name}」牧羊人额外 +1 只羊`);
+    } else if (t === "boar" && p.occupation?.id === "swineherd" && addAnimal(g, p, "boar")) {
+      kept += 1;
+      pushLog(g, `🐗 「${p.name}」养猪人额外 +1 只猪`);
+    } else if (t === "cattle" && p.occupation?.id === "cattleFarmer" && addAnimal(g, p, "cattle")) {
+      kept += 1;
+      pushLog(g, `🐄 「${p.name}」牧牛人额外 +1 只牛`);
+    }
     pushLog(g, `🐑 「${p.name}」从${zh}市带走 ${kept} 只${zh}${lost > 0 ? `（${lost} 只因没有牧场跑掉了）` : ""}`);
     return { ok: true };
   }
@@ -614,7 +679,12 @@ function buildRoom(g: GameState, p: PlayerState, a: EngineAction): ActionResult 
   const houseAdj = houseNeighbors(p, x, y).length > 0;
   if (!houseAdj) return { ok: false, msg: "新房间必须紧邻现有房间" };
 
-  const cost = ROOM_COST[p.roomType];
+  const baseCost = ROOM_COST[p.roomType];
+  const cost: Record<string, number> = { ...baseCost };
+  if (p.occupation?.id === "carpenter" && p.roomType === "wood" && cost.wood) cost.wood = Math.max(1, cost.wood - 1);
+  if (p.occupation?.id === "bricklayer" && p.roomType === "clay" && cost.clay) cost.clay = Math.max(1, cost.clay - 1);
+  if (p.occupation?.id === "wainwright" && cost.reed) cost.reed = Math.max(0, cost.reed - 1);
+
   if (!pay(g, p, cost)) return { ok: false, msg: "资源不足以建造" };
   p.grid[y][x] = { kind: "room" as const };
   p.rooms += 1;
@@ -694,6 +764,10 @@ function buildFences(g: GameState, p: PlayerState, a: EngineAction): ActionResul
     if (!p.pastures.find((x) => x.id === id)) delete p.pastureAnimalCells[id];
   }
   pushLog(g, `🪵 「${p.name}」建了 ${added.length} 段栅栏`);
+  if (p.occupation?.id === "hedgeKeeper") {
+    p.resources.wood += 2;
+    pushLog(g, `🪵 「${p.name}」栅栏工返还 2 木材`);
+  }
   return { ok: true };
 }
 
@@ -710,9 +784,13 @@ function bakeBread(g: GameState, p: PlayerState, a: EngineAction): ActionResult 
   if (grainWanted > cfg.maxGrain) grainWanted = cfg.maxGrain;
   if (p.resources.grain < grainWanted) return { ok: false, msg: "谷物不足" };
   const food = cfg.foodPerGrain * grainWanted;
+  let extraFood = 0;
+  if (p.occupation?.id === "baker") extraFood += 1;
+  if (p.occupation?.id === "miller") extraFood += grainWanted;
+  const totalFood = food + extraFood;
   p.resources.grain -= grainWanted; g.supply.grain += grainWanted;
-  p.food += food;
-  pushLog(g, `🍞 「${p.name}」用 ${grainWanted} 谷物烤面包 +${food} 食物`);
+  p.food += totalFood;
+  pushLog(g, `🍞 「${p.name}」用 ${grainWanted} 谷物烤面包 +${totalFood} 食物${extraFood ? `（含职业加成 +${extraFood}）` : ""}`);
   return { ok: true };
 }
 
@@ -737,6 +815,8 @@ function renovate(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
   const perRoom = RENO_COST[direction];
   const cost: Record<string, number> = {};
   for (const k of Object.keys(perRoom)) cost[k] = perRoom[k] * p.rooms;
+  if (p.occupation?.id === "renovator" && cost.reed) cost.reed = 0;
+  if (p.occupation?.id === "bricklayer" && cost.clay) cost.clay = Math.max(0, cost.clay - 1);
   if (!pay(g, p, cost)) {
     const need = Object.entries(cost).map(([k, v]) => `${v} ${resLabel(k)}`).join(" + ");
     return { ok: false, msg: `翻修需 ${need}（共 ${p.rooms} 间房）` };
@@ -769,7 +849,10 @@ function buildMajor(g: GameState, p: PlayerState, a: EngineAction): ActionResult
   const name = String(a.improvement) as keyof typeof MAJOR_IMPROVEMENTS;
   if (!MAJOR_IMPROVEMENTS[name]) return { ok: false, msg: "未知道具" };
   if (p.improvements.includes(name)) return { ok: false, msg: "已建造" };
-  const cost = MAJOR_IMPROVEMENTS[name].cost;
+  const baseCost = MAJOR_IMPROVEMENTS[name].cost;
+  const cost = { ...baseCost };
+  if (p.occupation?.id === "cooper" && cost.wood) cost.wood = Math.max(0, cost.wood - 1);
+  if (p.occupation?.id === "blacksmith" && cost.stone) cost.stone = Math.max(0, cost.stone - 1);
   if (!pay(g, p, cost)) return { ok: false, msg: "资源不足" };
   p.improvements.push(name);
   // 水井：建成起 5 轮，每轮开始 +1 食物
@@ -790,13 +873,14 @@ function buildMajor(g: GameState, p: PlayerState, a: EngineAction): ActionResult
  */
 function cook(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
   const impName = String(a.improvement) as keyof typeof MAJOR_IMPROVEMENTS;
-  if (!p.improvements.includes(impName)) return { ok: false, msg: "你没用过这个烹饪工具" };
+  const isMasterChef = p.occupation?.id === "masterChef";
+  if (!p.improvements.includes(impName) && !isMasterChef) return { ok: false, msg: "你没用过这个烹饪工具" };
   const imp = MAJOR_IMPROVEMENTS[impName];
-  if (!("cook" in imp)) return { ok: false, msg: "该改进无烹饪能力" };
-  const cookRule = imp.cook;
+  const cookRule = imp && ("cook" in imp) ? imp.cook : (isMasterChef ? { vegetable: 0.5, grain: 0.5, sheep: 0.5, boar: 0.5, cattle: 0.5 } : null);
+  if (!cookRule) return { ok: false, msg: "该改进无烹饪能力" };
   const used: Record<string, number> = {};
-  const RESOURCE_KEYS = new Set(["vegetable", "wood", "clay", "reed"]);
-  for (const k of Object.keys(a.used || {}) as (AnimalType | "vegetable" | "wood" | "clay" | "reed")[]) {
+  const RESOURCE_KEYS = new Set(["vegetable", "wood", "clay", "reed", "grain"]);
+  for (const k of Object.keys(a.used || {}) as (AnimalType | "vegetable" | "wood" | "clay" | "reed" | "grain")[]) {
     const n = Math.max(0, Math.floor(Number((a.used as any)[k]) || 0));
     if (RESOURCE_KEYS.has(k)) {
       if ((p.resources as Record<string, number>)[k] < n) return { ok: false, msg: `${resZh(k)}不足` };
@@ -812,13 +896,26 @@ function cook(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
     if (ratio > 0) food += (used as Record<string, number>)[k] / ratio;
   }
   food = Math.floor(food); // 总食物数向下取整（不允许小数）
+  // 职业烹饪加成
+  let occFood = 0;
+  if (p.occupation?.id === "slaughterer") {
+    const anims = (used.sheep || 0) + (used.boar || 0) + (used.cattle || 0);
+    if (anims > 0) occFood += anims;
+  }
+  if (p.occupation?.id === "tanner") {
+    if ((used.cattle || 0) > 0 || (used.boar || 0) > 0) occFood += 2;
+  }
+  if (p.occupation?.id === "herbalist") {
+    if ((used.vegetable || 0) > 0) occFood += (used.vegetable || 0);
+  }
+  food += occFood;
   if (food === 0) return { ok: false, msg: "至少烹饪一种原料" };
   for (const k of Object.keys(used)) {
     if (RESOURCE_KEYS.has(k)) (p.resources as Record<string, number>)[k] -= (used as Record<string, number>)[k];
     else p.animals[k as AnimalType] -= (used as Record<string, number>)[k];
   }
   p.food += food;
-  pushLog(g, `🍳 「${p.name}」烹饪获得 ${food} 食物`);
+  pushLog(g, `🍳 「${p.name}」烹饪获得 ${food} 食物${occFood ? `（含职业加成 +${occFood}）` : ""}`);
   return { ok: true };
 }
 
@@ -1188,13 +1285,22 @@ function runHarvest(g: GameState) {
       }
     }
     if (gainedG || gainedV) pushLog(g, `🌾 「${p.name}」收获 +${gainedG} 谷 +${gainedV} 蔬菜`);
+    if (p.occupation?.id === "ratcatcher") {
+      p.resources.grain += 1;
+      pushLog(g, `🪤 「${p.name}」捕鼠人收获阶段额外 +1 谷物`);
+    }
+    if (p.occupation?.id === "beekeeper") {
+      p.food += 2;
+      pushLog(g, `🐝 「${p.name}」养蜂人收获阶段蜂箱 +2 食物`);
+    }
   }
 
   // 2. 喂养阶段
   for (const p of g.players) {
-    // 成年人每人 2 食物；本轮出生的婴儿只需 1 食物
+    // 成年人每人 2 食物；本轮出生的婴儿只需 1 食物（若有保姆则婴儿免食）
     const adults = Math.max(0, p.family - p.babiesThisRound);
-    const need = adults * FOOD_PER_FAMILY + p.babiesThisRound * FOOD_PER_BABY_THIS_HARVEST;
+    const babyNeed = p.occupation?.id === "wetNurse" ? 0 : p.babiesThisRound * FOOD_PER_BABY_THIS_HARVEST;
+    const need = adults * FOOD_PER_FAMILY + babyNeed;
     let needLeft = need;
 
     // 先用既有食物
@@ -1240,6 +1346,18 @@ function runHarvest(g: GameState) {
         pushLog(g, `🚫 「${p.name}」的${labelAnimal(t)}无法繁殖（牧场容量已满）`);
       }
     });
+    // 兽医加成：若至少有 2 种动物，额外多繁衍 1 只
+    if (p.occupation?.id === "veterinarian") {
+      const kinds = (["sheep", "boar", "cattle"] as AnimalType[]).filter(t => p.animals[t] >= 1);
+      if (kinds.length >= 2) {
+        for (const t of kinds) {
+          if (addAnimal(g, p, t)) {
+            pushLog(g, `🩺 「${p.name}」兽医精心照料，${labelAnimal(t)}额外多繁衍 1 只`);
+            break;
+          }
+        }
+      }
+    }
   }
 
   // 4. Farmers of the Moor：沼泽田收获（每个玩家扫一遍自己撒过种的格子）
@@ -1344,9 +1462,24 @@ export function scorePlayer(p: PlayerState): { id: string; name: string; total: 
     空地: used * SCORE.unusedYard,
     乞讨: p.beggings * BEGGING_PENALTY,
     改进: p.improvements.reduce((sum, k) => sum + (MAJOR_IMPROVEMENTS[k]?.vp ?? 0), 0),
-    // 「柴火棚」大改进（Moor）：终局按剩余燃料每份 +1 分
-    ...(p.improvements.includes("firewood") && (p.fuel || 0) > 0 ? { 柴火: p.fuel * (MAJOR_IMPROVEMENTS.firewood.fuelScore || 1) } : {}),
   };
+  // 职业终局计分加成
+  let occBonus = 0;
+  if (p.occupation?.id === "tutor") {
+    if ((p.improvements.length + (p.minorImprovements?.length || 0)) >= 3) occBonus += 3;
+  } else if (p.occupation?.id === "villageElder") {
+    if (p.beggings === 0) occBonus += 3;
+  } else if (p.occupation?.id === "architect") {
+    occBonus += (roomCount(p, "clay") + roomCount(p, "stone"));
+  } else if (p.occupation?.id === "estateAgent") {
+    if (p.family >= 5) occBonus += 3;
+  }
+  if (occBonus > 0) breakdown["职业"] = occBonus;
+
+  // 「柴火棚」大改进（Moor）：终局按剩余燃料每份 +1 分
+  if (p.improvements.includes("firewood") && (p.fuel || 0) > 0) {
+    breakdown["柴火"] = p.fuel * (MAJOR_IMPROVEMENTS.firewood.fuelScore || 1);
+  }
   const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
   return { id: p.id, name: p.name, total, breakdown, place: 0 };
 }

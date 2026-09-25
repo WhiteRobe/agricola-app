@@ -1454,14 +1454,29 @@ export function scorePlayer(p: PlayerState): { id: string; name: string; total: 
   // Farmers of the Moor：私有田 + 此玩家自己撒过种的沼泽田，合并计 fields break-point
   const moorFields = (p.moorFields || []).length;
   const totalFields = fields + moorFields;
-  const grainInSupply = p.resources.grain;
-  const vegInSupply = p.resources.vegetable;
+
+  // 终局作统计：个人存货 + 田地里尚未收获的作物
+  let totalGrain = p.resources.grain;
+  let totalVeg = p.resources.vegetable;
+  for (let y = 0; y < FARM_H; y++) {
+    for (let x = 0; x < FARM_W; x++) {
+      const cell = p.grid[y][x];
+      if (cell.kind === "field" && cell.crop && cell.markers) {
+        if (cell.crop === "grain") totalGrain += cell.markers;
+        else if (cell.crop === "vegetable") totalVeg += cell.markers;
+      }
+    }
+  }
+
+  // 农场空地计分：15 格农场中未利用的格子，每格扣 1 分
   const used = countUsedYard(p);
+  const unusedSpaces = Math.max(0, 15 - used);
+
   const breakdown: Record<string, number> = {
     田块: SCORE.fields[Math.min(5, totalFields)],
     牧场: SCORE.pastures[Math.min(4, p.pastures.length)],
-    谷物: SCORE.grain[scoreIdx(grainInSupply, [0, 4, 6, 8, 1000])],
-    蔬菜: SCORE.vegetables[scoreIdx(vegInSupply, [0, 1, 2, 3, 1000])],
+    谷物: SCORE.grain[scoreIdx(totalGrain, [0, 1, 4, 6, 8])],
+    蔬菜: SCORE.vegetables[scoreIdx(totalVeg, [0, 1, 2, 3, 4])],
     羊: animalScore("sheep", p.animals.sheep),
     猪: animalScore("boar", p.animals.boar),
     牛: animalScore("cattle", p.animals.cattle),
@@ -1469,7 +1484,7 @@ export function scorePlayer(p: PlayerState): { id: string; name: string; total: 
     石屋: roomCount(p, "stone") * SCORE.stoneRoom,
     木屋: roomCount(p, "wood") * SCORE.woodRoom,
     家人: p.family * SCORE.familyMember,
-    空地: used * SCORE.unusedYard,
+    空地: unusedSpaces * SCORE.unusedYard,
     乞讨: p.beggings * BEGGING_PENALTY,
     改进: p.improvements.reduce((sum, k) => sum + (MAJOR_IMPROVEMENTS[k]?.vp ?? 0), 0),
   };

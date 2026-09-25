@@ -79,8 +79,13 @@ const SCORE_T = {
   unusedYard: -1, fencedStable: 1, clayRoom: 1, stoneRoom: 2, woodRoom: 0,
   familyMember: 3, begging: -3,
 };
-// 修订版上界 breaks（与引擎 constants.ts 一致）：最后一个 1000 表示「无穷」
-const ANIMAL_BREAKS = { sheep: [0, 1, 4, 6, 1000], boar: [0, 1, 3, 5, 1000], cattle: [0, 1, 2, 4, 1000] };
+// 修订版上界 breaks（与引擎 constants.ts 一致）
+const ANIMAL_BREAKS = { sheep: [0, 1, 4, 6, 8], boar: [0, 1, 3, 5, 7], cattle: [0, 1, 2, 4, 6] };
+const MAJOR_VP_MAP = {
+  fireplace: 1, fireplaceBig: 1, cookingHearth: 1, cookingHearthBig: 1,
+  clayOven: 2, stoneOven: 3, well: 4, joinery: 2, pottery: 2, basket: 2,
+  heatingStove: 2, peatKiln: 2, moorCook: 3, tileOven: 3, firewood: 2,
+};
 function animalScoreT(t, n) {
   const b = ANIMAL_BREAKS[t];
   let i = 0;
@@ -93,17 +98,24 @@ function scoreIdxT(n, breaks) {
   return Math.min(i, breaks.length - 1);
 }
 function liveScorePlayer(p) {
-  const fields = p.grid.flat().filter(c => c.kind === "field").length;
+  const fields = p.grid.flat().filter(c => c.kind === "field").length + ((p.moorFields && p.moorFields.length) || 0);
   const pastures = p.pastures.length;
-  const grain = p.resources.grain;
-  const veg = p.resources.vegetable;
+  let grain = p.resources.grain;
+  let veg = p.resources.vegetable;
+  p.grid.flat().forEach(c => {
+    if (c.kind === "field" && c.crop && c.markers) {
+      if (c.crop === "grain") grain += c.markers;
+      else if (c.crop === "vegetable") veg += c.markers;
+    }
+  });
   const used = p.grid.flat().filter(c => c.kind === "field" || c.kind === "room").length + p.stables
     + p.pastures.reduce((s, ps) => s + ps.cells.length, 0);
+  const unusedSpaces = Math.max(0, 15 - used);
   const breakdown = {
     "田块": SCORE_T.fields[Math.min(5, fields)],
     "牧场": SCORE_T.pastures[Math.min(4, pastures)],
-    "谷物": SCORE_T.grain[scoreIdxT(grain, [0, 4, 6, 8, 1000])],
-    "蔬菜": SCORE_T.vegetables[scoreIdxT(veg, [0, 1, 2, 3, 1000])],
+    "谷物": SCORE_T.grain[scoreIdxT(grain, [0, 1, 4, 6, 8])],
+    "蔬菜": SCORE_T.vegetables[scoreIdxT(veg, [0, 1, 2, 3, 4])],
     "羊": animalScoreT("sheep", p.animals.sheep),
     "猪": animalScoreT("boar", p.animals.boar),
     "牛": animalScoreT("cattle", p.animals.cattle),
@@ -111,8 +123,9 @@ function liveScorePlayer(p) {
     "石屋": (p.roomType === "stone" ? p.rooms : 0) * SCORE_T.stoneRoom,
     "木屋": (p.roomType === "wood" ? p.rooms : 0) * SCORE_T.woodRoom,
     "家人": p.family * SCORE_T.familyMember,
-    "空地": used * SCORE_T.unusedYard,
+    "空地": unusedSpaces * SCORE_T.unusedYard,
     "乞讨": p.beggings * SCORE_T.begging,
+    "改进": (p.improvements || []).reduce((sum, k) => sum + (MAJOR_VP_MAP[k] || 0), 0),
   };
   return { id: p.id, name: p.name, total: Object.values(breakdown).reduce((a, b) => a + b, 0), breakdown };
 }
@@ -267,7 +280,7 @@ export function renderGame(root, s, me, conn) {
   layout.innerHTML = `
     <div class="pairs" id="pairsGrid"></div>
     <div class="action-board" id="actionBoard">
-      <h3>📋 行动板 <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 荒野之地</span>' : ""}</h3>
+      <h3><span class="ab-title">📋 行动板</span> <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 荒野之地</span>' : ""}</h3>
       
       <!-- 行动板内部分页 -->
       <div class="action-tabs">
@@ -639,7 +652,9 @@ function renderFarm(wrap, p, myTurn) {
     let html = "";
     if (cell.kind === "room") {
       el.classList.add("cell-room");
-      html = `${roomTileSvg(p.roomType)}<div class="room-plate"><span class="room-plate-tag">${houseLabel(p.roomType)}</span></div>`;
+      // roomTileSvg 返回的是 CSS background-image 值（url("data:...")），必须内联到样式而不是 innerHTML
+      el.style.backgroundImage = roomTileSvg(p.roomType);
+      html = `<div class="room-plate"><span class="room-plate-tag">${houseLabel(p.roomType)}</span></div>`;
     } else if (cell.kind === "field") {
       el.classList.add("cell-field");
       html = fieldContentSvg(cell.crop, cell.markers ?? 0);
@@ -940,12 +955,6 @@ function renderMoorBoard(container, g, p, myTurn) {
       if (myTurn) cell.onclick = () => {
         _moorSel = { x, y };
         renderMoorBoard(container, g, p, myTurn);
-        bindMoorActions(g, p, myTurn);
-      };
-      container.appendChild(cell);
-    }
-  }
-}
         bindMoorActions(g, p, myTurn);
       };
       container.appendChild(cell);

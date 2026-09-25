@@ -51,8 +51,8 @@ export const SOW_VEG_NEW = 1;
 export const SOW_VEG_ADDX = 1;
 
 // ---- 阶段/收获 ----
-// 修订版（2016）5 阶段：S1=R1-4 / S2=R5-7 / S3=R8-10 / S4=R11-12 / S5=R13-14
-export const STAGE_OF_ROUND: number[] = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5];
+// 修订版（2016）6 阶段：S1=R1-4 / S2=R5-7 / S3=R8-9 / S4=R10-11 / S5=R12-13 / S6=R14
+export const STAGE_OF_ROUND: number[] = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6];
 export const HARVEST_AFTER: number[] = [4, 7, 9, 11, 13, 14];
 
 // ---- 左板 / 永远可用空间 ----
@@ -91,8 +91,8 @@ export const ANIMAL_MARKET: Record<AnimalType, { appearsRound: number }> = {
 export const MAJOR_IMPROVEMENTS: Record<string, any> = {
   fireplace:     { cost: { clay: 2 },  vp: 1, cook: { grain: 2, vegetable: 2, sheep: 2, boar: 2, cattle: 3 }, zh: "壁炉（2 陶）" },
   fireplaceBig:  { cost: { clay: 3 },  vp: 1, cook: { grain: 2, vegetable: 2, sheep: 2, boar: 2, cattle: 3 }, zh: "大壁炉（3 陶）" },
-  cookingHearth: { cost: { clay: 4 },  vp: 1, cook: { grain: 3, vegetable: 3, sheep: 2, boar: 3, cattle: 4 }, zh: "烹饪灶（4 陶）" },
-  cookingHearthBig: { cost: { clay: 5 }, vp: 1, cook: { grain: 3, vegetable: 3, sheep: 2, boar: 3, cattle: 4 }, zh: "大烹饪灶（5 陶）" },
+  cookingHearth: { cost: { clay: 4 },  vp: 1, cook: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 }, zh: "烹饪灶（4 陶）" },
+  cookingHearthBig: { cost: { clay: 5 }, vp: 1, cook: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 }, zh: "大烹饪灶（5 陶）" },
   clayOven:      { cost: { clay: 3, stone: 1 }, vp: 2, bake: { maxGrain: 1, foodPerGrain: 5 }, zh: "陶土烤炉（3 陶 + 1 石）" },
   stoneOven:     { cost: { stone: 3, clay: 1 }, vp: 3, bake: { maxGrain: 2, foodPerGrain: 4 }, zh: "石头烤炉（3 石 + 1 陶）" },
   well:          { cost: { stone: 3, wood: 1 }, vp: 4, wellFood: true, zh: "水井（3 石 + 1 木）· 建成后 5 轮每轮开始 +1 食物" },
@@ -102,7 +102,7 @@ export const MAJOR_IMPROVEMENTS: Record<string, any> = {
   // ---- Farmers of the Moor 专属大改进（仅 dlc.moor=true 时大改进池才包含）----
   heatingStove:  { cost: { stone: 3, wood: 2 }, vp: 2, moor: true, fuelOnlyOne: true, zh: "取暖炉（3 石 + 2 木）· 每轮只消耗 1 燃料" },
   peatKiln:      { cost: { clay: 2, wood: 1 }, vp: 2, moor: true, harvestFuelBonus: 1, zh: "泥炭窑（2 陶 + 1 木）· 收获 +1 燃料" },
-  moorCook:      { cost: { stone: 2, wood: 1 }, vp: 3, moor: true, cook: { grain: 3, vegetable: 3, sheep: 3, boar: 3, cattle: 4 }, zh: "沼泽灶（2 石 + 1 木）· 烹饪无需壁炉" },
+  moorCook:      { cost: { stone: 2, wood: 1 }, vp: 3, moor: true, cook: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 }, zh: "沼泽灶（2 石 + 1 木）· 烹饪无需壁炉" },
   tileOven:      { cost: { stone: 3, clay: 2 }, vp: 3, moor: true, bake: { maxGrain: 2, foodPerGrain: 4, moorTile: true }, zh: "瓷砖烤炉（3 石 + 2 陶）· 烤面包 +1 谷" },
   firewood:      { cost: { stone: 2, reed: 2 }, vp: 2, moor: true, fuelScore: 1, zh: "柴火棚（2 石 + 2 芦苇）· 终局按燃料残留加分" },
 };
@@ -135,19 +135,19 @@ export const SCORE: any = {
 };
 
 export function animalScore(t: AnimalType, n: number): number {
-  // 修订版（2016）阶梯：上界 breakpoints
-  //   羊  0~3 = -1 / 1~3 = 1 / 4~5 = 2 / 6~7 = 3 / 8+ = 4
-  //   猪  0~0 = -1 / 1~2 = 1 / 3~4 = 2 / 5~6 = 3 / 7+ = 4
-  //   牛  0~0 = -1 / 1~1 = 1 / 2~3 = 2 / 4~5 = 3 / 6+ = 4
+  // 修订版（2016）阶梯：
+  //   羊  0 = -1 / 1~3 = 1 / 4~5 = 2 / 6~7 = 3 / 8+ = 4
+  //   猪  0 = -1 / 1~2 = 1 / 3~4 = 2 / 5~6 = 3 / 7+ = 4
+  //   牛  0 = -1 / 1 = 1   / 2~3 = 2 / 4~5 = 3 / 6+ = 4
   const breakpoints: Record<AnimalType, number[]> = {
-    sheep:  [0, 1, 4, 6, 1000],
-    boar:   [0, 1, 3, 5, 1000],
-    cattle: [0, 1, 2, 4, 1000],
+    sheep:  [0, 1, 4, 6, 8],
+    boar:   [0, 1, 3, 5, 7],
+    cattle: [0, 1, 2, 4, 6],
   };
   const b = breakpoints[t];
   let i = 0;
   while (i < b.length - 1 && n >= b[i + 1]) i++;
-  return Math.min(i, b.length - 1);
+  return SCORE[t][Math.min(i, b.length - 1)];
 }
 
 // ---- 动物容量 ----

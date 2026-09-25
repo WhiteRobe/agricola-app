@@ -681,6 +681,19 @@ export function actionWoodcutSvg(id, size = 32) {
         </g>
       </svg>`;
 
+    // ---- 累积资源格：直接复用实体 Token（原木/陶砖/芦苇/石块/麦穗/萝卜） ----
+    case "Wood": return tokenSvg("wood", s);
+    case "Clay": return tokenSvg("clay", s);
+    case "Reed": return tokenSvg("reed", s);
+    case "Stone": return tokenSvg("stone", s);
+    case "Grain": return tokenSvg("grain", s);
+    case "Vegetable": return tokenSvg("vegetable", s);
+
+    // ---- 动物市场：复用木雕动物米普 ----
+    case "Sheep": return animalSvg("sheep", s);
+    case "Boar": return animalSvg("boar", s);
+    case "Cattle": return animalSvg("cattle", s);
+
     default:
       return `<span style="font-size:${s}px">⚡</span>`;
   }

@@ -95,6 +95,7 @@ export interface GameState {
   waitingFor: string[]; // pid[]
   placedThisRound: string[];
   usedSpaces: string[]; // ★ 本轮已被占用的行动格
+  spaceOccupants?: Record<string, string>; // 行动格被谁占用：spaceId -> playerId
   revealed: string[]; // 已揭示的回合卡（行动空间名称）
   supply: { wood: number; clay: number; reed: number; stone: number; grain: number; vegetable: number; sheep: number; boar: number; cattle: number; food: number };
   /**
@@ -202,6 +203,7 @@ export function createGame(
     finished: false,
     dlc,
     minorImprovementCards: dlc.minorImprovements ? minorCards : [],
+    spaceOccupants: {},
     // Farmers of the Moor：默认空板 + 累积堆 0；startRound 中按 dlc.moor 决定是否累积
     moorBoard: [],
     moorFuelPile: 0,
@@ -217,6 +219,7 @@ function startRound(g: GameState) {
   g.stage = STAGE_OF_ROUND[g.round - 1];
   g.placedThisRound = [];
   g.usedSpaces = [];
+  g.spaceOccupants = {};
   g.players.forEach((p) => (p.babiesThisRound = 0));
   // ★ 回合卡一经揭示就永久留在版图上（不随回合消失），因此这里不清空 g.revealed
 
@@ -1198,6 +1201,8 @@ function advance(g: GameState, p: PlayerState, space: string, r: ActionResult): 
   // ★ 占用该行动格（撒种/烤面包同格）
   const occupied = space === "Sow" || space === "BakeBread" ? "SowOrBake" : space;
   if (occupied && !g.usedSpaces.includes(occupied)) g.usedSpaces.push(occupied);
+  if (!g.spaceOccupants) g.spaceOccupants = {};
+  if (occupied) g.spaceOccupants[occupied] = p.id;
   // 移除 waitingFor 中该玩家的当前一次
   const idx = g.waitingFor.indexOf(p.id);
   if (idx >= 0) g.waitingFor.splice(idx, 1);

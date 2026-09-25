@@ -222,45 +222,132 @@
   grid-template-columns: repeat(3, var(--cell));
   grid-template-rows: repeat(5, var(--cell));
   gap: 2px;
-  background: rgba(197, 180, 139, 0.07);
-  padding: 6px;
+  background: linear-gradient(135deg, rgba(230, 218, 192, 0.45) 0%, rgba(200, 180, 142, 0.45) 100%), #dfcfb2;
+  padding: 8px;
   border-radius: 12px;
   position: relative;
   width: max-content;
   max-width: 100%;
   margin: 0 auto;
+  border: 2px solid #8e734c;
+  box-shadow: inset 0 3px 10px rgba(45, 30, 10, 0.32), 0 3px 12px rgba(50, 30, 10, 0.12);
 }
 .farm-board .cell {
-  background: rgba(246, 239, 213, 0.09);
-  border: 1.5px solid rgba(184, 169, 119, 0.75);
-  border-radius: 6px;
-  display: grid; place-items: center;
-  font-size: 22px; cursor: pointer; position: relative;
-  transition: filter 0.15s ease;
+  background: #d8c9a8;
+  border: 1px dashed rgba(160, 140, 100, 0.45);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(40, 20, 5, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  transition: filter 0.15s ease, transform 0.12s ease;
 }
-.farm-board .cell:hover { filter: brightness(0.96); }
-.farm-board .cell.room { background: rgba(216, 184, 124, 0.16); color: #4d3618; font-weight: 700; }
-.farm-board .cell.field { background: rgba(181, 140, 82, 0.16); }
-.farm-board .cell.field.sown-g { background: linear-gradient(135deg, rgba(195,154,74,.2), rgba(216,176,102,.2)); }
-.farm-board .cell.field.sown-v { background: linear-gradient(135deg, rgba(199,126,91,.2), rgba(216,151,118,.2)); }
-.farm-board .cell .badge-cnt {
-  position: absolute; top: 2px; right: 4px;
-  font-size: 11px; font-weight: 800; color: #5e3a18;
-  background: rgba(255,255,255,0.7); border-radius: 6px; padding: 0 5px;
+.farm-board .cell:hover { filter: brightness(0.95); }
+.farm-board .cell.cell-empty {
+  background: #d8c9a8;
+  border: 1px dashed rgba(145, 120, 85, 0.4);
+}
+.farm-board .cell.cell-room {
+  background-size: 32px 32px;
+  border: 1.5px solid rgba(70, 45, 20, 0.65);
+  box-shadow: 0 2px 4px rgba(35, 15, 5, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.farm-board .cell .room-plate {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(38, 22, 10, 0.84);
+  border: 1px solid #d4aa6e;
+  border-radius: 4px;
+  padding: 0 4px;
+  line-height: 1.25;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.farm-board .cell .room-plate-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #faeed2;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.farm-board .cell.cell-field {
+  background: #503318 url("data:image/svg+xml,%3Csvg width='32' height='16' viewBox='0 0 32 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 4 Q 16 0 32 4 M0 12 Q 16 8 32 12' stroke='%2338200c' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  border: 1.5px solid #361f0a;
+  box-shadow: inset 0 2px 6px rgba(15, 8, 3, 0.65);
+}
+.field-soil-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.field-sprout-svg {
+  width: 55%;
+  height: 55%;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.field-crops-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.field-crop-svg {
+  width: 82%;
+  height: 82%;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+.crop-harvest-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #4a2800;
+  background: rgba(255, 238, 190, 0.95);
+  border: 1px solid #c99320;
+  border-radius: 4px;
+  padding: 0 3px;
+  line-height: 1.2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.farm-board .cell.cell-pasture {
+  background: #739d48;
+  border: 1.5px solid #4a6e29;
+  box-shadow: inset 0 0 8px rgba(30, 60, 15, 0.35);
+}
+.pasture-animal-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.farm-board .cell .pasture-empty {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(30, 50, 10, 0.6);
 }
 .farm-board .cell.sel { box-shadow: 0 0 0 3px var(--leaf) inset; }
-/* 已围出但还没养动物的牧场：留个极淡的底纹，不画动物 */
-.farm-board .cell .pasture-empty {
-  font-size: 10px; letter-spacing: 1px;
-  color: rgba(120, 104, 66, 0.55); font-weight: 700;
-}
 .farm-card.is-current-turn .farm-board {
   box-shadow: 0 0 0 2px rgba(92,141,78,.4), inset 0 0 18px rgba(92,141,78,.06);
 }
 
 /* 栅栏层 */
 .fence-layer {
-  position: absolute; inset: 6px;
+  position: absolute;
+  inset: 8px;
   pointer-events: none;
   display: grid;
   grid-template-columns: repeat(3, var(--cell));
@@ -269,24 +356,48 @@
 .fence-layer .fh, .fence-layer .fv {
   position: absolute;
   background: rgba(107, 74, 38, 0.18);   /* 未建：极淡提示 */
-  border-radius: 2px;
+  border-radius: 3px;
 }
 .fence-layer .fh { height: 14px; width: var(--cell); }
 .fence-layer .fv { width: 14px; height: var(--cell); }
-/* 已建成的栅栏：实心棕 */
-.fence-layer .fh.built, .fence-layer .fv.built { background: #6b4a26; }
+/* 已建成的栅栏：切面原木横梁与纵柱 */
+.fence-layer .fh.built {
+  background: linear-gradient(180deg, #9b683a 0%, #754b23 50%, #4e2f12 100%);
+  border: 1px solid #361f09;
+  box-shadow: 0 2px 4px rgba(20, 10, 5, 0.5);
+}
+.fence-layer .fv.built {
+  background: linear-gradient(90deg, #9b683a 0%, #754b23 50%, #4e2f12 100%);
+  border: 1px solid #361f09;
+  box-shadow: 2px 0 4px rgba(20, 10, 5, 0.5);
+}
 /* 编辑模式：所有可点的格边显示绿色虚线 */
 .fence-layer.editing .fh, .fence-layer.editing .fv {
   pointer-events: auto;
   cursor: pointer;
-  background-image: repeating-linear-gradient(90deg, rgba(92,141,78,.55) 0 5px, transparent 5px 10px);
+  background-image: repeating-linear-gradient(90deg, rgba(92,141,78,.65) 0 5px, transparent 5px 10px);
   background-color: transparent;
 }
 .fence-layer.editing .fv {
-  background-image: repeating-linear-gradient(180deg, rgba(92,141,78,.55) 0 5px, transparent 5px 10px);
+  background-image: repeating-linear-gradient(180deg, rgba(92,141,78,.65) 0 5px, transparent 5px 10px);
 }
 .fence-layer.editing .fh.built, .fence-layer.editing .fv.built {
-  background-image: none; background-color: #6b4a26;
+  background-image: none;
+}
+/* 栅栏地桩立柱 (Fence Posts) */
+.fence-post {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #462a12;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.fence-post.built {
+  background: radial-gradient(circle at 35% 35%, #9e7039 0%, #68411d 60%, #361c07 100%);
+  border: 1px solid #231103;
 }
 /* 选中：亮绿实心 + 发光 */
 .fence-layer .seg.sel {
@@ -372,41 +483,108 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.spaces-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.spaces-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
 .space {
-  background: rgba(251, 245, 230, 0.06);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-  padding: 10px 6px;
+  background: linear-gradient(135deg, rgba(255, 252, 244, 0.85) 0%, rgba(246, 238, 222, 0.85) 100%);
+  border: 1.5px solid #c2ae89;
+  border-radius: 9px;
+  padding: 8px 6px 7px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.16s ease;
   position: relative;
   user-select: none;
-  min-height: 44px;
+  min-height: 52px;
+  box-shadow: 0 2px 5px rgba(50, 30, 10, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
-.space:hover:not(.disabled) { background: #fff; border-color: var(--leaf); transform: translateY(-1px); }
-.space.disabled { opacity: 0.45; cursor: not-allowed; }
-/* 本轮已被占用：虚线 + 斜线纹 + 角标，与「未开放」区分开 */
+.space:hover:not(.disabled) {
+  background: #ffffff;
+  border-color: #5c8d4e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(50, 30, 10, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.space.disabled { opacity: 0.42; cursor: not-allowed; filter: grayscale(0.3); }
+
+/* 工人凹槽与占用米普 */
+.space .worker-slot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(70, 45, 20, 0.22) 0%, rgba(70, 45, 20, 0.08) 70%, transparent 100%);
+  border: 1px dashed rgba(160, 130, 85, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  box-shadow: inset 0 1px 3px rgba(30, 15, 5, 0.3);
+}
+.space .worker-slot.occupied {
+  border: none;
+  background: none;
+  box-shadow: none;
+}
+.space .worker-meeple {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  animation: meeple-drop 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes meeple-drop {
+  0% { transform: translateY(-12px) scale(1.3); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* 本轮已被占用：深色木格下陷 */
 .space.is-used {
-  opacity: 0.55;
-  border-style: dashed;
-  border-color: rgba(176, 155, 110, 0.9);
-  background-image: repeating-linear-gradient(45deg, rgba(140, 120, 80, 0.10) 0 6px, transparent 6px 12px);
-}
-.space .used-stamp {
-  position: absolute; top: 3px; right: 3px;
-  font-size: 9px; font-weight: 700; letter-spacing: 0.3px;
-  color: #fff; background: rgba(140, 110, 70, 0.85);
-  padding: 1px 5px; border-radius: 6px;
+  opacity: 0.72;
+  border-style: solid;
+  border-color: #b59f77;
+  background: linear-gradient(135deg, rgba(235, 225, 205, 0.6) 0%, rgba(220, 208, 185, 0.6) 100%);
+  box-shadow: inset 0 2px 5px rgba(45, 30, 10, 0.2);
 }
 .space.taken { opacity: 0.6; }
-.space .icon { font-size: 24px; margin-bottom: 2px; line-height: 1; }
-.space .name { font-size: 12px; font-weight: 700; }
-.space .meta { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
-.space .mine { font-size: 10px; background: var(--leaf); color: #fff; padding: 1px 5px; border-radius: 5px; position: absolute; top: 2px; left: 2px; font-weight: 700; }
+.space .action-woodcut {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+}
+.space .name {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #3b2814;
+  line-height: 1.25;
+}
+.space .meta {
+  font-size: 10.5px;
+  color: #7a6344;
+  margin-top: 2px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: center;
+}
+.space .mine {
+  font-size: 9px;
+  background: #5c8d4e;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 4px;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-weight: 800;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
 
 .section-sub {
   font-size: 12px; color: var(--ink-3); font-weight: 700; letter-spacing: 1px;
@@ -998,16 +1176,28 @@ body[data-season="winter"] {
 .imp-list { display: grid; grid-template-columns: 1fr; gap: 7px; margin-top: 8px; }
 .imp-item {
   text-align: left; cursor: pointer;
-  background: var(--panel-2); border: 1.5px solid var(--line);
-  border-radius: 10px; padding: 9px 12px;
+  background: var(--panel-2);
+  background-image:
+    radial-gradient(rgba(160, 130, 80, 0.04) 1px, transparent 0),
+    radial-gradient(rgba(160, 130, 80, 0.04) 1px, transparent 0);
+  background-position: 0 0, 3px 3px;
+  background-size: 6px 6px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px; padding: 10px 14px;
   font-family: var(--font); color: var(--ink);
-  transition: all .13s ease;
+  transition: all .14s ease;
+  box-shadow: 0 2px 5px rgba(50, 30, 10, 0.06);
 }
-.imp-item:hover:not(:disabled) { border-color: var(--leaf); background: #fff; }
+.imp-item:hover:not(:disabled) {
+  border-color: #9c6e3b;
+  background-color: #fffefb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(50, 30, 10, 0.12);
+}
 .imp-item:disabled { cursor: not-allowed; }
 .imp-item.built { opacity: .55; border-color: var(--leaf); }
 .imp-item.poor { opacity: .55; }
-.imp-line1 { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; }
+.imp-line1 { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
 .imp-vp { font-size: 11px; font-weight: 800; color: #8a6414; background: #faf0d8; border: 1px solid #ecd9a8; border-radius: 999px; padding: 1px 8px; }
 .imp-line2 { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; font-weight: 600; }
 .imp-line3 { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }

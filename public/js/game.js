@@ -11,6 +11,14 @@ import {
 import { lock, unlock, run, debounce } from "/js/loading.js";
 import { bindSfx, sfx, isSfxOn, toggleSfx } from "/js/sfx.js";
 import { OCCUPATIONS, MINOR_IMPROVEMENTS } from "/js/dlc-data.js";
+import {
+  tokenSvg,
+  animalSvg,
+  meepleSvg,
+  roomTileSvg,
+  fieldContentSvg,
+  actionWoodcutSvg,
+} from "/js/svg-icons.js";
 
 const ICONS = ["🧑‍🌾", "👩‍🌾", "🧑‍🍳", "👴"];
 const PLAYER_COLORS = ["#e05d44", "#3f9d55", "#3d7ea6", "#d9932f"];
@@ -411,39 +419,39 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
        </div>`;
     card.innerHTML = `
       <h4>
-        <span class="avatar" style="width:24px;height:24px;border-radius:6px;background:${PLAYER_COLORS[p.seat]};color:#fff;display:grid;place-items:center;font-size:13px">${ICONS[p.seat] || "🙂"}</span>
+        <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
         <span class="nm">${escapeHtml(p.name)}</span>
         ${isMe ? '<span class="badge green">你</span>' : ""}
         ${isTurn ? '<span class="turn">行动中</span>' : ""}
       </h4>
       <div class="stock">
         <div class="stock-row stock-key">
-          ${stk("food", "🍞", p.food, "食物")}
-          ${stk("family", "👨‍👩‍👧", p.family, "家人", false)}
+          ${stk("food", tokenSvg("food", 20), p.food, "食物")}
+          ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false)}
           ${stk("beggings", "🃏", p.beggings, "乞讨卡", false)}
         </div>
         ${_state.game.dlc?.moor ? `<div class="stock-label">荒野物资</div>
         <div class="stock-row stock-moor">
-          ${stk("fuel", "🔥", p.fuel || 0, "燃料")}
-          ${stk("hay", "🌾", p.hay || 0, "干草")}
+          ${stk("fuel", tokenSvg("fuel", 20), p.fuel || 0, "燃料")}
+          ${stk("hay", tokenSvg("hay", 20), p.hay || 0, "干草")}
         </div>` : ""}
         <div class="stock-label">建材</div>
         <div class="stock-row stock-mat">
-          ${stk("wood", "🪵", p.resources.wood, "木材")}
-          ${stk("clay", "🧱", p.resources.clay, "陶土")}
-          ${stk("reed", "🎋", p.resources.reed, "芦苇")}
-          ${stk("stone", "⛏", p.resources.stone, "石头")}
+          ${stk("wood", tokenSvg("wood", 20), p.resources.wood, "木材")}
+          ${stk("clay", tokenSvg("clay", 20), p.resources.clay, "陶土")}
+          ${stk("reed", tokenSvg("reed", 20), p.resources.reed, "芦苇")}
+          ${stk("stone", tokenSvg("stone", 20), p.resources.stone, "石头")}
         </div>
         <div class="stock-label">农产品</div>
         <div class="stock-row stock-crop">
-          ${stk("grain", "🌾", p.resources.grain, "谷物")}
-          ${stk("vegetable", "🥕", p.resources.vegetable, "蔬菜")}
+          ${stk("grain", tokenSvg("grain", 20), p.resources.grain, "谷物")}
+          ${stk("vegetable", tokenSvg("vegetable", 20), p.resources.vegetable, "蔬菜")}
         </div>
         <div class="stock-label">牲畜</div>
         <div class="stock-row stock-animal">
-          ${stk("sheep", "🐑", p.animals.sheep, "羊", false)}
-          ${stk("boar", "🐗", p.animals.boar, "猪", false)}
-          ${stk("cattle", "🐄", p.animals.cattle, "牛", false)}
+          ${stk("sheep", animalSvg("sheep", 24), p.animals.sheep, "羊", false)}
+          ${stk("boar", animalSvg("boar", 24), p.animals.boar, "猪", false)}
+          ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false)}
         </div>
       </div>
       ${p.improvements.length ? `<div class="stock-imp">
@@ -629,21 +637,23 @@ function renderFarm(wrap, p, myTurn) {
     const el = document.createElement("div");
     el.className = "cell hoverable";
     let html = "";
-    if (cell.kind === "room") html = `<span>${houseEmoji(p.roomType)}</span>`;
-    else if (cell.kind === "field") {
-      if (cell.crop === "grain") { html = `<span>🌾</span><span class="badge-cnt">×${cell.markers ?? 0}</span>`; el.classList.add("sown-g"); }
-      else if (cell.crop === "vegetable") { html = `<span>🥕</span><span class="badge-cnt">×${cell.markers ?? 0}</span>`; el.classList.add("sown-v"); }
-      else html = `<span>🌱</span>`;
+    if (cell.kind === "room") {
+      el.classList.add("cell-room");
+      html = `${roomTileSvg(p.roomType)}<div class="room-plate"><span class="room-plate-tag">${houseLabel(p.roomType)}</span></div>`;
+    } else if (cell.kind === "field") {
+      el.classList.add("cell-field");
+      html = fieldContentSvg(cell.crop, cell.markers ?? 0);
     } else {
       const pasture = p.pastures.find(ps => ps.cells.includes(`${x},${y}`));
       if (pasture) {
-        // 只有真的养了动物才显示动物图标；空牧场不显示（围完栅栏不会自动来动物）
+        el.classList.add("cell-pasture");
         if (pasture.animal) {
-          const ai = { sheep: "🐑", boar: "🐗", cattle: "🐄" }[pasture.animal];
-          html = `<span style="opacity:0.6">${ai}</span>`;
+          html = `<div class="pasture-animal-wrap">${animalSvg(pasture.animal, 32)}</div>`;
         } else {
           html = `<span class="pasture-empty">牧场</span>`;
         }
+      } else {
+        el.classList.add("cell-empty");
       }
     }
     el.innerHTML = html;
@@ -722,6 +732,26 @@ function renderFarm(wrap, p, myTurn) {
     if (editable && !nowV) v.onclick = (e) => { e.stopPropagation(); toggleFence("v", x, y); };
     fence.appendChild(v);
   }
+
+  // 栅栏地桩立柱 (Fence Posts) 在网格交汇顶点（4x6 = 24 处）
+  for (let vy = 0; vy <= 5; vy++) {
+    for (let vx = 0; vx <= 3; vx++) {
+      const isConnectedBuilt = (
+        (vx < 3 && vy < 5 && p.edges.h[vy] && p.edges.h[vy][vx]) ||
+        (vx > 0 && vy < 5 && p.edges.h[vy] && p.edges.h[vy][vx - 1]) ||
+        (vy < 5 && vx < 3 && p.edges.v[vy] && p.edges.v[vy][vx]) ||
+        (vy > 0 && vx < 3 && p.edges.v[vy - 1] && p.edges.v[vy - 1][vx])
+      );
+      if (isConnectedBuilt) {
+        const post = document.createElement("div");
+        post.className = "fence-post built";
+        post.style.left = (vx * step - 4) + "px";
+        post.style.top = (vy * step - 4) + "px";
+        fence.appendChild(post);
+      }
+    }
+  }
+
   board.appendChild(fence);
   wrap.appendChild(board);
   // 记录上下文，供栅栏点选后局部刷新
@@ -790,22 +820,33 @@ function renderSpaces(container, g, p, myTurn, kind) {
       desc = sp.desc;
     }
 
+    const occupantId = g.spaceOccupants ? g.spaceOccupants[sp.id] : null;
+    const occupant = occupantId ? g.players.find(pl => pl.id === occupantId) : null;
+    const occupantColor = occupant ? (PLAYER_COLORS[occupant.seat] || "#8e2316") : "#8e2316";
+    const occupantName = occupant ? occupant.name : "";
+    const isMeOccupant = occupantId && p && (occupantId === p.id);
+
     // 本轮已被占用：优先展示占用状态
     if (used && open) {
-      desc = "本轮已被占用 · 下轮再用";
+      desc = occupantName ? `已被 ${occupantName} 占用` : "本轮已被占用 · 下轮再用";
       stock = 0;
       badge = "";
     }
+
+    const workerSlotHtml = used
+      ? `<div class="worker-slot occupied" title="已由 ${escapeHtml(occupantName || "玩家")} 占用">${meepleSvg(occupantColor, 20)}</div>`
+      : (open ? `<div class="worker-slot" title="空闲工人槽"></div>` : "");
 
     const canAct = myTurn && open && stock > 0 && !used;
     const card = document.createElement("div");
     card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "");
     card.innerHTML = `
-      <div class="icon">${sp.icon}</div>
+      ${workerSlotHtml}
+      <div class="action-woodcut">${actionWoodcutSvg(sp.id, 28)}</div>
       <div class="name">${sp.name}</div>
       <div class="meta">${desc}</div>
       ${badge}
-      ${used ? '<div class="used-stamp">已占用</div>' : ""}
+      ${isMeOccupant ? '<div class="mine">我的</div>' : ""}
     `;
     if (canAct) card.onclick = () => onSpaceClick(sp, p);
     container.appendChild(card);
@@ -824,24 +865,34 @@ function renderMoorPile(container, g, p, myTurn) {
   const fuelOpen = (g.revealed || []).includes("GatherFuel");
   const hayOpen = (g.revealed || []).includes("CutMeadow");
 
-  const mk = (kind, icon, name, pile, used, open, openRound, onclick) => {
+  const mk = (kind, iconSvg, name, pile, used, open, openRound, onclick, occId) => {
     const card = document.createElement("div");
     const canAct = myTurn && pile > 0 && !used && open;
     card.className = "minor-card" + (canAct ? " actable" : " disabled");
+    const occupant = occId ? g.players.find(pl => pl.id === occId) : null;
+    const occupantColor = occupant ? (PLAYER_COLORS[occupant.seat] || "#8e2316") : "#8e2316";
+    const occupantName = occupant ? occupant.name : "";
     let eff = "";
     if (!open) eff = `第 ${openRound} 轮揭示开放`;
-    else if (used) eff = "本轮已被占用 · 下轮再用";
+    else if (used) eff = occupantName ? `已被 ${occupantName} 占用` : "本轮已被占用 · 下轮再用";
     else eff = `累积 ${pile} · 可取全部${pile > 0 ? `（${pile}）` : "（空）"}`;
+    const slotHtml = used
+      ? `<div class="worker-slot occupied" style="position:absolute;top:4px;right:4px">${meepleSvg(occupantColor, 18)}</div>`
+      : "";
+    card.style.position = "relative";
     card.innerHTML = `
-      <div class="occ-ic">${icon}</div>
+      ${slotHtml}
+      <div class="occ-ic">${iconSvg}</div>
       <div class="minor-name">${name}</div>
       <div class="minor-eff">${eff}</div>
     `;
     if (canAct) card.onclick = onclick;
     container.appendChild(card);
   };
-  mk("fuel", "🔥", "燃料堆", g.moorFuelPile || 0, (g.usedSpaces || []).includes("GatherFuel"), fuelOpen, 2, () => sendAction({ type: "GatherFuel" }));
-  mk("hay",  "🌾", "干草堆", g.moorHayPile  || 0, (g.usedSpaces || []).includes("CutMeadow"),  hayOpen, 7, () => sendAction({ type: "CutMeadow" }));
+  const fuelOcc = g.spaceOccupants ? g.spaceOccupants["GatherFuel"] : null;
+  const hayOcc = g.spaceOccupants ? g.spaceOccupants["CutMeadow"] : null;
+  mk("fuel", tokenSvg("fuel", 24), "燃料堆", g.moorFuelPile || 0, (g.usedSpaces || []).includes("GatherFuel"), fuelOpen, 2, () => sendAction({ type: "GatherFuel" }), fuelOcc);
+  mk("hay",  tokenSvg("hay", 24),  "干草堆", g.moorHayPile  || 0, (g.usedSpaces || []).includes("CutMeadow"),  hayOpen, 7, () => sendAction({ type: "CutMeadow" }), hayOcc);
 }
 
 /** 当前选中的沼泽格（私存在 _moorSel） */
@@ -1216,7 +1267,7 @@ function onSpaceClick(sp, p) {
         const ok = canAfford(p, costObj);
         const disabled = built || !ok;
         return `<button class="imp-item${built ? " built" : ""}${!built && !ok ? " poor" : ""}" data-i="${k}" ${disabled ? "disabled" : ""}>
-          <div class="imp-line1"><b>${built ? "✓ " : ""}${name}</b><span class="imp-vp">${vp}</span></div>
+          <div class="imp-line1"><b>${built ? "✓ " : ""}${name}</b><span class="vp-seal">${vp}</span></div>
           <div class="imp-line2">${cost}${!built && !ok ? ` <span style="color:var(--barn)">（缺 ${shortfall(p, costObj)}）</span>` : ""}</div>
           <div class="imp-line3">${eff}</div>
         </button>`;
@@ -1878,60 +1929,111 @@ function applySeasonTheme(round) {
   if (old) old.remove();
 
   const cx = 300, cy = 300;
-  const rO = 268, rI = 176;   // 外/内半径 → 扇环
+  const rO = 264, rI = 172;   // 外/内半径 → 扇环
   const step = 360 / 14;       // 每轮 25.71°
+  const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+  const HARVEST_ROUNDS = [4, 7, 9, 11, 13, 14];
+
   let slices = "";
+  let harvestBadges = "";
+
   // 14 个轮次扇区
   for (let r = 1; r <= 14; r++) {
     const s = SEASONS.find((x) => r >= x.from && r <= x.to);
-    const a0 = (r - 1) * step - 90 + 0.8;
-    const a1 = r * step - 90 - 0.8;
+    const a0 = (r - 1) * step - 90 + 0.6;
+    const a1 = r * step - 90 - 0.6;
     const isNow = r === round;
     const isPast = r < round;
     const fill = s.color;
-    const op = isNow ? 0.95 : isPast ? 0.42 : 0.20;
+    const op = isNow ? 0.95 : isPast ? 0.38 : 0.18;
     slices += `<path d="${donutSlice(cx, cy, rO, rI, a0, a1)}"
                  fill="${fill}" fill-opacity="${op}"
-                 stroke="#fffdf6" stroke-width="${isNow ? 2.4 : 1.2}"/>`;
-    // 轮次数字
+                 stroke="${isNow ? '#d4af37' : '#e6d8b8'}" stroke-width="${isNow ? 2.5 : 1}"/>`;
+
+    // 轮次罗马数字与阿拉伯数字结合
     const [tx, ty] = polarPt(cx, cy, (rO + rI) / 2, (r - 1) * step + step / 2 - 90);
+    const romanNum = ROMAN[r - 1];
     slices += `<text x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central"
-                 font-size="${isNow ? 24 : 18}" font-weight="800"
-                 font-family="ui-monospace, monospace"
-                 fill="${isNow ? "#3d3223" : "#7a684c"}"
-                 fill-opacity="${isNow ? 0.95 : isPast ? 0.5 : 0.28}">${r}</text>`;
+                 font-size="${isNow ? 19 : 15}" font-weight="900"
+                 font-family="Cinzel, Georgia, serif"
+                 fill="${isNow ? "#2b1c0c" : "#5d4b35"}"
+                 fill-opacity="${isNow ? 0.98 : isPast ? 0.6 : 0.32}">${romanNum}</text>`;
+
+    // 丰收轮高亮外圈金麦印记
+    if (HARVEST_ROUNDS.includes(r)) {
+      const [hx, hy] = polarPt(cx, cy, rO + 13, (r - 1) * step + step / 2 - 90);
+      harvestBadges += `
+        <circle cx="${hx}" cy="${hy}" r="9" fill="#f8e4a0" stroke="#b3841a" stroke-width="1.2" opacity="0.9"/>
+        <text x="${hx}" y="${hy + 1}" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="900" fill="#6a4405">🌾</text>
+      `;
+    }
   }
+
   // 四季标签（在外圈外侧）
   let seasonLabels = "";
   SEASONS.forEach((s) => {
     const mid = ((s.from - 1 + s.to - 1) / 2) * step + step / 2 - 90;
-    const [lx, ly] = polarPt(cx, cy, rO + 24, mid);
+    const [lx, ly] = polarPt(cx, cy, rO + 30, mid);
     const isNow = s.key === season;
     seasonLabels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="central"
-                       font-size="${isNow ? 22 : 18}" font-weight="800"
-                       fill="${s.color}" fill-opacity="${isNow ? 0.95 : 0.5}">${s.label}</text>`;
+                       font-size="${isNow ? 20 : 16}" font-weight="800"
+                       fill="${s.color}" fill-opacity="${isNow ? 0.95 : 0.45}">${s.label}季</text>`;
   });
-  // 当前轮指针
+
+  // 浑天仪黄铜刻度细圈与刻度线
+  let astrolabeTicks = "";
+  for (let i = 0; i < 28; i++) {
+    const tickDeg = i * (360 / 28) - 90;
+    const isMajor = i % 2 === 0;
+    const [t1x, t1y] = polarPt(cx, cy, rO, tickDeg);
+    const [t2x, t2y] = polarPt(cx, cy, rO + (isMajor ? 6 : 3), tickDeg);
+    astrolabeTicks += `<line x1="${t1x}" y1="${t1y}" x2="${t2x}" y2="${t2y}" stroke="#9c7b3c" stroke-width="${isMajor ? 1.5 : 0.8}" stroke-opacity="0.45"/>`;
+  }
+
+  // 当前轮日晕指针
   const nowAngle = (round - 1) * step + step / 2 - 90;
-  const [px, py] = polarPt(cx, cy, rO + 6, nowAngle);
-  const [ix, iy] = polarPt(cx, cy, rI - 6, nowAngle);
-  const needle = `<line x1="${ix}" y1="${iy}" x2="${px}" y2="${py}"
-                    stroke="${SEASONS.find(s => s.key === season).color}" stroke-width="3" stroke-linecap="round" stroke-opacity="0.9"/>`;
+  const [px, py] = polarPt(cx, cy, rO + 8, nowAngle);
+  const [ix, iy] = polarPt(cx, cy, rI - 8, nowAngle);
+  const [tipX, tipY] = polarPt(cx, cy, rO + 16, nowAngle);
+  const needle = `
+    <line x1="${ix}" y1="${iy}" x2="${px}" y2="${py}"
+          stroke="#932815" stroke-width="3" stroke-linecap="round" stroke-opacity="0.85"/>
+    <polygon points="${tipX},${tipY} ${polarPt(cx, cy, rO + 6, nowAngle - 3).join(',')} ${polarPt(cx, cy, rO + 6, nowAngle + 3).join(',')}" fill="#932815"/>
+  `;
 
   const wheel = document.createElement("div");
   wheel.className = "season-wheel";
   wheel.dataset.round = String(round);
-  wheel.title = `第 ${round} 轮 · ${SEASON_LABEL_ZH[season]}季`;
+  wheel.title = `第 ${round} 轮 · ${SEASON_LABEL_ZH[season]}季 · 17世纪农事历法星盘`;
   wheel.innerHTML = `
     <svg viewBox="0 0 600 600" aria-hidden="true">
-      <circle cx="${cx}" cy="${cy}" r="${rI - 14}" fill="none" stroke="#b8a977" stroke-width="1" stroke-dasharray="4 6" stroke-opacity="0.5"/>
+      <defs>
+        <radialGradient id="astrolabeSun" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff8db" stop-opacity="0.75"/>
+          <stop offset="60%" stop-color="#faecc0" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="#e2c884" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <!-- 双圈黄铜刻度环 -->
+      <circle cx="${cx}" cy="${cy}" r="${rO + 4}" fill="none" stroke="#9c7b3c" stroke-width="1.2" stroke-opacity="0.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${rO + 20}" fill="none" stroke="#9c7b3c" stroke-width="0.8" stroke-dasharray="2 3" stroke-opacity="0.35"/>
+      <circle cx="${cx}" cy="${cy}" r="${rI - 12}" fill="none" stroke="#9c7b3c" stroke-width="1.2" stroke-dasharray="3 4" stroke-opacity="0.45"/>
+      <circle cx="${cx}" cy="${cy}" r="${rI - 20}" fill="url(#astrolabeSun)"/>
+      ${astrolabeTicks}
       ${slices}
+      ${harvestBadges}
       ${seasonLabels}
       ${needle}
-      <text x="${cx}" y="${cy - 14}" text-anchor="middle"
-            font-size="34" font-weight="900" fill="#43331f" fill-opacity="0.75">第 ${round} 轮</text>
-      <text x="${cx}" y="${cy + 30}" text-anchor="middle"
-            font-size="26" font-weight="800" fill="#7a684c" fill-opacity="0.6">${SEASON_LABEL_ZH[season]}季 · ${SEASON_ICON[season]}</text>
+      <!-- 中心浑天罗盘核心 -->
+      <circle cx="${cx}" cy="${cy}" r="28" fill="#fdfaf1" stroke="#9c7b3c" stroke-width="2" opacity="0.95"/>
+      <circle cx="${cx}" cy="${cy}" r="12" fill="#d4af37" stroke="#684a14" stroke-width="1"/>
+      <circle cx="${cx}" cy="${cy}" r="5" fill="#5c2612"/>
+      <text x="${cx}" y="${cy - 52}" text-anchor="middle"
+            font-size="28" font-weight="900" font-family="Cinzel, Georgia, serif" fill="#382613" fill-opacity="0.85">ROUND ${ROMAN[round - 1]}</text>
+      <text x="${cx}" y="${cy - 34}" text-anchor="middle"
+            font-size="12" font-weight="700" fill="#7a6240" fill-opacity="0.7">第 ${round} 轮 / 14</text>
+      <text x="${cx}" y="${cy + 52}" text-anchor="middle"
+            font-size="16" font-weight="800" fill="#634522" fill-opacity="0.75">${SEASON_LABEL_ZH[season]}季 · ${SEASON_ICON[season]}</text>
     </svg>
   `;
   document.body.appendChild(wheel);

@@ -63,16 +63,41 @@ a:hover { text-decoration: underline; }
 }
 .brand small { display: block; font-size: 11.5px; color: var(--ink-3); font-weight: 500; letter-spacing: 1px; }
 
-/* ---------- 卡片 ---------- */
+/* ---------- 卡片（德式桌游亚麻布纹理） ---------- */
 .card {
-  background: var(--panel);
+  background-color: var(--panel);
+  background-image:
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0),
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0);
+  background-position: 0 0, 3px 3px;
+  background-size: 6px 6px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 20px;
 }
-.card.soft { background: var(--panel-2); }
+.card.soft { background-color: var(--panel-2); }
 .card h2, .card h3 { margin: 0 0 10px; }
+
+/* ---------- 古典火漆印章 (Wax Seal VP) ---------- */
+.vp-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: radial-gradient(circle at 35% 30%, #c0392b 0%, #8e2316 70%, #581109 100%);
+  color: #ffe6a3;
+  font-weight: 900;
+  font-size: 11px;
+  font-family: ui-monospace, Georgia, serif;
+  box-shadow: 0 2px 4px rgba(45, 10, 5, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  border: 1px solid #480e07;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.5px;
+}
 .section-title {
   display: flex; align-items: center; gap: 8px;
   font-size: 15px; font-weight: 700; color: var(--ink-2);
@@ -107,29 +132,43 @@ a:hover { text-decoration: underline; }
 }
 .occ-card {
   display: flex; flex-direction: column; gap: 4px;
-  padding: 10px; border-radius: 10px;
-  background: rgba(255,253,246,0.06);
-  border: 1.5px solid rgba(176, 155, 110, 0.4);
+  padding: 10px 12px; border-radius: 9px;
+  background-color: var(--panel);
+  background-image:
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0),
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0);
+  background-position: 0 0, 3px 3px;
+  background-size: 6px 6px;
+  border: 1px solid var(--line);
+  border-top: 3.5px solid #d4af37;
   cursor: pointer; text-align: left;
-  transition: background .15s, border-color .15s, transform .15s;
+  transition: all .15s ease;
+  box-shadow: 0 2px 5px rgba(45, 30, 10, 0.08);
 }
-.occ-card:hover { background: rgba(255,253,246,0.12); border-color: var(--leaf); transform: translateY(-1px); }
-.occ-card.is-picked { border-color: var(--leaf); background: rgba(92,141,78,0.16); cursor: default; }
-.occ-card .occ-name { font-weight: 700; font-size: 13.5px; }
-.occ-card .occ-eff { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; }
+.occ-card:hover { background-color: #fffefb; border-color: #5c8d4e; border-top-color: #d4af37; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(45, 30, 10, 0.14); }
+.occ-card.is-picked { border-color: var(--leaf); background-color: rgba(92,141,78,0.14); cursor: default; }
+.occ-card .occ-name { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.occ-card .occ-eff { font-size: 11.5px; color: var(--ink-2); line-height: 1.45; }
 .occ-card .occ-ic { font-size: 20px; }
 .minor-card {
-  padding: 10px; border-radius: 10px;
-  background: rgba(255,253,246,0.06);
-  border: 1.5px solid rgba(176, 155, 110, 0.45);
+  padding: 10px 12px; border-radius: 9px;
+  background-color: var(--panel);
+  background-image:
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0),
+    radial-gradient(rgba(160, 130, 80, 0.05) 1px, transparent 0);
+  background-position: 0 0, 3px 3px;
+  background-size: 6px 6px;
+  border: 1px solid var(--line);
+  border-top: 3.5px solid #c86432;
   display: flex; flex-direction: column; gap: 4px;
-  cursor: pointer; transition: background .15s, border-color .15s, transform .15s;
+  cursor: pointer; transition: all .15s ease;
+  box-shadow: 0 2px 5px rgba(45, 30, 10, 0.08);
 }
 .minor-card.actable { cursor: pointer; border-color: rgba(176,155,110,0.7); }
-.minor-card.actable:hover { background: rgba(255,253,246,0.12); border-color: var(--leaf); transform: translateY(-1px); }
+.minor-card.actable:hover { background-color: #fffefb; border-color: #5c8d4e; border-top-color: #c86432; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(45, 30, 10, 0.14); }
 .minor-card.disabled { opacity: 0.45; cursor: not-allowed; }
-.minor-card .minor-name { font-weight: 700; font-size: 13.5px; }
-.minor-card .minor-eff { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; }
+.minor-card .minor-name { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.minor-card .minor-eff { font-size: 11.5px; color: var(--ink-2); line-height: 1.45; }
 
 /* ---------- Farmers of the Moor ---------- */
 .dlc-banner.moor-banner { background: rgba(120, 100, 60, 0.18); color: var(--ink); }

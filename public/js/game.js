@@ -663,9 +663,16 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
           ${stk("cattle", animalSvg("cattle", 24), p.animals.cattle, "牛", false, null, null, resBuff("cattle"))}
         </div>
       </div>
-      ${p.improvements.length ? `<div class="imp-tags">${p.improvements.map(impTagHTML).join("")}</div>` : ""}
-      ${p.occupation ? `<div class="imp-tags occ-tags"><span class="imp-tag occ-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span></div>` : ""}
-      ${p.minorImprovements && p.minorImprovements.length ? `<div class="imp-tags minor-tags">${p.minorImprovements.map((id) => `<span class="imp-tag" data-tip="${escapeHtml(minorEffectById(id) || minorNameById(id))}">${escapeHtml(minorNameById(id))}</span>`).join("")}</div>` : ""}
+      ${(() => {
+        // 改进 / 职业 / 小发展卡统一放进一个 flex-wrap 容器：能放就往后排，放不下才换行
+        const tags = [];
+        tags.push(...p.improvements.map(impTagHTML));
+        if (p.occupation) tags.push(`<span class="imp-tag occ-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span>`);
+        if (p.minorImprovements && p.minorImprovements.length) {
+          tags.push(...p.minorImprovements.map((id) => `<span class="imp-tag" data-tip="${escapeHtml(minorEffectById(id) || minorNameById(id))}">${escapeHtml(minorNameById(id))}</span>`));
+        }
+        return tags.length ? `<div class="imp-tags">${tags.join("")}</div>` : "";
+      })()}
     `;
     host.appendChild(card);
     // 点击 stock 右上角皇冠得分徽章 → 打开该玩家详细得分计算面板

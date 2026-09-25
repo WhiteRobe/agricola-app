@@ -242,8 +242,6 @@
   letter-spacing: 1px; font-weight: 700; margin-bottom: 5px;
 }
 .imp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.occ-tags { margin-top: 10px; }
-.minor-tags { margin-top: 8px; }
 .occ-tag {
   background: rgba(85, 138, 204, 0.16) !important;
   border-color: rgba(85, 138, 204, 0.5) !important;

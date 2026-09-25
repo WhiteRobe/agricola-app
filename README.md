@@ -1,4 +1,4 @@
-# 🌾 農家樂 Agricola · 电子桌游
+# 🌾 农家乐 Agricola · 电子桌游
 
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Durable Objects](https://img.shields.io/badge/Storage-Durable%20Objects%20SQLite-4B8BBE)](https://developers.cloudflare.com/durable-objects/)

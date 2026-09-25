@@ -98,7 +98,7 @@ export const MAJOR_IMPROVEMENTS: Record<string, any> = {
   well:          { cost: { stone: 3, wood: 1 }, vp: 4, wellFood: true, zh: "水井（3 石 + 1 木）· 建成后 5 轮每轮开始 +1 食物" },
   joinery:       { cost: { stone: 2, wood: 2 }, vp: 2, cook: { wood: 0.5 }, zh: "木工坊（2 石 + 2 木）· 每次收获 1 木 → 2 食物" },
   pottery:       { cost: { stone: 2, clay: 2 }, vp: 2, cook: { clay: 0.5 }, zh: "陶器坊（2 石 + 2 陶）· 每次收获 1 陶 → 2 食物" },
-  basket:        { cost: { stone: 2, reed: 2 }, vp: 2, cook: { reed: 1 / 3 }, zh: "柳编筐（2 石 + 2 芦苇）· 每次收获 1 芦苇 → 3 食物" },
+  basket:        { cost: { stone: 2, reed: 2 }, vp: 2, cook: { reed: 1 / 3 }, zh: "编筐坊（2 石 + 2 芦苇）· 每次收获 1 芦苇 → 3 食物" },
   // ---- Farmers of the Moor 专属大改进（仅 dlc.moor=true 时大改进池才包含）----
   heatingStove:  { cost: { stone: 3, wood: 2 }, vp: 2, moor: true, fuelOnlyOne: true, zh: "取暖炉（3 石 + 2 木）· 每轮只消耗 1 燃料" },
   peatKiln:      { cost: { clay: 2, wood: 1 }, vp: 2, moor: true, harvestFuelBonus: 1, zh: "泥炭窑（2 陶 + 1 木）· 收获 +1 燃料" },

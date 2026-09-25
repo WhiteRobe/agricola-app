@@ -3,12 +3,12 @@
 const ACTION_NAME_ZH: Record<string, string> = {
   Wood: "木", Clay: "陶", Reed: "芦苇", Stone: "石", Grain: "谷", Vegetable: "菜",
   Fishing: "钓鱼", DayLaborer: "日工",
-  Sheep: "买羊", Boar: "买猪", Cattle: "买牛",
+  Sheep: "羊市", Boar: "猪市", Cattle: "牛市",
   StartPlayer: "起始玩家",
   BuildRoom: "建房间", PlowField: "犁地", SowOrBake: "撒种/烤面包",
   Fences: "建栅栏", FamilyGrowth: "添丁", Renovate: "翻修", BuildMajor: "大改进",
-  GatherFuel: "收集燃料", CutMeadow: "割草甸", ReclaimMoor: "拓荒", SowMoor: "沼泽撒种",
-  Ore: "矿",
+  GatherFuel: "收集燃料", CutMeadow: "割草甸", ReclaimMoor: "沼泽拓荒", SowMoor: "沼泽撒种",
+  Ore: "采矿",
 };
 const ANIMAL_ZH: Record<string, string> = { sheep: "羊", boar: "猪", cattle: "牛", vegetable: "菜" };
 function zhAction(id: string): string { return ACTION_NAME_ZH[id] || id; }
@@ -1129,9 +1129,14 @@ function majorLabel(n: keyof typeof MAJOR_IMPROVEMENTS) {
     clayOven: "陶土烤炉",
     stoneOven: "石头烤炉",
     well: "水井",
-    basket: "柳编筐",
+    basket: "编筐坊",
     joinery: "木工坊",
     pottery: "陶器坊",
+    heatingStove: "取暖炉",
+    peatKiln: "泥炭窑",
+    moorCook: "沼泽灶",
+    tileOven: "瓷砖烤炉",
+    firewood: "柴火棚",
   } as Record<string, string>)[n] || n;
 }
 

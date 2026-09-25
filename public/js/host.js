@@ -44,8 +44,8 @@ function renderEmpty() {
   $("roomList").innerHTML = `
     <div class="card soft anim-pop-in" style="text-align:center; padding:32px 20px;">
       <div style="font-size:44px">🚜</div>
-      <h3 class="mt8">还没有主持过房间</h3>
-      <p class="muted">点上方"＋ 新建房间"开始。</p>
+      <h3 class="mt8">当前暂无活跃房间</h3>
+      <p class="muted">点上方「＋ 新建房间」即可开启新的农场对局。</p>
     </div>`;
 }
 
@@ -154,15 +154,15 @@ function openRoomConfigModal() {
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgOcc">
           <div>
-            <div class="dlc-title">🎴 职业 + 小发展卡</div>
-            <div class="muted" style="font-size:12px">开局每位玩家从 7 张「职业」里选 1 张；场上抽 1 张「小发展卡」，玩家可抢。规则增量小，强烈推荐给熟手。</div>
+            <div class="dlc-title">🎴 48 种正统职业 + 小发展卡</div>
+            <div class="muted" style="font-size:12px">开局每位玩家从 7 张随机职业中精选 1 张就任（全套 48 张正统职业涵盖 7 大流派）；场上抽 1 张「小发展卡」供争抢。极大丰富策略深度，强烈推荐！</div>
           </div>
         </label>
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgMoor">
           <div>
             <div class="dlc-title">🌲 荒野之地（Farmers of the Moor）</div>
-            <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/撒种/收获）+ 4 张新大改进。收获多 2 步（燃料取暖 + 喂干草），资源不足会拿乞讨卡。可与「职业+小发展卡」叠加。</div>
+            <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/撒种/收获）+ 4 张新大发展卡。收获阶段新增燃料取暖与喂干草，带来更拟真的农耕开拓体验。可与职业扩展自由叠加。</div>
           </div>
         </label>
         <label class="dlc-opt dlc-opt-dis">

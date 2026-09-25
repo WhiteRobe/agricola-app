@@ -19,7 +19,7 @@ const TUT_HTML = `
 </div>
 <article class="tut">
   <h2 id="intro">1. 游戏是什么</h2>
-  <p>《农场主》（<b>Agricola</b>）是经典德式策略桌游。<b>14 轮</b>后，看谁的农场最兴旺。 每人管理一片 <b>3×5 的农场</b>，每轮派家庭成员去 <b>行动板</b> 上执行拿资源、建房子、犁地、养动物等动作。</p>
+  <p>《农家乐》（<b>Agricola</b>）是经典德式策略桌游。<b>14 轮</b>后，看谁的农场最兴旺。每人管理一片 <b>3×5 的农场</b>，每轮派家庭成员去 <b>行动板</b> 上执行拿资源、建房子、犁地、养动物等动作。</p>
   <p>本应用采用 <b>家庭变体</b>（无职业/小发展卡，更易上手），<b>1–4 人</b>同房间对战。</p>
 
   <h2 id="goal">2. 目标与胜负</h2>
@@ -249,17 +249,17 @@ export function openDlcDrawer(dlc) {
     sections.push(`
       <h3>🎴 职业（Occupations）</h3>
       <div class="kb-card">
-        <p><b>开局每位玩家从 7 张随机「职业」里选 1 张，整局生效。</b>未选的不在本局里再用。每张职业给玩家一个<b>被动能力</b>。</p>
-        <p class="muted" style="font-size:12px">例：伐木工 → 每轮自动 +1 木；牧羊人 → 买羊行动后 +1 只。</p>
+        <p><b>开局每位玩家从 7 张随机「职业」里精选 1 张就任，整局生效。</b>未选的不在本局里再用。每张职业赋予玩家独特的被动能力或资源收益。</p>
+        <p class="muted" style="font-size:12px">例：伐木工 → 每轮自动 +1 木；牧羊人 → 拿羊行动后额外 +1 只；烘焙师傅 → 烤面包每谷多换 2 食物。</p>
         <h4 style="margin:10px 0 6px">本局提示</h4>
-        <p>每回合开局时，先在玩家卡下方的「🎴 从手牌 7 选 1 张职业」面板里点一张；选过的卡会高亮显示「已选」。职业不消耗工人、可在开局阶段自由重选。</p>
+        <p>游戏开局时，在弹出的「🎴 从手牌 7 选 1 张职业」面板中选择一张心仪的职业就任，全场生效。</p>
         <h4 style="margin:10px 0 6px">怎么打</h4>
         <ul style="margin:6px 0;padding-left:20px;line-height:1.7">
-          <li>看到「+1 木」「+1 只」字样的都是永久被动，挂在你放上就生效</li>
-          <li>看到「免行动 / 不消耗」字样的（如「犁地不消耗行动」），触发那类动作时自动跳过</li>
-          <li>某些职业需要把某些操作「推迟到该轮特定阶段」才生效；不知道就放正常节奏打</li>
+          <li>看到「+1 木」「+1 只」字样的都是永久被动，挂在你的角色上即时生效</li>
+          <li>看到「免行动 / 不消耗」字样的（如「犁地不消耗行动」），触发该动作时自动跳过工人消耗</li>
+          <li>根据所选职业的能力倾向，在中前期及早确立自己的核心流派（如农耕、畜牧、添丁或工坊）</li>
         </ul>
-        <p class="muted" style="font-size:12px">⚠ 本集合的「职业」是该 DLC 的<strong>精简子集（18 张）</strong>，效果都按本应用文字说明生效，不会偷偷改你的回合。</p>
+        <p class="muted" style="font-size:12px">⚠ 本扩展已收录 <strong>48 张正统职业卡</strong>，涵盖农耕、畜牧、建造、烹饪、声望、资源等 7 大流派，开局 7 选 1，全部效果均在引擎规则中深度挂钩闭环。</p>
       </div>
     `);
   }
@@ -288,7 +288,7 @@ export function openDlcDrawer(dlc) {
         <h4 style="margin:10px 0 6px">UI 入口</h4>
         <ul style="margin:6px 0;padding-left:20px;line-height:1.7">
           <li><b>玩家状态条</b>（每名玩家卡顶部）多出「🔥 燃料 / 🌾 干草」两个格子</li>
-          <li><b>行动板顶部</b>多一行「🌲 荒野之地（燃料 / 干草 · 每轮累积）」，含<b>燃料堆</b>和<b>干草堆</b>，点击拿走累积堆全部</li>
+          <li><b>行动板「🌲 荒野之地」Tab</b>：多出<b>燃料堆</b>和<b>干草堆</b>累积格，点击拿走累积全部；下方为 4×4 公有<b>沼泽板</b>，选中沼泽格后可执行「🌱 拓荒」「🌾 撒谷」「🥕 撒菜」；<b>拓荒</b>需要 1 木 + 1 芦苇并奖励 1 燃料</li>
           <li><b>沼泽板</b>行动板再下方：4×4 公有沼泽。点格子选中，再点「🌱 拓荒」「🌾 撒谷」「🥕 撒菜」之一；<b>拓荒</b>需要 1 木 + 1 芦苇并奖励 1 燃料</li>
           <li>自己<b>撒过种的</b>沼泽田在收获阶段会自动收 1 个 marker（按谷 3 / 菜 2 收获），并计入 fields break-point 计分</li>
         </ul>
@@ -512,7 +512,7 @@ export function openStrategyDrawer(stratId = "grain_bake") {
   _stratDrawerEl.className = "tut-drawer";
   _stratDrawerEl.innerHTML = `
     <div class="tut-drawer-head">
-      <h2 class="mt0 mb0">💡 农场主流派玩法指南</h2>
+      <h2 class="mt0 mb0">💡 农家乐流派玩法指南</h2>
       <button class="btn ghost small" id="stratClose">关闭 ×</button>
     </div>
     <div class="tut-drawer-body">

@@ -3,6 +3,17 @@
    ============================================================ */
 
 /* 主体布局 —— 桌面：左「玩家+农场」成对等高 / 右「行动板」独立高度 */
+.game-status { padding: 12px 16px; }
+.game-status-main, .game-status-detail { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.game-status-round, .game-status-turn, .game-status-detail { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.game-status-round strong { font-size: 20px; line-height: 1.15; }
+.game-status-round strong small { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.game-status-kicker { font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: .06em; }
+.game-status-detail { justify-content: flex-start; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
+.game-status-detail .gauge { margin-left: auto; }
+.game-status-revealed { color: var(--ink-2); font-size: 12px; }
+.harvest-countdown { background: #fff1cf; color: #76500c; border-color: #d8bc75; }
+.game-status .badge { white-space: normal; }
 .game-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -80,7 +91,7 @@
   position: absolute;
   top: -11px;
   right: 14px;
-  background-color: var(--leaf);
+  background-color: var(--leaf-dark);
   color: #fff;
   font-size: 11px;
   font-weight: 800;
@@ -849,7 +860,8 @@
 }
 .action-board h3 { margin: 0 0 10px; font-size: 16px; display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
 .action-board h3 .ab-title { white-space: nowrap; }
-.action-board .head-info { font-size: 12px; color: var(--ink-3); margin-left: auto; white-space: nowrap; }
+.action-board .head-info { font-size: 12px; color: var(--ink-2); margin-left: auto; white-space: nowrap; }
+.action-guide { margin: -2px 0 10px; padding: 8px 10px; border-radius: 8px; background: #f8efd8; color: var(--ink-2); font-size: 12px; line-height: 1.45; border: 1px solid #e7d9b5; }
 
 /* ---- 行动板内部分页 (Tab) ---- */
 .action-tabs {
@@ -885,10 +897,13 @@
   color: var(--ink);
 }
 .action-tab-btn.active {
-  background: var(--leaf);
+  background: var(--leaf-dark);
   color: #fff;
   box-shadow: 0 2px 6px rgba(78, 124, 76, 0.35);
 }
+.action-tab-count { display: inline-block; font-size: 10px; font-weight: 800; margin-left: 2px; }
+.action-tab-count:not(:empty) { padding: 1px 4px; border-radius: 6px; background: rgba(255,255,255,.2); }
+.action-tab-btn:not(.active) .action-tab-count:not(:empty) { background: #e6eddb; color: var(--leaf-dark); }
 .action-sub-panel {
   display: none;
 }
@@ -925,7 +940,9 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(50, 30, 10, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
-.space.disabled { opacity: 0.42; cursor: not-allowed; filter: grayscale(0.3); }
+.space.disabled { opacity: 0.7; cursor: not-allowed; }
+.space.disabled .action-woodcut { opacity: .55; filter: grayscale(.35); }
+.space.disabled .meta { color: #67583f; }
 
 /* 工人凹槽与占用米普 */
 .space .worker-slot {
@@ -1178,13 +1195,21 @@
     min-height: 36px;
   }
   .m-tab.sel {
-    background: var(--leaf);
+    background: var(--leaf-dark);
     color: #fff;
     border-color: var(--leaf-dark);
     box-shadow: 0 2px 8px rgba(92,141,78,.3);
   }
   .m-tab .turn-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); margin-left: 6px; vertical-align: middle; }
   .m-tab:not(.sel) .turn-dot { background: var(--ink-3); }
+  .game-status-main { align-items: flex-start; }
+  .game-status-round { width: 100%; }
+  .game-status-turn { width: 100%; justify-content: space-between; }
+  .game-status-detail { gap: 6px; }
+  .game-status-detail .gauge { display: none; }
+  .game-status-revealed { width: 100%; }
+  .action-tabs { position: sticky; top: 55px; z-index: 4; background: #eee7d3; }
+  .action-tab-btn { white-space: normal; line-height: 1.25; min-height: 42px; }
 
   /* 面板：非选中隐藏（用 [data-panel] 选择器，col-card/farm-card 没有 .panel 类） */
   .col-card[data-panel], .farm-card[data-panel] { display: none; }
@@ -1931,4 +1956,3 @@ body[data-season="winter"]::before {
     grid-template-columns: 1fr;
   }
 }
-

@@ -7,6 +7,7 @@
 import { connectRoom, copyText, fmtTime, lsDel, toast } from "/js/common.js";
 import { bindRipples, revealFlipIn, viewportKind } from "/js/anim.js";
 import { lock, unlock, run } from "/js/loading.js";
+import { roomModelSvg } from "/js/svg-icons.js";
 
 let _rooms = []; // [{roomCode, specCode, phase, players:[name], onlineCount, closed}]
 let _activeConn = null;
@@ -42,8 +43,8 @@ async function refresh() {
 
 function renderEmpty() {
   $("roomList").innerHTML = `
-    <div class="card soft anim-pop-in" style="text-align:center; padding:32px 20px;">
-      <div style="font-size:44px">🚜</div>
+    <div class="card soft empty-state anim-pop-in">
+      <div class="empty-state-art" aria-hidden="true">${roomModelSvg("wood", false, 56)}</div>
       <h3 class="mt8">当前暂无活跃房间</h3>
       <p class="muted">点上方「＋ 新建房间」即可开启新的农场对局。</p>
     </div>`;

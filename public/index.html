@@ -16,7 +16,7 @@
   </div>
 
   <div class="hero">
-    <div class="emoji-farm">🚜 🐑 🌾 🥕 🐄</div>
+    <div class="hero-art" id="heroArt" aria-hidden="true"></div>
     <h1>经营你的农场</h1>
     <div class="sub">经典德式桌游《农家乐》（Agricola）2016 修订版 · 正统规则 · 支持 <b>1–4 人</b>同房间竞技 · 支持实时旁观</div>
     <div class="edition"><span class="badge gold">🌾 2016 正统规则（88职业 / 发展卡 / 沼泽农夫扩展可选）</span> <span class="badge">⏱ 约 30–60 分钟</span></div>
@@ -24,22 +24,26 @@
 
   <div class="mode-cards">
     <div class="mode-card">
-      <div class="ic">🎮</div>
-      <h3>加入游戏</h3>
+      <div class="ic" id="joinArt" aria-hidden="true"></div>
+      <h2>加入游戏</h2>
       <p>输入主持人给你的 4 位房间码，设置昵称后进入农场。全员同意即可立即开局。</p>
-      <input id="joinCode" class="input code" maxlength="4" placeholder="房间码" autocomplete="off">
+      <label class="field" for="joinCode">房间码</label>
+      <input id="joinCode" class="input code" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="4 位数字" autocomplete="off" aria-describedby="joinError">
+      <span id="joinError" class="field-error" aria-live="polite"></span>
       <button id="btnJoin" class="btn big">进入农场 →</button>
     </div>
     <div class="mode-card">
-      <div class="ic">👀</div>
-      <h3>旁观游戏</h3>
+      <div class="ic" id="specArt" aria-hidden="true"></div>
+      <h2>旁观游戏</h2>
       <p>输入 4 位纯数字旁观码，即可实时围观整场对局，不会打扰任何人。</p>
-      <input id="specCode" class="input code" maxlength="4" placeholder="旁观码" autocomplete="off">
+      <label class="field" for="specCode">旁观码</label>
+      <input id="specCode" class="input code" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="4 位数字" autocomplete="off" aria-describedby="specError">
+      <span id="specError" class="field-error" aria-live="polite"></span>
       <button id="btnSpec" class="btn big blue">进入观战 →</button>
     </div>
     <div class="mode-card">
-      <div class="ic">🏠</div>
-      <h3>我要主持</h3>
+      <div class="ic" id="hostArt" aria-hidden="true"></div>
+      <h2>我要主持</h2>
       <p>创建房间，获得房间码与旁观码，邀请朋友加入。你可随时解散房间。</p>
       <p class="muted" style="flex:0">主持不需要购买任何东西，手机/电脑均可。</p>
       <button id="btnHost" class="btn big gold">创建房间 →</button>
@@ -53,9 +57,10 @@
 </div>
 
 <script type="module">
-import { qs, toast } from "/js/common.js";
+import { qs } from "/js/common.js";
 import { bindTutorialTriggers } from "/js/tutorial.js";
 import { bindSfx } from "/js/sfx.js";
+import { actionWoodcutSvg, animalSvg, roomModelSvg, tokenSvg } from "/js/svg-icons.js";
 bindTutorialTriggers();
 bindSfx();
 const $ = (id) => document.getElementById(id);
@@ -65,16 +70,39 @@ if (qs("code") || qs("spec") || qs("watch")) {
   location.replace("/play.html" + location.search);
 }
 
-function norm(v) { return (v || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); }
+$("heroArt").innerHTML = `<span class="hero-art-piece">${tokenSvg("grain", 76)}</span><span class="hero-art-piece hero-art-main">${roomModelSvg("wood", false, 110)}</span><span class="hero-art-piece">${animalSvg("sheep", 76)}</span>`;
+$("joinArt").innerHTML = actionWoodcutSvg("StartPlayer", 42);
+$("specArt").innerHTML = animalSvg("sheep", 42);
+$("hostArt").innerHTML = roomModelSvg("wood", false, 46);
+
+function bindCode(inputId, errorId) {
+  const input = $(inputId);
+  const error = $(errorId);
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "").slice(0, 4);
+    input.classList.remove("is-invalid");
+    error.textContent = "";
+  });
+  return () => {
+    const code = input.value.trim();
+    if (/^\d{4}$/.test(code)) return code;
+    input.classList.add("is-invalid");
+    error.textContent = "请输入 4 位数字码";
+    input.focus();
+    return null;
+  };
+}
+const joinCode = bindCode("joinCode", "joinError");
+const specCode = bindCode("specCode", "specError");
 
 $("btnJoin").onclick = () => {
-  const c = norm($("joinCode").value);
-  if (c.length !== 4) return toast("请输入 4 位房间码", true);
+  const c = joinCode();
+  if (!c) return;
   location.href = `/play.html?code=${c}`;
 };
 $("btnSpec").onclick = () => {
-  const c = norm($("specCode").value);
-  if (c.length !== 4) return toast("请输入 4 位旁观码", true);
+  const c = specCode();
+  if (!c) return;
   location.href = `/play.html?spec=${c}`;
 };
 $("btnHost").onclick = () => { location.href = "/host.html"; };

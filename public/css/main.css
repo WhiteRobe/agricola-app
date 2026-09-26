@@ -8,12 +8,12 @@
   --panel-2: #fbf5e6;
   --ink: #43331f;
   --ink-2: #7a684c;
-  --ink-3: #a3946f;
+  --ink-3: #756348;
   --line: #e5d9b8;
   --barn: #c0492f;
   --barn-dark: #9c3822;
-  --leaf: #5c8d4e;
-  --leaf-dark: #47703c;
+  --leaf: #426f37;
+  --leaf-dark: #345c2d;
   --gold: #d9a441;
   --sky: #4d7fa3;
   --plum: #8d5a97;
@@ -308,11 +308,13 @@ a:hover { text-decoration: underline; }
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .input:focus { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(92, 141, 78, 0.15); }
+.input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
 .input.code {
   font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 10px;
   text-transform: uppercase; font-family: ui-monospace, Consolas, monospace;
 }
 label.field { display: block; font-size: 13.5px; color: var(--ink-2); font-weight: 600; margin-bottom: 6px; }
+.field-error { min-height: 18px; margin-top: -7px; color: #9c3822; font-size: 12px; font-weight: 600; }
 
 /* ---------- 徽章 / 状态 ---------- */
 .badge {
@@ -383,8 +385,11 @@ label.field { display: block; font-size: 13.5px; color: var(--ink-2); font-weigh
 .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
 
 /* ---------- 首页 hero ---------- */
-.hero { text-align: center; padding: 34px 10px 10px; }
-.hero .emoji-farm { font-size: 54px; letter-spacing: 10px; margin-bottom: 6px; }
+.hero { text-align: center; padding: 24px 10px 10px; }
+.hero-art { display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 132px; margin-bottom: 6px; }
+.hero-art-piece { width: 88px; height: 88px; display: grid; place-items: center; border-radius: 50%; background: #f9f0d9; box-shadow: inset 0 0 0 1px #e4d2a8, 0 6px 18px rgba(90,70,35,.08); }
+.hero-art-piece.hero-art-main { width: 126px; height: 126px; background: #f3e4c2; }
+.hero-art-piece svg { max-width: 82%; max-height: 82%; }
 .hero h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: 2px; }
 .hero .sub { color: var(--ink-2); font-size: 15px; }
 .hero .edition { display: inline-block; margin-top: 10px; }
@@ -400,9 +405,18 @@ label.field { display: block; font-size: 13.5px; color: var(--ink-2); font-weigh
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 22px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
 }
-.mode-card .ic { font-size: 30px; }
-.mode-card h3 { margin: 0; font-size: 17px; }
+.mode-card:first-child { border-color: #b4c99f; box-shadow: 0 3px 14px rgba(53,92,45,.13); }
+.mode-card .ic { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: #f3ead3; }
+.mode-card .ic svg { max-width: 42px; max-height: 42px; }
+.mode-card h2 { margin: 0; font-size: 18px; }
 .mode-card p { margin: 0; color: var(--ink-2); font-size: 13.5px; flex: 1; }
+.mode-card .field { margin: 2px 0 -7px; }
+.mode-card .field-error:empty { visibility: hidden; }
+
+.empty-state { text-align: center; padding: 30px 20px; }
+.empty-state-art { width: 76px; height: 76px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 18px; background: #f1e5c6; border: 1px solid #dfc99c; }
+.empty-state-art svg { max-width: 56px; max-height: 56px; }
+.empty-state .muted { color: var(--ink-2); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 640px) {
@@ -441,7 +455,9 @@ label.field { display: block; font-size: 13.5px; color: var(--ink-2); font-weigh
   .players-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   /* 模式卡片适配手机 */
   .mode-cards { grid-template-columns: 1fr; gap: 14px; }
-  .hero .emoji-farm { font-size: 38px; letter-spacing: 6px; }
+  .hero-art { gap: 10px; min-height: 104px; }
+  .hero-art-piece { width: 66px; height: 66px; }
+  .hero-art-piece.hero-art-main { width: 96px; height: 96px; }
 }
 
 @media (max-width: 480px) {

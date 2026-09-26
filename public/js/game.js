@@ -438,28 +438,29 @@ export function renderGame(root, s, me, conn) {
     ? `🌾 【本轮结束触发收获阶段】\n当本轮所有玩家放完工人后，系统将自动依次结算三大步骤：\n① 农田收割：每块已播种农田收 1 份作物（谷物或蔬菜）进库存\n② 喂养家人与房屋取暖：成年人需 2 食物（本轮婴儿需 1 食物）；缺少食物每缺 1 点被迫拿 1 张乞讨卡（-3分）！若开启沼泽农夫扩展，每人还需 1 燃料，每头黄牛需 1 干草\n③ 牲畜繁殖：每种动物持有 ≥2 只且牧场有空位时，自动繁殖 1 只幼崽`
     : `🌾 【下一次收获阶段倒计时】\n距第 ${nextHarvestRound} 轮结束的收获阶段还剩 ${roundsToHarvest} 轮。\n全剧共有 6 次收获（第 4、7、9、11、13、14 轮结束时）。\n收获阶段由系统自动结算：①农田收割 ②喂饱家人与房屋取暖 ③牲畜繁殖。\n请提前备足口粮与燃料，缺少资源将受到乞讨卡（每张-3分）的严厉惩罚！`;
   const harvestBadge = isCurHarvest
-    ? `<span class="badge red anim-pulse" style="cursor:help" data-tip="${escapeHtml(harvestTip)}">🌾 本轮结束结算收获</span>`
-    : `<span class="badge" style="cursor:help;color:var(--gold);border-color:var(--gold)" data-tip="${escapeHtml(harvestTip)}">🌾 距收获还剩 ${roundsToHarvest} 轮</span>`;
+    ? `<span class="badge red anim-pulse" data-tip="${escapeHtml(harvestTip)}">🌾 本轮结束结算收获</span>`
+    : `<span class="badge harvest-countdown" data-tip="${escapeHtml(harvestTip)}">🌾 距收获 ${roundsToHarvest} 轮</span>`;
 
-  top.className = "card mb16";
-  top.style.padding = "12px 16px";
+  top.className = "card game-status mb16";
   top.innerHTML = `
-    <div class="row spread" style="align-items:center">
-      <div class="row" style="gap:10px; align-items:center; min-width:0; flex-wrap:wrap">
-        <span style="font-size:18px">🎲</span>
-        <strong>第 ${g.round} / 14 轮</strong>
+    <div class="game-status-main">
+      <div class="game-status-round">
+        <span class="game-status-kicker">当前回合</span>
+        <strong>第 ${g.round} <small>/ 14 轮</small></strong>
         <span class="badge" style="background:${seasonInfo.tint};border-color:${seasonInfo.color};color:#5c4a2e" ${g.dlc?.seasons ? `data-tip="${escapeHtml(TTS_SEASON_HINT[ttsSeasonOf(g, g.round)] || "")}"` : ""}>
           ${seasonInfo.icon} ${seasonInfo.label}季${g.dlc?.seasons ? " · 节气轮转" : ""}
         </span>
-        <span class="badge gold">阶段 ${g.stage}</span>
-        ${harvestBadge}
-        ${g.revealed.length ? `<span class="badge">可用回合卡：${g.revealed.map(spaceName).join(" · ")}</span>` : ""}
       </div>
-      <div class="row" style="gap:8px; align-items:center">
+      <div class="game-status-turn">
         ${myTurn && !me.spectator ? `<span class="badge green anim-my-turn turn-badge" style="display:inline-flex;align-items:center;gap:5px">${runnerSvg("#ffffff", 16)}该你行动</span>` : me.spectator ? '<span class="badge">👀 旁观模式</span>' : '<span class="badge">等待中…</span>'}
         ${myPlayer ? buildActionsLeft(g, myPlayer) : ""}
-        ${buildGauge(g.round)}
       </div>
+    </div>
+    <div class="game-status-detail">
+      ${harvestBadge}
+      <span class="badge gold">阶段 ${g.stage}</span>
+      ${g.revealed.length ? `<span class="game-status-revealed">本轮已开放：${g.revealed.map(spaceName).join(" · ")}</span>` : ""}
+      ${buildGauge(g.round)}
     </div>
   `;
   root.appendChild(top);
@@ -504,7 +505,7 @@ export function renderGame(root, s, me, conn) {
     commonBtn.className = "m-tab" + (_activeTab === "common" ? " sel" : "");
     commonBtn.dataset.tab = "common";
     const turnP = g.players.find(p => p.id === g.waitingFor[0]);
-    commonBtn.innerHTML = `📋 公共${turnP ? ` · 轮到 <b>${escapeHtml(turnP.name)}</b>` : ""}`;
+      commonBtn.innerHTML = `🎯 行动${turnP ? ` · ${escapeHtml(turnP.name)}` : ""}`;
     commonBtn.onclick = () => switchMobileTab("common");
     tabs.appendChild(commonBtn);
 
@@ -527,12 +528,13 @@ export function renderGame(root, s, me, conn) {
     <div class="pairs" id="pairsGrid"></div>
     <div class="action-board" id="actionBoard">
       <h3><span class="ab-title">📋 行动板</span> <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 沼泽农夫</span>' : ""}</h3>
+      <p class="action-guide">${myTurn && !me.spectator ? "选择下方亮色行动格放置一名家人。灰色格会标明开放或占用状态。" : me.spectator ? "旁观中：可查看所有行动和占用状态。" : "等待当前玩家行动；行动格会显示开放和占用状态。"}</p>
       
       <!-- 行动板内部分页 -->
       <div class="action-tabs">
-        <button class="action-tab-btn ${_actionSubTab === "resources" ? "active" : ""}" data-act-tab="resources" type="button">🌾 资源 & 市场</button>
-        <button class="action-tab-btn ${_actionSubTab === "actions" ? "active" : ""}" data-act-tab="actions" type="button">🎯 行动 & 回合卡</button>
-        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 沼泽农夫</button>` : ""}
+        <button class="action-tab-btn ${_actionSubTab === "resources" ? "active" : ""}" data-act-tab="resources" type="button">🌾 资源与市场 <span class="action-tab-count" data-count="resources"></span></button>
+        <button class="action-tab-btn ${_actionSubTab === "actions" ? "active" : ""}" data-act-tab="actions" type="button">🎯 农事与建造 <span class="action-tab-count" data-count="actions"></span></button>
+        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 沼泽 <span class="action-tab-count" data-count="moor"></span></button>` : ""}
       </div>
 
       <!-- 分页 1: 永久资源 + 动物市场 -->
@@ -601,6 +603,11 @@ export function renderGame(root, s, me, conn) {
     renderMoorBoard(layout.querySelector("#moorBoard"), g, focusPlayer, myTurn);
     bindMoorActions(g, focusPlayer, myTurn);
   }
+  layout.querySelectorAll(".action-tab-count").forEach((count) => {
+    const panel = layout.querySelector(`.action-sub-panel[data-panel="${count.dataset.count}"]`);
+    const n = panel?.querySelectorAll(".actable").length || 0;
+    count.textContent = myTurn && n ? `${n} 可选` : "";
+  });
 
   // 日志（独立面板：移动端 tab / 桌面抽屉）
   renderLogInto(layout.querySelector("#liveLog"), g.log, prev);

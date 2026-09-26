@@ -1,6 +1,4 @@
-// 与 src/game/dlc.ts 同步的客户端副本 —— 仅用于 DOM 渲染
-// 真实逻辑（手牌洗牌、卡牌效果结算）在引擎侧
-
+// 由 scripts/sync-dlc.mjs 从 src/game/dlc.ts 生成，请勿手工修改。
 export const OCCUPATIONS = [
   // ==========================================
   // 1. 基础资源流派（15 张）
@@ -145,5 +143,3 @@ export const MINOR_IMPROVEMENTS = [
   { id: "mi.woolBlanket", name: "羊毛毯", icon: "🧣", effect: "一次性：若拥有 ≥1 绵羊获得 3 食物", cost: { reed: 1 }, oneShot: true },
   { id: "mi.manure", name: "堆肥", icon: "🍂", effect: "一次性：若至少有 2 种牲畜，立即获得 1 谷物 + 1 蔬菜", cost: {}, oneShot: true },
 ];
-
-// TODO: 与 src/game/dlc.ts 同步（手工复制）

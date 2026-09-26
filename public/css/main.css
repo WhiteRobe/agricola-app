@@ -7,7 +7,7 @@
   --panel: #fffdf6;
   --panel-2: #fbf5e6;
   --ink: #43331f;
-  --ink-2: #7a684c;
+  --ink-2: #6f5d42;
   --ink-3: #756348;
   --line: #e5d9b8;
   --barn: #c0492f;
@@ -411,7 +411,7 @@ label.field { display: block; font-size: 13.5px; color: var(--ink-2); font-weigh
 .mode-card h2 { margin: 0; font-size: 18px; }
 .mode-card p { margin: 0; color: var(--ink-2); font-size: 13.5px; flex: 1; }
 .mode-card .field { margin: 2px 0 -7px; }
-.mode-card .field-error:empty { visibility: hidden; }
+.mode-card .field-error:empty { display: none; }
 
 .empty-state { text-align: center; padding: 30px 20px; }
 .empty-state-art { width: 76px; height: 76px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 18px; background: #f1e5c6; border: 1px solid #dfc99c; }

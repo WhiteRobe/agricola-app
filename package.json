@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/sync-dlc.mjs",
     "dev": "wrangler dev",
+    "predeploy": "node scripts/sync-dlc.mjs",
     "deploy": "wrangler deploy",
+    "sync:dlc": "node scripts/sync-dlc.mjs",
     "typecheck": "tsc --noEmit",
     "test": "esbuild src/game/engine.ts --bundle --format=esm --outfile=.tmp/engine.mjs && node test/engine.mjs"
   },

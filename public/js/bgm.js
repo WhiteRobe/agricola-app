@@ -1,12 +1,17 @@
 // ============================================================
-// 农家乐纯算法田园音乐引擎 (Procedural Pastoral BGM Engine)
+// 农家乐纯算法田园音乐引擎 (Procedural Pastoral BGM Engine v2)
 // 100% 实时 WebAudio 乐器物理建模合成，零外部音频文件，零网络请求
 // 乐器矩阵：
 //   1. 古典鲁特琴拨弦 (Lute / Acoustic Pluck)
 //   2. 欧洲田园木笛 (Pastoral Wooden Recorder with Breath & Vibrato)
 //   3. 原声大提琴拨奏低音 (Pizzicato Acoustic Bass)
 //   4. 冰晶风铃与八音盒 (Winter Bell & Glockenspiel)
-// 动态四季：
+// 完整曲式结构（16小节长诗，共 256 步）：
+//   - Part A (小节 1-4): 晨曦播种与微风 (G -> D -> Em -> C)
+//   - Part B (小节 5-8): 田垄灌溉与复调对位 (G -> Bm -> C -> D)
+//   - Part C (小节 9-12): 乡间集市与欢歌 (Em -> C -> G -> D)
+//   - Part D (小节 13-16): 炊烟暮色与华彩归途 (Am -> D7 -> G)
+// 动态四季自适应：
 //   春（96 BPM 生机轻盈）· 夏（104 BPM 温暖麦浪）· 秋（88 BPM 沉静收获）· 冬（76 BPM 飘雪静谧）
 // ============================================================
 
@@ -20,7 +25,7 @@ let _schedulerTimer = null;
 
 // 调度器状态 (Look-ahead Scheduler)
 let _isPlaying = false;
-let _currentStep = 0;       // 16 分音符步进 (0..63，共 4 小节循环)
+let _currentStep = 0;       // 16 分音符步进 (0..255，共 16 小节大长诗)
 let _nextStepTime = 0;      // 下一步的绝对硬件时钟 (ctx.currentTime)
 
 // 乐曲调速 (BPM)
@@ -66,28 +71,46 @@ export function setBgmSeason(season) {
 /** 频率与 MIDI 音高对照表 */
 const NOTE = {
   // 低音提琴
-  C2: 65.41, D2: 73.42, E2: 82.41, G2: 98.00, A2: 110.00,
+  C2: 65.41, D2: 73.42, E2: 82.41, F2: 87.31, G2: 98.00, A2: 110.00, B2: 123.47,
   // 鲁特琴琶音
-  B2: 123.47, C3: 130.81, D3: 146.83, E3: 164.81, Fs3: 185.00, G3: 196.00, A3: 220.00, B3: 246.94,
-  C4: 261.63, D4: 293.66, E4: 329.63, Fs4: 369.99, G4: 392.00, A4: 440.00, B4: 493.88,
+  C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, Fs3: 185.00, G3: 196.00, A3: 220.00, B3: 246.94,
+  C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, Fs4: 369.99, G4: 392.00, A4: 440.00, B4: 493.88,
   // 木笛主旋律 & 八音盒
-  C5: 523.25, D5: 587.33, E5: 659.25, Fs5: 739.99, G5: 783.99, A5: 880.00, B5: 987.77,
-  C6: 1046.50, D6: 1174.66,
+  C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, Fs5: 739.99, G5: 783.99, A5: 880.00, B5: 987.77,
+  C6: 1046.50, D6: 1174.66, E6: 1318.51,
 };
 
 // ============================================================
-// 4 小节（共 64 步 16 分音符）中世纪田园曲谱
+// 16 小节（共 256 步 16 分音符）完整欧洲田园叙事曲
 // ============================================================
-// 1. 低音大提琴步进 (每半小节一次根音)
+
+// 1. 低音大提琴声部 (BASS_TRACK)
 const BASS_TRACK = [
-  { step: 0,  note: NOTE.G2 }, { step: 8,  note: NOTE.D2 },
-  { step: 16, note: NOTE.E2 }, { step: 24, note: NOTE.C2 },
-  { step: 32, note: NOTE.G2 }, { step: 40, note: NOTE.D2 },
-  { step: 48, note: NOTE.C2 }, { step: 56, note: NOTE.G2 },
+  // Part A: 晨曦
+  { step: 0,   note: NOTE.G2 }, { step: 8,   note: NOTE.D2 },
+  { step: 16,  note: NOTE.E2 }, { step: 24,  note: NOTE.C2 },
+  { step: 32,  note: NOTE.G2 }, { step: 40,  note: NOTE.D2 },
+  { step: 48,  note: NOTE.C2 }, { step: 56,  note: NOTE.G2 },
+  // Part B: 劳作与对位 (G -> Bm -> C -> D)
+  { step: 64,  note: NOTE.G2 }, { step: 72,  note: NOTE.B2 },
+  { step: 80,  note: NOTE.C2 }, { step: 88,  note: NOTE.D2 },
+  { step: 96,  note: NOTE.G2 }, { step: 104, note: NOTE.B2 },
+  { step: 112, note: NOTE.C2 }, { step: 120, note: NOTE.D2 },
+  // Part C: 乡间集市欢歌 (Em -> C -> G -> D)
+  { step: 128, note: NOTE.E2 }, { step: 136, note: NOTE.C2 },
+  { step: 144, note: NOTE.G2 }, { step: 152, note: NOTE.D2 },
+  { step: 160, note: NOTE.E2 }, { step: 168, note: NOTE.C2 },
+  { step: 176, note: NOTE.G2 }, { step: 184, note: NOTE.D2 },
+  // Part D: 炊烟暮色与归途 (Am -> D -> Em -> C -> Am -> D7 -> G)
+  { step: 192, note: NOTE.A2 }, { step: 200, note: NOTE.D2 },
+  { step: 208, note: NOTE.E2 }, { step: 216, note: NOTE.C2 },
+  { step: 224, note: NOTE.A2 }, { step: 232, note: NOTE.D2 },
+  { step: 240, note: NOTE.G2 }, { step: 248, note: NOTE.G2 },
 ];
 
-// 2. 鲁特琴分解和弦琶音 (Arpeggio pattern)
+// 2. 鲁特琴分解和弦琶音 (LUTE_TRACK，16 小节多变律动)
 const LUTE_TRACK = [
+  // --- Part A (0..63) ---
   // 小节 1: G -> D
   { step: 0, note: NOTE.G3 }, { step: 2, note: NOTE.B3 }, { step: 4, note: NOTE.D4 }, { step: 6, note: NOTE.G4 },
   { step: 8, note: NOTE.D3 }, { step: 10, note: NOTE.Fs3 }, { step: 12, note: NOTE.A3 }, { step: 14, note: NOTE.D4 },
@@ -100,44 +123,169 @@ const LUTE_TRACK = [
   // 小节 4: C -> G
   { step: 48, note: NOTE.C3 }, { step: 50, note: NOTE.E3 }, { step: 52, note: NOTE.G3 }, { step: 54, note: NOTE.E3 },
   { step: 56, note: NOTE.G3 }, { step: 58, note: NOTE.B3 }, { step: 60, note: NOTE.D4 }, { step: 62, note: NOTE.G3 },
+
+  // --- Part B (64..127) G -> Bm -> C -> D ---
+  // 小节 5
+  { step: 64, note: NOTE.G3 }, { step: 66, note: NOTE.D4 }, { step: 68, note: NOTE.B3 }, { step: 70, note: NOTE.G4 },
+  { step: 72, note: NOTE.B2 }, { step: 74, note: NOTE.Fs3 }, { step: 76, note: NOTE.D4 }, { step: 78, note: NOTE.B3 },
+  // 小节 6
+  { step: 80, note: NOTE.C3 }, { step: 82, note: NOTE.G3 }, { step: 84, note: NOTE.E4 }, { step: 86, note: NOTE.C4 },
+  { step: 88, note: NOTE.D3 }, { step: 90, note: NOTE.A3 }, { step: 92, note: NOTE.Fs4 }, { step: 94, note: NOTE.D4 },
+  // 小节 7
+  { step: 96, note: NOTE.G3 }, { step: 98, note: NOTE.B3 }, { step: 100, note: NOTE.D4 }, { step: 102, note: NOTE.G4 },
+  { step: 104, note: NOTE.B2 }, { step: 106, note: NOTE.D3 }, { step: 108, note: NOTE.Fs3 }, { step: 110, note: NOTE.B3 },
+  // 小节 8
+  { step: 112, note: NOTE.C3 }, { step: 114, note: NOTE.E3 }, { step: 116, note: NOTE.G3 }, { step: 118, note: NOTE.C4 },
+  { step: 120, note: NOTE.D3 }, { step: 122, note: NOTE.Fs3 }, { step: 124, note: NOTE.A3 }, { step: 126, note: NOTE.D4 },
+
+  // --- Part C (128..191) Em -> C -> G -> D (欢快集市) ---
+  // 小节 9
+  { step: 128, note: NOTE.E3 }, { step: 130, note: NOTE.B3 }, { step: 132, note: NOTE.G4 }, { step: 134, note: NOTE.E4 },
+  { step: 136, note: NOTE.C3 }, { step: 138, note: NOTE.G3 }, { step: 140, note: NOTE.E4 }, { step: 142, note: NOTE.C4 },
+  // 小节 10
+  { step: 144, note: NOTE.G3 }, { step: 146, note: NOTE.D4 }, { step: 148, note: NOTE.B4 }, { step: 150, note: NOTE.G4 },
+  { step: 152, note: NOTE.D3 }, { step: 154, note: NOTE.A3 }, { step: 156, note: NOTE.Fs4 }, { step: 158, note: NOTE.D4 },
+  // 小节 11
+  { step: 160, note: NOTE.E3 }, { step: 162, note: NOTE.G3 }, { step: 164, note: NOTE.B3 }, { step: 166, note: NOTE.E4 },
+  { step: 168, note: NOTE.C3 }, { step: 170, note: NOTE.E3 }, { step: 172, note: NOTE.G3 }, { step: 174, note: NOTE.C4 },
+  // 小节 12
+  { step: 176, note: NOTE.G3 }, { step: 178, note: NOTE.B3 }, { step: 180, note: NOTE.D4 }, { step: 182, note: NOTE.G4 },
+  { step: 184, note: NOTE.D3 }, { step: 186, note: NOTE.Fs3 }, { step: 188, note: NOTE.A3 }, { step: 190, note: NOTE.C4 },
+
+  // --- Part D (192..255) 归途华彩收束 ---
+  // 小节 13 (Am -> D)
+  { step: 192, note: NOTE.A3 }, { step: 194, note: NOTE.C4 }, { step: 196, note: NOTE.E4 }, { step: 198, note: NOTE.A4 },
+  { step: 200, note: NOTE.D3 }, { step: 202, note: NOTE.Fs3 }, { step: 204, note: NOTE.A3 }, { step: 206, note: NOTE.D4 },
+  // 小节 14 (Em -> C)
+  { step: 208, note: NOTE.E3 }, { step: 210, note: NOTE.G3 }, { step: 212, note: NOTE.B3 }, { step: 214, note: NOTE.E4 },
+  { step: 216, note: NOTE.C3 }, { step: 218, note: NOTE.E3 }, { step: 220, note: NOTE.G3 }, { step: 222, note: NOTE.C4 },
+  // 小节 15 (Am -> D7)
+  { step: 224, note: NOTE.A3 }, { step: 226, note: NOTE.C4 }, { step: 228, note: NOTE.E4 }, { step: 230, note: NOTE.A3 },
+  { step: 232, note: NOTE.D3 }, { step: 234, note: NOTE.Fs3 }, { step: 236, note: NOTE.C4 }, { step: 238, note: NOTE.D4 },
+  // 小节 16 (G 大三和弦长余音)
+  { step: 240, note: NOTE.G3 }, { step: 242, note: NOTE.B3 }, { step: 244, note: NOTE.D4 }, { step: 246, note: NOTE.G4 },
+  { step: 248, note: NOTE.B3 }, { step: 250, note: NOTE.D4 }, { step: 252, note: NOTE.G4 }, { step: 254, note: NOTE.B4 },
 ];
 
-// 3. 田园木笛主旋律 (悠扬欧洲民谣句子，带气鸣颤音)
+// 3. 田园木笛主旋律 (FLUTE_TRACK，起承转合长篇乐章)
 const FLUTE_TRACK = [
-  // 乐句 1
-  { step: 0,  note: NOTE.D4, dur: 4 },
-  { step: 4,  note: NOTE.G4, dur: 4 },
-  { step: 8,  note: NOTE.A4, dur: 3 },
-  { step: 11, note: NOTE.B4, dur: 5 },
-  // 乐句 2
-  { step: 16, note: NOTE.G4, dur: 4 },
-  { step: 20, note: NOTE.E4, dur: 4 },
-  { step: 24, note: NOTE.C4, dur: 3 },
-  { step: 27, note: NOTE.D4, dur: 5 },
-  // 乐句 3 (高潮跳进)
-  { step: 32, note: NOTE.B4, dur: 3 },
-  { step: 35, note: NOTE.C5, dur: 2 },
-  { step: 37, note: NOTE.D5, dur: 4 },
-  { step: 41, note: NOTE.B4, dur: 3 },
-  { step: 44, note: NOTE.A4, dur: 4 },
-  // 乐句 4 (优雅田园下行收束)
-  { step: 48, note: NOTE.G4, dur: 3 },
-  { step: 51, note: NOTE.Fs4, dur: 2 },
-  { step: 53, note: NOTE.E4, dur: 3 },
-  { step: 56, note: NOTE.D4, dur: 4 },
-  { step: 60, note: NOTE.G4, dur: 4 },
+  // --- Part A: 晨曦初露 (0..63) ---
+  { step: 0,   note: NOTE.D4, dur: 4 },
+  { step: 4,   note: NOTE.G4, dur: 4 },
+  { step: 8,   note: NOTE.A4, dur: 3 },
+  { step: 11,  note: NOTE.B4, dur: 5 },
+  { step: 16,  note: NOTE.G4, dur: 4 },
+  { step: 20,  note: NOTE.E4, dur: 4 },
+  { step: 24,  note: NOTE.C4, dur: 3 },
+  { step: 27,  note: NOTE.D4, dur: 5 },
+  { step: 32,  note: NOTE.B4, dur: 3 },
+  { step: 35,  note: NOTE.C5, dur: 2 },
+  { step: 37,  note: NOTE.D5, dur: 4 },
+  { step: 41,  note: NOTE.B4, dur: 3 },
+  { step: 44,  note: NOTE.A4, dur: 4 },
+  { step: 48,  note: NOTE.G4, dur: 3 },
+  { step: 51,  note: NOTE.Fs4, dur: 2 },
+  { step: 53,  note: NOTE.E4, dur: 3 },
+  { step: 56,  note: NOTE.D4, dur: 4 },
+  { step: 60,  note: NOTE.G4, dur: 4 },
+
+  // --- Part B: 田间对位开展 (64..127) ---
+  { step: 64,  note: NOTE.B4, dur: 4 },
+  { step: 68,  note: NOTE.D5, dur: 4 },
+  { step: 72,  note: NOTE.Fs5, dur: 3 },
+  { step: 75,  note: NOTE.G5, dur: 5 },
+  { step: 80,  note: NOTE.E5, dur: 4 },
+  { step: 84,  note: NOTE.C5, dur: 4 },
+  { step: 88,  note: NOTE.A4, dur: 3 },
+  { step: 91,  note: NOTE.D5, dur: 5 },
+  { step: 96,  note: NOTE.B4, dur: 3 },
+  { step: 99,  note: NOTE.A4, dur: 2 },
+  { step: 101, note: NOTE.G4, dur: 3 },
+  { step: 104, note: NOTE.Fs4, dur: 4 },
+  { step: 108, note: NOTE.G4, dur: 2 },
+  { step: 110, note: NOTE.A4, dur: 2 },
+  { step: 112, note: NOTE.E4, dur: 4 },
+  { step: 116, note: NOTE.G4, dur: 4 },
+  { step: 120, note: NOTE.Fs4, dur: 4 },
+  { step: 124, note: NOTE.D4, dur: 4 },
+
+  // --- Part C: 乡间集市高潮欢歌 (128..191) ---
+  { step: 128, note: NOTE.E5, dur: 3 },
+  { step: 131, note: NOTE.Fs5, dur: 2 },
+  { step: 133, note: NOTE.G5, dur: 4 },
+  { step: 137, note: NOTE.E5, dur: 3 },
+  { step: 140, note: NOTE.C5, dur: 4 },
+  { step: 144, note: NOTE.D5, dur: 4 },
+  { step: 148, note: NOTE.B4, dur: 4 },
+  { step: 152, note: NOTE.A4, dur: 4 },
+  { step: 156, note: NOTE.D4, dur: 4 },
+  { step: 160, note: NOTE.E5, dur: 3 },
+  { step: 163, note: NOTE.Fs5, dur: 2 },
+  { step: 165, note: NOTE.G5, dur: 4 },
+  { step: 169, note: NOTE.A5, dur: 3 },
+  { step: 172, note: NOTE.G5, dur: 4 },
+  { step: 176, note: NOTE.D5, dur: 4 },
+  { step: 180, note: NOTE.B4, dur: 3 },
+  { step: 183, note: NOTE.C5, dur: 2 },
+  { step: 185, note: NOTE.B4, dur: 3 },
+  { step: 188, note: NOTE.A4, dur: 4 },
+
+  // --- Part D: 炊烟暮色与华彩归途 (192..255) ---
+  { step: 192, note: NOTE.C5, dur: 4 },
+  { step: 196, note: NOTE.B4, dur: 4 },
+  { step: 200, note: NOTE.A4, dur: 3 },
+  { step: 203, note: NOTE.D5, dur: 5 },
+  { step: 208, note: NOTE.G4, dur: 4 },
+  { step: 212, note: NOTE.Fs4, dur: 4 },
+  { step: 216, note: NOTE.E4, dur: 4 },
+  { step: 220, note: NOTE.G4, dur: 4 },
+  { step: 224, note: NOTE.A4, dur: 3 },
+  { step: 227, note: NOTE.B4, dur: 2 },
+  { step: 229, note: NOTE.C5, dur: 3 },
+  { step: 232, note: NOTE.D5, dur: 4 },
+  { step: 236, note: NOTE.Fs4, dur: 4 },
+  { step: 240, note: NOTE.G4, dur: 8 },
+  { step: 248, note: NOTE.G4, dur: 8 },
 ];
 
-// 4. 冬雪八音盒/晶莹风铃点缀 (清脆高音冰晶)
+// 4. 八音盒/冰晶风铃长篇点缀 (BELL_TRACK)
 const BELL_TRACK = [
-  { step: 4,  note: NOTE.G5 },
-  { step: 12, note: NOTE.D6 },
-  { step: 20, note: NOTE.B5 },
-  { step: 28, note: NOTE.G5 },
-  { step: 36, note: NOTE.D6 },
-  { step: 44, note: NOTE.Fs5 },
-  { step: 52, note: NOTE.E5 },
-  { step: 60, note: NOTE.D5 },
+  // Part A
+  { step: 4,   note: NOTE.G5 },
+  { step: 12,  note: NOTE.D6 },
+  { step: 20,  note: NOTE.B5 },
+  { step: 28,  note: NOTE.G5 },
+  { step: 36,  note: NOTE.D6 },
+  { step: 44,  note: NOTE.Fs5 },
+  { step: 52,  note: NOTE.E5 },
+  { step: 60,  note: NOTE.D5 },
+  // Part B
+  { step: 68,  note: NOTE.B5 },
+  { step: 76,  note: NOTE.G5 },
+  { step: 84,  note: NOTE.E5 },
+  { step: 92,  note: NOTE.D6 },
+  { step: 100, note: NOTE.B5 },
+  { step: 108, note: NOTE.Fs5 },
+  { step: 116, note: NOTE.G5 },
+  { step: 124, note: NOTE.D5 },
+  // Part C
+  { step: 132, note: NOTE.G6 },
+  { step: 140, note: NOTE.E6 },
+  { step: 148, note: NOTE.D6 },
+  { step: 156, note: NOTE.B5 },
+  { step: 164, note: NOTE.G6 },
+  { step: 172, note: NOTE.A5 },
+  { step: 180, note: NOTE.D6 },
+  { step: 188, note: NOTE.Fs5 },
+  // Part D
+  { step: 196, note: NOTE.E5 },
+  { step: 204, note: NOTE.A5 },
+  { step: 212, note: NOTE.B5 },
+  { step: 220, note: NOTE.C6 },
+  { step: 228, note: NOTE.D6 },
+  { step: 236, note: NOTE.Fs5 },
+  { step: 244, note: NOTE.G5 },
+  { step: 252, note: NOTE.G6 },
 ];
 
 /** 初始化合成母带 */
@@ -348,8 +496,8 @@ function scheduleLoop() {
       playBellNote(bell.note, time, cfg.bellGain);
     }
 
-    // 步进推进 (0..63)
-    _currentStep = (_currentStep + 1) % 64;
+    // 步进推进 (0..255，大长篇 16 小节叙事曲)
+    _currentStep = (_currentStep + 1) % 256;
     _nextStepTime += stepDur;
   }
 }

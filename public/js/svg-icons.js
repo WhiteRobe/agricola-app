@@ -528,6 +528,32 @@ export function meepleSvg(colorHex = "#c0392b", size = 28, label = "") {
 }
 
 /**
+ * 欧陆手工木制婴儿摇篮 (Baby Cradle)
+ * 用于呈现当轮出生的新生儿（在家休息）
+ * @param {string} colorHex 玩家对应主题色
+ * @param {number} size 尺寸 (px)
+ */
+export function cradleSvg(colorHex = "#c0392b", size = 30) {
+  const s = size;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" class="agri-baby-cradle" xmlns="http://www.w3.org/2000/svg" aria-label="婴儿摇篮">
+    <g filter="drop-shadow(0 2px 3px rgba(30,15,5,0.35))">
+      <!-- 摇篮弧形底部摇脚 -->
+      <path d="M 8 38 Q 24 46 40 38" stroke="#4a2c11" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+      <!-- 摇篮立柱 -->
+      <line x1="14" y1="34" x2="14" y2="40" stroke="#4a2c11" stroke-width="2"/>
+      <line x1="34" y1="34" x2="34" y2="40" stroke="#4a2c11" stroke-width="2"/>
+      <!-- 实木摇篮箱体 -->
+      <polygon points="10,22 38,22 34,34 14,34" fill="#a4723c" stroke="#3d2008" stroke-width="1.3"/>
+      <!-- 温暖小被子与米普小脑袋 -->
+      <ellipse cx="18" cy="22" rx="4.5" ry="4.5" fill="${colorHex}" stroke="#2a1205" stroke-width="1"/>
+      <path d="M 14 24 Q 24 20 34 24 L 33 33 L 15 33 Z" fill="#fff5dc" stroke="#d4b476" stroke-width="0.9"/>
+      <!-- 摇篮头部遮蓬 -->
+      <path d="M 10 22 C 10 14, 20 14, 22 22 Z" fill="#805428" stroke="#3d2008" stroke-width="1.2"/>
+    </g>
+  </svg>`;
+}
+
+/**
  * 经典木质牲畜圈舍 / 马厩 (3D Stereoscopic Barn & Stable Model)
  * @param {boolean} inPasture 是否位于封闭牧场内（在牧场内容量翻倍）
  * @param {boolean} isWinter 是否为冬季（带屋顶积雪微霜）

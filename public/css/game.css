@@ -599,6 +599,125 @@
   height: 100%;
 }
 
+/* ---- 农庄前庭闲逛区（Idle Workers Yard） ---- */
+.farm-idle-yard {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 12;
+  background: rgba(255, 253, 246, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(160, 130, 80, 0.35);
+  border-radius: 12px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 14px rgba(60, 40, 15, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: auto;
+  user-select: none;
+  transition: all 0.25s ease;
+  max-width: 220px;
+}
+.farm-idle-yard.empty-yard {
+  opacity: 0.55;
+  padding: 4px 8px;
+}
+.yard-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--leaf-dark);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+.yard-tag.dim {
+  color: var(--ink-3);
+}
+.yard-meeples-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 闲逛米普小人微动与交互 */
+.farm-idle-meeple {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform-origin: center bottom;
+  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1), opacity 0.25s ease;
+  animation: meeple-wander 4.2s ease-in-out infinite;
+}
+.farm-idle-meeple:nth-child(2) {
+  animation: meeple-bob 3.8s ease-in-out infinite -1.2s;
+}
+.farm-idle-meeple:nth-child(3) {
+  animation: meeple-wander 4.6s ease-in-out infinite -2.4s;
+}
+.farm-idle-meeple:nth-child(4) {
+  animation: meeple-bob 3.5s ease-in-out infinite -0.8s;
+}
+.farm-idle-meeple:nth-child(5) {
+  animation: meeple-wander 4.0s ease-in-out infinite -1.8s;
+}
+
+/* 踱步闲逛小动画 */
+@keyframes meeple-wander {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  25%      { transform: translateY(-2px) rotate(-3deg) scale(1.02); }
+  50%      { transform: translateY(0) rotate(0deg) scale(1); }
+  75%      { transform: translateY(-1.5px) rotate(3deg) scale(1.02); }
+}
+/* 眺望轻颠小动画 */
+@keyframes meeple-bob {
+  0%, 100% { transform: scale(1) translateY(0); }
+  45%      { transform: scale(1.08, 0.94) translateY(-3px); }
+  60%      { transform: scale(0.96, 1.04) translateY(-1px); }
+}
+
+.farm-idle-meeple:hover {
+  transform: translateY(-5px) scale(1.15) !important;
+  filter: drop-shadow(0 4px 6px rgba(40, 20, 5, 0.4));
+}
+/* 起跳腾空离开前庭 */
+.farm-idle-meeple.departing {
+  transform: translateY(-8px) scale(0.65) !important;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* 婴儿摇篮柔和轻晃 */
+.farm-baby-cradle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center bottom;
+  animation: cradle-rock 3s ease-in-out infinite;
+  cursor: help;
+}
+@keyframes cradle-rock {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+
+/* 移动端窄屏自适应：流式贴靠在沙盘下方 */
+@media (max-width: 767px) {
+  .farm-idle-yard {
+    position: static;
+    margin: 8px auto 0;
+    max-width: 95%;
+    justify-content: center;
+    align-items: center;
+  }
+  .yard-meeples-row {
+    justify-content: center;
+  }
+}
+
 .farm-card .turn-arrow {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
   background: var(--leaf); color:#fff; font-weight: 800; letter-spacing: 1px;

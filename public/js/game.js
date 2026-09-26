@@ -26,6 +26,7 @@ import {
   majorImprovementSvg,
   categorySealSvg,
   fenceRailSvg,
+  cradleSvg,
 } from "/js/svg-icons.js";
 import { flyMeepleToSpace, flyTokenToStock, flyCropHarvest } from "/js/fx.js";
 import { initAmbientCanvas, setAmbientSeason, triggerHarvestConfetti } from "/js/ambient.js";
@@ -826,6 +827,44 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       });
     }
 
+    // 计算人丁在农庄前庭的闲逛状态
+    const totalWorkers = Math.max(0, (p.family || 0) - (p.babiesThisRound || 0));
+    const usedWorkers = (_state.game?.placedThisRound || []).filter((id) => id === p.id).length;
+    const idleCount = Math.max(0, totalWorkers - usedWorkers);
+    const babyCount = p.babiesThisRound || 0;
+    const pColor = PLAYER_COLORS[p.seat] || "#8e2316";
+
+    // 生成闲逛米普 HTML
+    let yardHtml = "";
+    if (idleCount > 0 || babyCount > 0) {
+      const meeplesHtml = Array.from({ length: idleCount }, (_, mIdx) => `
+        <div class="farm-idle-meeple" data-idx="${mIdx}" data-pid="${p.id}" data-tip="待命家人 #${mIdx + 1} · 随时等候派工">
+          <div class="meeple-shadow"></div>
+          ${meepleSvg(pColor, 28)}
+        </div>
+      `).join("");
+      const babiesHtml = babyCount > 0 ? `
+        <div class="farm-baby-cradle" data-tip="新生儿 · 正在婴儿摇篮中休息（下轮长大成为可用劳动力）">
+          ${cradleSvg(pColor, 28)}
+        </div>
+      ` : "";
+      yardHtml = `
+        <div class="farm-idle-yard" data-pid="${p.id}" data-tip="农庄前庭 · 现有 ${idleCount} 名待命家人闲逛中">
+          <div class="yard-tag">🏡 待命家人 (${idleCount})</div>
+          <div class="yard-meeples-row">
+            ${meeplesHtml}
+            ${babiesHtml}
+          </div>
+        </div>
+      `;
+    } else {
+      yardHtml = `
+        <div class="farm-idle-yard empty-yard" data-pid="${p.id}" data-tip="农庄前庭 · 全体家人本轮皆已外出做工">
+          <div class="yard-tag dim">🏡 全员出工中 (0)</div>
+        </div>
+      `;
+    }
+
     // ★ 紧接着输出该玩家的农场卡（同一行右侧，等高等宽自适应）
     const farmCard = document.createElement("div");
     farmCard.className = "farm-card" + (_intro ? " anim-pop-in" : "") + (p.id === currentTurnId ? " is-current-turn" : "");
@@ -842,6 +881,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
         </div>
       </div>
       <div class="farm-board-wrap${_isoMode ? " mode-iso" : ""}"></div>
+      ${yardHtml}
     `;
     farmCard.querySelectorAll(".iso-toggle-btn").forEach((btn) => {
       btn.onclick = (e) => {
@@ -1205,7 +1245,7 @@ function renderSpaces(container, g, p, myTurn, kind) {
       const isStarter = p && (g.startPlayerId === p.id || p.startingPlayer);
       const holder = g.players.find(pl => pl.id === g.startPlayerId || pl.startingPlayer);
       desc = isStarter
-        ? "🚜 你当前已持有标记（下轮先动）"
+        ? "🚜 已持有标记（不可重复拿取）"
         : holder
           ? `拿走标记下轮先动（当前：${escapeHtml(holder.name)}）+1 食物`
           : "拿走起始玩家标记，下轮先动并立即 +1 食物";
@@ -1249,7 +1289,8 @@ function renderSpaces(container, g, p, myTurn, kind) {
       ? `<div class="worker-slot occupied" title="已由 ${escapeHtml(occupantName || "玩家")} 占用">${meepleSvg(occupantColor, 20)}</div>`
       : (open ? `<div class="worker-slot" title="空闲工人槽"></div>` : "");
 
-    const canAct = myTurn && open && stock > 0 && !used && !frozen;
+    const isStarterHolding = sp.id === "StartPlayer" && p && (g.startPlayerId === p.id || p.startingPlayer);
+    const canAct = myTurn && open && stock > 0 && !used && !frozen && !isStarterHolding;
     const card = document.createElement("div");
     card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "") + (!open ? " is-locked" : "") + (frozen ? " frozen" : "");
     // Buff 标注：当前视角玩家在该格取用时有职业加成 → 灰字 +1（悬浮注明来源）
@@ -1264,6 +1305,7 @@ function renderSpaces(container, g, p, myTurn, kind) {
     `;
     if (canAct) card.onclick = () => onSpaceClick(sp, p);
     else if (frozen) card.onclick = () => toast("❄️ 冬季鱼塘封冻，无法钓鱼（第 11 轮起解冻）", true);
+    else if (isStarterHolding && !used) card.onclick = () => toast("你当前已持有起始玩家标记，无需重复拿取", true);
     container.appendChild(card);
   });
 
@@ -1579,25 +1621,55 @@ function onCellClick(p, x, y, cell) {
       const roomLabel = roomNotes.length
         ? `建房间 (${roomCostTxt} <span class="buff-chip neg" data-tip="${escapeHtml(roomNotes.join('；'))}">减免</span>)`
         : `建房间 (${roomCostTxt})`;
-      opts.push({ label: roomLabel, action: () => doWithLoading(`buildRoom-${x}-${y}`, "建房间", () => sendAction({ type: "BuildRoom", x, y })) });
+      opts.push({
+        label: roomLabel,
+        action: () => doWithLoading(`buildRoom-${x}-${y}`, "建房间", () => {
+          triggerCellActionFlyEffects(x, y, p);
+          sendAction({ type: "BuildRoom", x, y });
+        }),
+      });
 
       if (!cell.stable && (p.stables || 0) < 4) {
         const hasArch = p.occupation?.id === "stableArchitect";
         const stableLabel = hasArch
           ? `造马厩 (2木 <span class="buff-chip" data-tip="「圈舍建造师」职业：建造后返还 1 木材">返1木</span>)`
           : `造马厩 (2木)`;
-        opts.push({ label: stableLabel, action: () => doWithLoading(`buildStable-${x}-${y}`, "造马厩", () => sendAction({ type: "BuildRoom", stables: [{ x, y }] })) });
+        opts.push({
+          label: stableLabel,
+          action: () => doWithLoading(`buildStable-${x}-${y}`, "造马厩", () => {
+            triggerCellActionFlyEffects(x, y, p);
+            sendAction({ type: "BuildRoom", stables: [{ x, y }] });
+          }),
+        });
       }
     }
     if (bPlow) opts.push({ label: "犁地（已占用）", disabled: true, hint: bPlow });
-    else opts.push({ label: "犁地", action: () => doWithLoading(`plow-${x}-${y}`, "犁地", () => sendAction({ type: "PlowField", x, y })) });
+    else opts.push({
+      label: "犁地",
+      action: () => doWithLoading(`plow-${x}-${y}`, "犁地", () => {
+        triggerCellActionFlyEffects(x, y, p);
+        sendAction({ type: "PlowField", x, y });
+      }),
+    });
   }
   if (cell.kind === "field" && !cell.crop) {
     const bSow = busy("SowOrBake", "撒种/烤面包");
     if (bSow) opts.push({ label: "撒种（已占用）", disabled: true, hint: bSow });
     else {
-      opts.push({ label: "撒谷", action: () => doWithLoading(`sow-g-${x}-${y}`, "撒谷种", () => sendAction({ type: "Sow", x, y, crop: "grain" })) });
-      opts.push({ label: "撒菜", action: () => doWithLoading(`sow-v-${x}-${y}`, "撒菜种", () => sendAction({ type: "Sow", x, y, crop: "vegetable" })) });
+      opts.push({
+        label: "撒谷",
+        action: () => doWithLoading(`sow-g-${x}-${y}`, "撒谷种", () => {
+          triggerCellActionFlyEffects(x, y, p);
+          sendAction({ type: "Sow", x, y, crop: "grain" });
+        }),
+      });
+      opts.push({
+        label: "撒菜",
+        action: () => doWithLoading(`sow-v-${x}-${y}`, "撒菜种", () => {
+          triggerCellActionFlyEffects(x, y, p);
+          sendAction({ type: "Sow", x, y, crop: "vegetable" });
+        }),
+      });
     }
   }
   if (opts.length === 0) return;
@@ -1612,12 +1684,24 @@ function onCellClick(p, x, y, cell) {
 
 function triggerActionFlyEffects(sp, p) {
   try {
-    const meCard = document.querySelector(".col-card.me");
+    const farmCard = document.querySelector(`.farm-card[data-pid="${p.id}"]`);
+    const idleMeeples = farmCard?.querySelectorAll(".farm-idle-meeple");
     const spaceBtn = document.querySelector(`.space[data-space="${sp.id}"]`);
     const playerIdx = _state.game?.players?.findIndex((x) => x.id === p.id) ?? 0;
     const pColor = PLAYER_COLORS[playerIdx] || "#c0392b";
-    if (meCard && spaceBtn) {
-      flyMeepleToSpace(meCard, spaceBtn, pColor);
+
+    let fromEl = null;
+    if (idleMeeples && idleMeeples.length > 0) {
+      fromEl = idleMeeples[idleMeeples.length - 1];
+      fromEl.classList.add("departing");
+    } else {
+      fromEl = document.querySelector(`.col-card[data-pid="${p.id}"] .stk[data-kind="family"]`) ||
+               document.querySelector(".col-card.me");
+    }
+
+    if (fromEl && spaceBtn) {
+      flyMeepleToSpace(fromEl, spaceBtn, pColor);
+      sfx.woodThud(1.1);
     }
     const resMap = {
       Wood: "wood", Clay: "clay", Reed: "reed", Stone: "stone",
@@ -1628,6 +1712,29 @@ function triggerActionFlyEffects(sp, p) {
       if (spaceBtn && stockEl) {
         setTimeout(() => flyTokenToStock(spaceBtn, stockEl, resMap[sp.id]), 150);
       }
+    }
+  } catch {}
+}
+
+function triggerCellActionFlyEffects(x, y, p) {
+  try {
+    const farmCard = document.querySelector(`.farm-card[data-pid="${p.id}"]`);
+    const targetCell = farmCard?.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+    const idleMeeples = farmCard?.querySelectorAll(".farm-idle-meeple");
+    const playerIdx = _state.game?.players?.findIndex((x) => x.id === p.id) ?? 0;
+    const pColor = PLAYER_COLORS[playerIdx] || "#c0392b";
+
+    let fromEl = null;
+    if (idleMeeples && idleMeeples.length > 0) {
+      fromEl = idleMeeples[idleMeeples.length - 1];
+      fromEl.classList.add("departing");
+    } else {
+      fromEl = document.querySelector(`.col-card[data-pid="${p.id}"] .stk[data-kind="family"]`);
+    }
+
+    if (fromEl && targetCell) {
+      flyMeepleToSpace(fromEl, targetCell, pColor);
+      sfx.woodThud(1.0);
     }
   } catch {}
 }

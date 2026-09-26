@@ -21,6 +21,13 @@
   <img src="https://img.shields.io/badge/maintainer-active-success?style=flat-square" alt="Maintainer"/>
 </p>
 
+<p align="center">
+  <a href="screenshots/preview-day.png"><img src="screenshots/preview-day.png" width="48%" alt="日间模式预览"/></a>
+  &nbsp;
+  <a href="screenshots/preview-night.png"><img src="screenshots/preview-night.png" width="48%" alt="夜间模式预览"/></a>
+</p>
+<p align="center"><sub>☀️ 日间模式 &nbsp;·&nbsp; 🌙 夜间模式 &nbsp;·&nbsp; 均为 2.5D 立体沙盘视角下的实际对局画面</sub></p>
+
 🚀 立即试玩（请参考下方部署步骤自建实例） · [📖 玩法手册](#-游戏特色) · [🛠️ 本地开发](#-本地开发与测试) · [🐛 提 Issue](https://github.com/agricola-app/issues)
 
 </div>

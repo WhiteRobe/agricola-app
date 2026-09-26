@@ -1185,8 +1185,16 @@ function buildFences(g: GameState, p: PlayerState, a: EngineAction): ActionResul
   }
   const cost = (added.length - freeSegs) * FENCE_COST_WOOD;
   if (p.resources.wood < cost) return { ok: false, msg: `需要 ${cost} 木头` };
-  // 验证：必须是围出矩形牧场
-  const v = validateEnclosure(FARM_W, FARM_H, baseEdges, added.map((e) => edgeId(e.kind, e.x, e.y)));
+  // 验证：必须是围出封闭牧场（且内部农田/房屋用栅栏隔开）
+  const blocked = new Set<string>();
+  for (let y = 0; y < FARM_H; y++) {
+    for (let x = 0; x < FARM_W; x++) {
+      if (p.grid[y][x].kind === "room" || p.grid[y][x].kind === "field") {
+        blocked.add(`${x},${y}`);
+      }
+    }
+  }
+  const v = validateEnclosure(FARM_W, FARM_H, baseEdges, added.map((e) => edgeId(e.kind, e.x, e.y)), blocked);
   if (!v.ok) return { ok: false, msg: v.reason || "栅栏布局非法" };
   // 扣资源 & 应用
   p.resources.wood -= cost;

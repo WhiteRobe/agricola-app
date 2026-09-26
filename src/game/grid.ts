@@ -153,7 +153,34 @@ export function computePastures(W: number, H: number, edges: FenceEdges, blocked
         q.push(nkey);
       }
     }
-    pastures.push({ cells, rects: isSingleRectangle(cells) });
+
+    // 封闭性检验：牧场内任意格子面向农场内非本格区域（如农田、房间、未封闭空地）的边，必须建有栅栏阻隔
+    const cellSet = new Set(cells);
+    let isFullyFenced = true;
+    for (const cur of cells) {
+      const [cx, cy] = cur.split(",").map(Number);
+      const bounds: [number, number, "h" | "v", number, number][] = [
+        [cx, cy - 1, "h", cx, cy],
+        [cx, cy + 1, "h", cx, cy + 1],
+        [cx - 1, cy, "v", cx, cy],
+        [cx + 1, cy, "v", cx + 1, cy],
+      ];
+      for (const [nx, ny, via, ex, ey] of bounds) {
+        const nkey = `${nx},${ny}`;
+        // 如果邻居在农场内，但不属于同一个牧场（如农田、房屋、荒地），则该边必须有栅栏
+        if (nx >= 0 && nx < W && ny >= 0 && ny < H && !cellSet.has(nkey)) {
+          if (!hasEdge(edges, via, ex, ey)) {
+            isFullyFenced = false;
+            break;
+          }
+        }
+      }
+      if (!isFullyFenced) break;
+    }
+
+    if (isFullyFenced) {
+      pastures.push({ cells, rects: isSingleRectangle(cells) });
+    }
   }
   return pastures;
 }
@@ -172,8 +199,8 @@ export function isSingleRectangle(cells: string[]): boolean {
 /** 栅栏合法性校验：
  *  1. 每一段新增栅栏必须贴着某个围合区域的边界（不许有悬空的栅栏段）；
  *  2. 官方规则：牧场只要由栅栏（及农场地界）完全围闭，可以是任意形状（矩形、L型、T型、多边形等）。 */
-export function validateEnclosure(W: number, H: number, edges: FenceEdges, addedIds: string[]): { ok: boolean; reason?: string } {
-  const pastures = computePastures(W, H, edges, new Set());
+export function validateEnclosure(W: number, H: number, edges: FenceEdges, addedIds: string[], blocked: Set<string> = new Set()): { ok: boolean; reason?: string } {
+  const pastures = computePastures(W, H, edges, blocked);
 
   // 围合区域边界上的所有栅栏段 id
   const boundary = new Set<string>();
@@ -192,7 +219,7 @@ export function validateEnclosure(W: number, H: number, edges: FenceEdges, added
   }
 
   for (const id of addedIds) {
-    if (!boundary.has(id)) return { ok: false, reason: "栅栏必须围成完整的牧场，不能有悬空段" };
+    if (!boundary.has(id)) return { ok: false, reason: "栅栏必须围成完整的封闭牧场（内部农田/房屋需用栅栏隔开），不能有悬空未封闭段" };
   }
   return { ok: true };
 }

@@ -682,6 +682,45 @@ export function renderGame(root, s, me, conn) {
   }
 }
 
+// ---- 庄园工坊侧翼设施元数据 ----
+const MAJOR_WING_MAP = {
+  fireplace: { name: "壁炉", art: "Fireplace_2", vp: 1, action: "cook" },
+  fireplaceBig: { name: "大壁炉", art: "Fireplace_3", vp: 1, action: "cook" },
+  cookingHearth: { name: "烹饪灶", art: "CookingHearth_4", vp: 1, action: "cook" },
+  cookingHearthBig: { name: "大烹饪灶", art: "CookingHearth_5", vp: 1, action: "cook" },
+  clayOven: { name: "陶土烤炉", art: "ClayOven", vp: 2, action: "bake" },
+  stoneOven: { name: "石头烤炉", art: "StoneOven", vp: 3, action: "bake" },
+  well: { name: "水井", art: "Well", vp: 4 },
+  joinery: { name: "木工坊", art: "Joinery", vp: 2, action: "cook" },
+  pottery: { name: "陶器坊", art: "Pottery", vp: 2, action: "cook" },
+  basket: { name: "编筐坊", art: "BasketmakersWorkshop", vp: 2, action: "cook" },
+  heatingStove: { name: "取暖炉", art: "Fireplace_2", vp: 2 },
+  peatKiln: { name: "泥炭窑", art: "ClayOven", vp: 2 },
+  moorCook: { name: "沼泽灶", art: "CookingHearth_4", vp: 3, action: "cook" },
+  tileOven: { name: "瓷砖烤炉", art: "ClayOven", vp: 3, action: "bake" },
+  firewood: { name: "柴火棚", art: "BasketmakersWorkshop", vp: 2 },
+};
+
+function renderWingPlot(impId, isMe) {
+  const info = MAJOR_WING_MAP[impId];
+  if (!info) return "";
+  let actionBtn = "";
+  if (isMe && info.action === "cook") {
+    actionBtn = `<button class="btn ghost xsmall wing-act-btn" data-wing-cook="${impId}" type="button">🍳 烹饪</button>`;
+  } else if (info.action === "bake") {
+    actionBtn = `<span class="wing-tag">🍞 烤面包</span>`;
+  }
+  return `
+    <div class="estate-workshop-plot" data-imp="${impId}" data-tip="${info.name} · 提供 ${info.vp} 胜利点">
+      <div class="workshop-art">${majorImprovementSvg(info.art, 32)}</div>
+      <div class="workshop-info">
+        <div class="workshop-name"><b>${info.name}</b><span class="vp-seal">${info.vp}</span></div>
+        ${actionBtn}
+      </div>
+    </div>
+  `;
+}
+
 // ---- 玩家 stock + farm：每个玩家输出一行（同一 grid 行内两张卡自动等高）----
 function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlayer) {
   host.innerHTML = "";
@@ -865,6 +904,19 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
       `;
     }
 
+    // 计算大改进在庄园左右侧翼的分布（宽屏桌面端充分利用两旁空白）
+    const validImps = (p.improvements || []).filter(id => MAJOR_WING_MAP[id]);
+    const leftImps = validImps.filter((_, idx) => idx % 2 === 0);
+    const rightImps = validImps.filter((_, idx) => idx % 2 === 1);
+
+    const leftPlotsHtml = leftImps.length > 0
+      ? leftImps.map(id => renderWingPlot(id, isMe)).join("")
+      : `<div class="wing-empty-slot"><span class="wing-fence-ico">🪵</span><span class="wing-empty-tip">西工坊位</span></div>`;
+
+    const rightPlotsHtml = rightImps.length > 0
+      ? rightImps.map(id => renderWingPlot(id, isMe)).join("")
+      : `<div class="wing-empty-slot"><span class="wing-fence-ico">🪵</span><span class="wing-empty-tip">东工坊位</span></div>`;
+
     // ★ 紧接着输出该玩家的农场卡（同一行右侧，等高等宽自适应）
     const farmCard = document.createElement("div");
     farmCard.className = "farm-card" + (_intro ? " anim-pop-in" : "") + (p.id === currentTurnId ? " is-current-turn" : "");
@@ -880,13 +932,30 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
           <button class="btn ghost small iso-toggle-btn${_isoMode ? " active" : ""}" type="button" title="切换 2D 平铺 / 2.5D 透视视角">${_isoMode ? "📐 2.5D" : "📋 2D"}</button>
         </div>
       </div>
-      <div class="farm-board-wrap${_isoMode ? " mode-iso" : ""}"></div>
+      <div class="farm-stage-container">
+        <aside class="estate-wing wing-left">
+          <div class="wing-head-tag">庄园工坊 · 西</div>
+          <div class="wing-plots">${leftPlotsHtml}</div>
+        </aside>
+        <div class="farm-board-wrap${_isoMode ? " mode-iso" : ""}"></div>
+        <aside class="estate-wing wing-right">
+          <div class="wing-head-tag">庄园工坊 · 东</div>
+          <div class="wing-plots">${rightPlotsHtml}</div>
+        </aside>
+      </div>
       ${yardHtml}
     `;
     farmCard.querySelectorAll(".iso-toggle-btn").forEach((btn) => {
       btn.onclick = (e) => {
         e.stopPropagation();
         toggleIsoMode();
+      };
+    });
+    // 侧翼工坊烹饪按钮快速调用
+    farmCard.querySelectorAll(".wing-act-btn").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        openCookModal(btn.dataset.wingCook);
       };
     });
     renderFarm(farmCard.querySelector(".farm-board-wrap"), p, isMyFarm && myTurn);
@@ -1025,6 +1094,115 @@ function applyMobileTabVisibility() {
   if (actionBoard) actionBoard.style.display = (activeTab === "common" ? "block" : "none");
 }
 
+/**
+ * 精确计算整个农庄的真实动物空间分布：
+ *   1. 牧场各格子分配（每格上限 2 只，马厩 4 只，同一牧场同种动物，按实际总只数填满各格）
+ *   2. 独立马厩（未圈栅栏的圈舍，每座可养 1 只任意动物）
+ *   3. 室内宠物（农舍可免费寄养 1 只任意动物）
+ */
+function computeFarmAnimalLayout(p) {
+  const cellAnimals = {}; // "x,y" -> { type: "sheep"|"boar"|"cattle", count: number, cap: number }
+  const remaining = {
+    sheep: p.animals.sheep || 0,
+    boar: p.animals.boar || 0,
+    cattle: p.animals.cattle || 0,
+  };
+
+  // 1. 各牧场按格子容量真实分配动物（牧场专一放养同种动物）
+  for (const pst of (p.pastures || [])) {
+    const aType = pst.animal;
+    if (!aType || !remaining[aType]) continue;
+
+    for (const cKey of pst.cells) {
+      const [cx, cy] = cKey.split(",").map(Number);
+      const isStable = p.grid[cy]?.[cx]?.stable;
+      const cap = isStable ? 4 : 2;
+      const alloc = Math.min(cap, remaining[aType]);
+      cellAnimals[cKey] = { type: aType, count: alloc, cap, hasStable: isStable };
+      remaining[aType] -= alloc;
+    }
+  }
+
+  // 2. 独立马厩（未圈进牧场的马厩）：每座可单独容纳 1 只任意动物
+  const pastureCells = new Set((p.pastures || []).flatMap(ps => ps.cells));
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 3; x++) {
+      const key = `${x},${y}`;
+      if (p.grid[y][x].stable && !pastureCells.has(key)) {
+        const aType = ["cattle", "boar", "sheep"].find(t => remaining[t] > 0);
+        if (aType) {
+          cellAnimals[key] = { type: aType, count: 1, cap: 1, isSoloStable: true };
+          remaining[aType] -= 1;
+        }
+      }
+    }
+  }
+
+  // 3. 室内宠物（House Pet）：每家农舍可免费寄养 1 只任意动物
+  let housePet = null;
+  const petType = ["cattle", "boar", "sheep"].find(t => remaining[t] > 0);
+  if (petType) {
+    housePet = { type: petType, count: 1 };
+    remaining[petType] -= 1;
+  }
+
+  return { cellAnimals, housePet };
+}
+
+/**
+ * 根据格内实际动物数量（1~4 只）精准渲染多动物真实分布
+ */
+function renderCellAnimals(aType, count, cellSize, hasStable, isWinter) {
+  if (count <= 0) {
+    if (hasStable) {
+      return `<div class="pasture-animal-wrap">${stableSvg(true, isWinter, Math.round(cellSize * 0.65))}<span class="pasture-empty">马厩(4×)</span></div>`;
+    }
+    return `<span class="pasture-empty">牧场</span>`;
+  }
+  const stableSub = hasStable
+    ? `<div class="pasture-stable-sub">${stableSvg(true, isWinter, Math.round(cellSize * 0.40))}</div>`
+    : "";
+
+  if (count === 1) {
+    return `<div class="pasture-animal-wrap count-1">
+      ${animalSvg(aType, Math.round(cellSize * 0.62))}
+      ${stableSub}
+    </div>`;
+  }
+  if (count === 2) {
+    const s = Math.round(cellSize * 0.48);
+    return `<div class="pasture-animal-wrap count-2">
+      <div class="animal-pair">
+        <div class="animal-sub item-1">${animalSvg(aType, s)}</div>
+        <div class="animal-sub item-2">${animalSvg(aType, s)}</div>
+      </div>
+      ${stableSub}
+    </div>`;
+  }
+  if (count === 3) {
+    const s = Math.round(cellSize * 0.42);
+    return `<div class="pasture-animal-wrap count-3">
+      <div class="animal-trio">
+        <div class="animal-sub item-1">${animalSvg(aType, s)}</div>
+        <div class="animal-sub item-2">${animalSvg(aType, s)}</div>
+        <div class="animal-sub item-3">${animalSvg(aType, s)}</div>
+      </div>
+      ${stableSub}
+    </div>`;
+  }
+  // count >= 4 (马厩满载)
+  const s = Math.round(cellSize * 0.38);
+  return `<div class="pasture-animal-wrap count-4">
+    <div class="animal-quad">
+      <div class="animal-sub item-1">${animalSvg(aType, s)}</div>
+      <div class="animal-sub item-2">${animalSvg(aType, s)}</div>
+      <div class="animal-sub item-3">${animalSvg(aType, s)}</div>
+      <div class="animal-sub item-4">${animalSvg(aType, s)}</div>
+    </div>
+    ${stableSub}
+  </div>`;
+}
+
 // ---- 农场渲染 ----
 function renderFarm(wrap, p, myTurn) {
   wrap.innerHTML = "";
@@ -1035,18 +1213,40 @@ function renderFarm(wrap, p, myTurn) {
   board.style.setProperty("--cell", cellSize + "px");
   const isWinter = seasonOfRound(_state?.game?.round || 1) === "winter";
 
+  // 预先计算全农庄真实动物空间分布（每格实际数量、独立马厩动物、农舍宠物）
+  const { cellAnimals, housePet } = computeFarmAnimalLayout(p);
+  const anNames = { sheep: "绵羊", boar: "野猪", cattle: "黄牛" };
+
+  // 选定第一间房屋作为展示室内宠物的专属位置
+  let firstRoomKey = null;
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 3; x++) {
+      if (p.grid[y][x].kind === "room" && !firstRoomKey) firstRoomKey = `${x},${y}`;
+    }
+  }
+
   for (let y = 0; y < 5; y++) for (let x = 0; x < 3; x++) {
     const cell = p.grid[y][x];
-    const pasture = (p.pastures || []).find(ps => ps.cells.includes(`${x},${y}`));
+    const key = `${x},${y}`;
+    const pasture = (p.pastures || []).find(ps => ps.cells.includes(key));
+    const alloc = cellAnimals[key];
     const el = document.createElement("div");
     el.className = "cell hoverable";
     let html = "";
     if (cell.kind === "room") {
       el.classList.add("cell-room");
-      // roomTileSvg 返回的是 CSS background-image 值（url("data:...")），必须内联到样式而不是 innerHTML
       el.style.backgroundImage = roomTileSvg(p.roomType);
+      const isPetHouse = key === firstRoomKey && housePet;
       html = `
-        <div class="room-model-wrap">${roomModelSvg(p.roomType, isWinter, Math.round(cellSize * 1.05))}</div>
+        <div class="room-model-wrap">
+          ${roomModelSvg(p.roomType, isWinter, Math.round(cellSize * 1.05))}
+          ${isPetHouse ? `
+            <div class="house-pet-wrap" data-tip="🏡 室内宠物 · 寄养在农舍里的${anNames[housePet.type]}（免圈舍）">
+              ${animalSvg(housePet.type, Math.round(cellSize * 0.44))}
+              <span class="pet-badge">宠物</span>
+            </div>
+          ` : ""}
+        </div>
         <div class="room-plate"><span class="room-plate-tag">${houseLabel(p.roomType)}</span></div>
       `;
     } else if (cell.kind === "field") {
@@ -1056,16 +1256,22 @@ function renderFarm(wrap, p, myTurn) {
       if (pasture) {
         el.classList.add("cell-pasture");
         if (cell.stable) el.classList.add("has-stable");
-        if (pasture.animal) {
-          html = `<div class="pasture-animal-wrap">${animalSvg(pasture.animal, Math.round(cellSize * 0.58))}${cell.stable ? `<div class="pasture-stable-sub">${stableSvg(true, isWinter, Math.round(cellSize * 0.42))}</div>` : ""}</div>`;
-        } else if (cell.stable) {
-          html = `<div class="pasture-animal-wrap">${stableSvg(true, isWinter, Math.round(cellSize * 0.65))}<span class="pasture-empty">马厩(2×)</span></div>`;
-        } else {
-          html = `<span class="pasture-empty">牧场</span>`;
-        }
+        const aCount = alloc?.count || 0;
+        const aType = alloc?.type || pasture.animal;
+        html = renderCellAnimals(aType, aCount, cellSize, cell.stable, isWinter);
       } else if (cell.stable) {
         el.classList.add("cell-stable-solo");
-        html = `<div class="solo-stable-wrap">${stableSvg(false, isWinter, Math.round(cellSize * 0.68))}<span class="stable-plate-tag">圈舍</span></div>`;
+        if (alloc && alloc.count > 0) {
+          html = `
+            <div class="solo-stable-wrap has-animal">
+              ${stableSvg(false, isWinter, Math.round(cellSize * 0.65))}
+              <div class="stable-animal-sub">${animalSvg(alloc.type, Math.round(cellSize * 0.48))}</div>
+              <span class="stable-plate-tag">圈舍 · ${anNames[alloc.type]}</span>
+            </div>
+          `;
+        } else {
+          html = `<div class="solo-stable-wrap">${stableSvg(false, isWinter, Math.round(cellSize * 0.68))}<span class="stable-plate-tag">圈舍</span></div>`;
+        }
       } else {
         el.classList.add("cell-empty");
         html = emptySoilSvg();
@@ -1077,16 +1283,20 @@ function renderFarm(wrap, p, myTurn) {
     let tip = `坐标 (${x}, ${y}) · ${kindNames[cell.kind] || cell.kind}`;
     if (cell.stable) {
       tip += pasture
-        ? " · 封闭马厩（容纳上限翻倍）"
+        ? " · 封闭马厩（容纳上限翻倍至 4 只）"
         : " · 独栋圈舍（可单独放牧 1 只宠物）";
+    }
+    if (cell.kind === "room" && key === firstRoomKey && housePet) {
+      tip += ` · 寄养室内宠物：${anNames[housePet.type]} ×1`;
     }
     if (cell.kind === "field") {
       if (cell.crop) tip += ` · 已播种${cropNames[cell.crop] || cell.crop}（剩余收割次数：${cell.markers ?? 0} 次）`;
       else tip += " · 闲置田（可播种）";
     }
     if (pasture) {
-      const anNames = { sheep: "绵羊", boar: "野猪", cattle: "黄牛" };
-      tip += ` · 牧场${pasture.animal ? `（放牧 ${anNames[pasture.animal] || pasture.animal}）` : "（空闲）"}`;
+      const aCount = alloc?.count || 0;
+      const aType = alloc?.type || pasture.animal;
+      tip += ` · 牧场${aCount > 0 ? `（放牧 ${anNames[aType] || aType} ×${aCount}）` : "（空闲容量）"}`;
     }
     el.title = tip;
     el.dataset.x = x; el.dataset.y = y;
@@ -1095,7 +1305,6 @@ function renderFarm(wrap, p, myTurn) {
 
     if (prevPlayer && prevPlayer.grid && prevPlayer.grid[y] && prevPlayer.grid[y][x]) {
       const prevCell = prevPlayer.grid[y][x];
-      const key = `${x},${y}`;
       const nowSown = (cell.kind === "field" && !!cell.crop && !prevCell.crop);
       const cropChanged = (prevCell.crop !== cell.crop) && cell.crop;
       const pastureNow = (p.pastures.find(ps => ps.cells.includes(key)));

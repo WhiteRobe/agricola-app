@@ -1118,54 +1118,62 @@ function renderFarm(wrap, p, myTurn) {
   const step = cellSize + GAP;
   const editable = myTurn && _fenceMode;
   if (editable) fence.classList.add("editing");
-  for (let y = 0; y < 5; y++) for (let x = 0; x < 3; x++) {
-    // ---- 上边 h[y][x] ----
-    const h = document.createElement("div");
-    h.className = "seg fh";
-    const hadH = prevEdges ? prevEdges.h[y][x] === true : false;
-    const nowH = p.edges.h[y][x] === true;
-    if (nowH && !hadH) queueFenceDraw(h);
-    if (nowH) {
-      h.classList.add("built");
-      h.innerHTML = fenceRailSvg("h", cellSize);
+
+  // 1. 横向栅栏段 h[y][x]: y 从 0 到 5 (共 6 排), x 从 0 到 2 (共 3 列)
+  for (let y = 0; y <= 5; y++) {
+    for (let x = 0; x < 3; x++) {
+      const h = document.createElement("div");
+      h.className = "seg fh";
+      const hadH = prevEdges ? prevEdges.h[y]?.[x] === true : false;
+      const nowH = p.edges.h[y]?.[x] === true;
+      if (nowH && !hadH) queueFenceDraw(h);
+      if (nowH) {
+        h.classList.add("built");
+        h.innerHTML = fenceRailSvg("h", cellSize);
+      }
+      if (_selFences.has(`h${x},${y}`)) h.classList.add("sel");
+      // 段厚 14px，居中于格边
+      h.style.left = (x * step) + "px";
+      h.style.top = (y * step - 7) + "px";
+      h.dataset.edge = `h${x},${y}`;
+      h.title = `横向栅栏 h${x},${y}`;
+      // 已建好的栅栏不能再选（规则：栅栏不可拆除）
+      if (editable && !nowH) h.onclick = (e) => { e.stopPropagation(); toggleFence("h", x, y); };
+      fence.appendChild(h);
     }
-    if (_selFences.has(`h${x},${y}`)) h.classList.add("sel");
-    // 段厚 14px，居中于格边（top edge of cell y）
-    h.style.left = (x * step) + "px";
-    h.style.top = (y * step - 7) + "px";
-    h.dataset.edge = `h${x},${y}`;
-    h.title = `横向栅栏 h${x},${y}`;
-    // 已建好的栅栏不能再选（规则：栅栏不可拆除）
-    if (editable && !nowH) h.onclick = (e) => { e.stopPropagation(); toggleFence("h", x, y); };
-    fence.appendChild(h);
-    // ---- 左边 v[y][x] ----
-    const v = document.createElement("div");
-    v.className = "seg fv";
-    const hadV = prevEdges ? prevEdges.v[y][x] === true : false;
-    const nowV = p.edges.v[y][x] === true;
-    if (nowV && !hadV) queueFenceDraw(v);
-    if (nowV) {
-      v.classList.add("built");
-      v.innerHTML = fenceRailSvg("v", cellSize);
+  }
+
+  // 2. 纵向栅栏段 v[y][x]: y 从 0 到 4 (共 5 排), x 从 0 到 3 (共 4 列)
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x <= 3; x++) {
+      const v = document.createElement("div");
+      v.className = "seg fv";
+      const hadV = prevEdges ? prevEdges.v[y]?.[x] === true : false;
+      const nowV = p.edges.v[y]?.[x] === true;
+      if (nowV && !hadV) queueFenceDraw(v);
+      if (nowV) {
+        v.classList.add("built");
+        v.innerHTML = fenceRailSvg("v", cellSize);
+      }
+      if (_selFences.has(`v${x},${y}`)) v.classList.add("sel");
+      v.style.left = (x * step - 7) + "px";
+      v.style.top = (y * step) + "px";
+      v.dataset.edge = `v${x},${y}`;
+      v.title = `纵向栅栏 v${x},${y}`;
+      // 已建好的栅栏不能再选（规则：栅栏不可拆除）
+      if (editable && !nowV) v.onclick = (e) => { e.stopPropagation(); toggleFence("v", x, y); };
+      fence.appendChild(v);
     }
-    if (_selFences.has(`v${x},${y}`)) v.classList.add("sel");
-    v.style.left = (x * step - 7) + "px";
-    v.style.top = (y * step) + "px";
-    v.dataset.edge = `v${x},${y}`;
-    v.title = `纵向栅栏 v${x},${y}`;
-    // 已建好的栅栏不能再选（规则：栅栏不可拆除）
-    if (editable && !nowV) v.onclick = (e) => { e.stopPropagation(); toggleFence("v", x, y); };
-    fence.appendChild(v);
   }
 
   // 栅栏地桩立柱 (Fence Posts) 在网格交汇顶点（4x6 = 24 处）
   for (let vy = 0; vy <= 5; vy++) {
     for (let vx = 0; vx <= 3; vx++) {
       const isConnectedBuilt = (
-        (vx < 3 && vy < 5 && p.edges.h[vy] && p.edges.h[vy][vx]) ||
-        (vx > 0 && vy < 5 && p.edges.h[vy] && p.edges.h[vy][vx - 1]) ||
-        (vy < 5 && vx < 3 && p.edges.v[vy] && p.edges.v[vy][vx]) ||
-        (vy > 0 && vx < 3 && p.edges.v[vy - 1] && p.edges.v[vy - 1][vx])
+        (vx < 3 && vy <= 5 && p.edges.h[vy] && p.edges.h[vy][vx]) ||
+        (vx > 0 && vy <= 5 && p.edges.h[vy] && p.edges.h[vy][vx - 1]) ||
+        (vy < 5 && vx <= 3 && p.edges.v[vy] && p.edges.v[vy][vx]) ||
+        (vy > 0 && vx <= 3 && p.edges.v[vy - 1] && p.edges.v[vy - 1][vx])
       );
       if (isConnectedBuilt) {
         const post = document.createElement("div");

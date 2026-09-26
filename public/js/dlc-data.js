@@ -142,4 +142,9 @@ export const MINOR_IMPROVEMENTS = [
   { id: "mi.spade", name: "铁锹", icon: "⛏️", effect: "一次性：立刻免费犁 1 块田", cost: { wood: 1 }, oneShot: true },
   { id: "mi.woolBlanket", name: "羊毛毯", icon: "🧣", effect: "一次性：若拥有 ≥1 绵羊获得 3 食物", cost: { reed: 1 }, oneShot: true },
   { id: "mi.manure", name: "堆肥", icon: "🍂", effect: "一次性：若至少有 2 种牲畜，立即获得 1 谷物 + 1 蔬菜", cost: {}, oneShot: true },
+  { id: "mi.forestBasket", name: "林间采集篮", icon: "🧺", effect: "一次性：立即获得 1 木材 + 1 食物", cost: { reed: 1 }, oneShot: true },
+  { id: "mi.claySieve", name: "淘泥筛", icon: "🪣", effect: "一次性：立即获得 1 陶土 + 1 芦苇", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.seedPouch", name: "留种袋", icon: "🌱", effect: "一次性：立即获得 1 谷物", cost: { reed: 1 }, oneShot: true },
+  { id: "mi.fieldLunch", name: "田间便当", icon: "🍱", effect: "一次性：立即获得 2 食物", cost: { grain: 1 }, oneShot: true },
+  { id: "mi.stoneBasket", name: "石料背篓", icon: "🪨", effect: "一次性：立即获得 1 石材", cost: { wood: 1 }, oneShot: true },
 ];

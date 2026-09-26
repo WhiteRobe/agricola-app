@@ -1542,8 +1542,39 @@ function useMinorImmediate(g: GameState, p: PlayerState, card: MinorImprovement)
     case "mi.bigBarn":
       p.resources.grain += 1; p.resources.vegetable += 1;
       pushLog(g, `🏚 「${p.name}」使用了「${card.name}」+1 谷物 +1 蔬菜`); break;
+    case "mi.clayHut":
+      p.resources.clay += 2; break;
+    case "mi.woodCart":
+      p.resources.wood += 2; break;
+    case "mi.reedPond":
+      p.resources.reed += 2; break;
+    case "mi.cornStore":
+      p.resources.grain += 2; break;
+    case "mi.vegGarden":
+      p.resources.vegetable += 1; break;
+    case "mi.woolBlanket":
+      if (p.animals.sheep >= 1) p.food += 3;
+      break;
+    case "mi.manure":
+      if ([p.animals.sheep, p.animals.boar, p.animals.cattle].filter(n => n > 0).length >= 2) {
+        p.resources.grain += 1; p.resources.vegetable += 1;
+      }
+      break;
+    case "mi.forestBasket":
+      p.resources.wood += 1; p.food += 1; break;
+    case "mi.claySieve":
+      p.resources.clay += 1; p.resources.reed += 1; break;
+    case "mi.seedPouch":
+      p.resources.grain += 1; break;
+    case "mi.fieldLunch":
+      p.food += 2; break;
+    case "mi.stoneBasket":
+      p.resources.stone += 1; break;
     default:
-      pushLog(g, `🎴 「${p.name}」使用了「${card.icon} ${card.name}」：${card.effect}`);
+      break;
+  }
+  if (!["mi.well", "mi.market", "mi.cookHelper", "mi.bigBarn"].includes(card.id)) {
+    pushLog(g, `🎴 「${p.name}」使用了「${card.icon} ${card.name}」：${card.effect}`);
   }
   const i = (g.minorImprovementCards || []).findIndex((c) => c.id === card.id);
   if (i >= 0) g.minorImprovementCards!.splice(i, 1);

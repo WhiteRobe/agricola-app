@@ -1,6 +1,6 @@
 // ============================================================
 // DLC 数据：职业（Occupations）+ 小发展卡（Minor Improvements）
-// 数据来源：Uwe Rosenberg 设计 / Hasbro & Lookout Games 出版
+// 受 Agricola 玩法启发的自定义卡牌数据
 //   - 修订版 + 家庭变体兼容（不依赖职业/小发展卡的规则照样能玩）
 //   - 每张卡 1 个核心效果，UI 把效果文本化
 // 实现目标：精简子集（先 18 张职业 + 12 张小发展卡）覆盖主流流派，
@@ -58,7 +58,7 @@ export interface MinorImprovement {
   oneShot?: boolean;
 }
 
-// ---- 职业：88 张完整官方经典卡池，覆盖「基础资源/农耕种植/牲畜畜牧/建造翻修/饮食烹饪/家庭运营/终局声望」----
+// ---- 职业：88 张自定义卡池，覆盖「基础资源/农耕种植/牲畜畜牧/建造翻修/饮食烹饪/家庭运营/终局声望」----
 export const OCCUPATIONS: Occupation[] = [
   // ==========================================
   // 1. 基础资源流派（15 张）
@@ -177,7 +177,7 @@ export const OCCUPATIONS: Occupation[] = [
   { id: "philanthropist", name: "慈善家", icon: "💖", category: "scoring", categoryZh: "终局声望", effect: "终局计分：食物储备 ≥5 且无乞讨额外 +3 分", flavor: "富足康宁慷慨济贫的大善之家" },
 ];
 
-// ---- 小发展卡：24 张官方经典子集，涵盖永久加成 / 一次性奖励 / 基础构筑 ----
+// ---- 小发展卡：至少 29 张，供四人各发 7 张并保留公共卡 ----
 export const MINOR_IMPROVEMENTS: MinorImprovement[] = [
   { id: "mi.well", name: "微型井", icon: "🪣", effect: "一次性：立刻获得 1 食物", cost: { wood: 1 }, oneShot: true },
   { id: "mi.beehive", name: "蜂箱", icon: "🍯", effect: "永久：每次收获阶段额外 +1 食物", cost: { wood: 1, reed: 1 } },
@@ -203,6 +203,11 @@ export const MINOR_IMPROVEMENTS: MinorImprovement[] = [
   { id: "mi.spade", name: "铁锹", icon: "⛏️", effect: "一次性：立刻免费犁 1 块田", cost: { wood: 1 }, oneShot: true },
   { id: "mi.woolBlanket", name: "羊毛毯", icon: "🧣", effect: "一次性：若拥有 ≥1 绵羊获得 3 食物", cost: { reed: 1 }, oneShot: true },
   { id: "mi.manure", name: "堆肥", icon: "🍂", effect: "一次性：若至少有 2 种牲畜，立即获得 1 谷物 + 1 蔬菜", cost: {}, oneShot: true },
+  { id: "mi.forestBasket", name: "林间采集篮", icon: "🧺", effect: "一次性：立即获得 1 木材 + 1 食物", cost: { reed: 1 }, oneShot: true },
+  { id: "mi.claySieve", name: "淘泥筛", icon: "🪣", effect: "一次性：立即获得 1 陶土 + 1 芦苇", cost: { wood: 1 }, oneShot: true },
+  { id: "mi.seedPouch", name: "留种袋", icon: "🌱", effect: "一次性：立即获得 1 谷物", cost: { reed: 1 }, oneShot: true },
+  { id: "mi.fieldLunch", name: "田间便当", icon: "🍱", effect: "一次性：立即获得 2 食物", cost: { grain: 1 }, oneShot: true },
+  { id: "mi.stoneBasket", name: "石料背篓", icon: "🪨", effect: "一次性：立即获得 1 石材", cost: { wood: 1 }, oneShot: true },
 ];
 
 /** 抽 n 张不重复的卡（Fisher-Yates，引擎内使用） */

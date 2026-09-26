@@ -592,6 +592,13 @@
   box-shadow: none !important;
   filter: drop-shadow(-3px 5px 4px rgba(25, 12, 4, 0.48));
 }
+.mode-iso .fence-layer.editing .seg {
+  transform: translateZ(4px);
+}
+.mode-iso .fence-layer .seg.sel {
+  transform: translateZ(7px);
+  border-radius: 4px;
+}
 .fence-rail-svg {
   display: block;
   overflow: visible;

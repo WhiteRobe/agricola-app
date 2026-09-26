@@ -21,7 +21,7 @@
   <img src="https://img.shields.io/badge/maintainer-active-success?style=flat-square" alt="Maintainer"/>
 </p>
 
-[🚀 立即试玩](https://farm.whiterobe.top) · [📖 玩法手册](#-游戏特色) · [🛠️ 本地开发](#-本地开发与测试) · [🐛 提 Issue](https://github.com/agricola-app/issues)
+🚀 立即试玩（请参考下方部署步骤自建实例） · [📖 玩法手册](#-游戏特色) · [🛠️ 本地开发](#-本地开发与测试) · [🐛 提 Issue](https://github.com/agricola-app/issues)
 
 </div>
 
@@ -306,7 +306,7 @@ npm run deploy
 ```
 
 > [!TIP]
-> 默认路由配置在 `wrangler.jsonc` 中指向自定义域名 `farm.whiterobe.top`，部署前请按需调整。
+> 默认路由配置在 `wrangler.jsonc` 的 `routes` 字段中声明，部署前请按需调整为你自己的自定义域名。
 
 ---
 

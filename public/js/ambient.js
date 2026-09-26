@@ -226,6 +226,7 @@ export function initAmbientCanvas() {
     _canvas.className = "ambient-canvas";
     document.body.prepend(_canvas);
   }
+  _canvas.setAttribute("aria-hidden", "true");
 
   _ctx = _canvas.getContext("2d", { alpha: true });
   window.addEventListener("resize", resizeCanvas, { passive: true });

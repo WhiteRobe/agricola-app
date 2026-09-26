@@ -513,7 +513,6 @@
   display: none; /* 2.5D模式下已有立体木屋/陶屋/石屋模型，省略死板黑标签 */
 }
 .mode-iso .cell.cell-field {
-  transform: translateZ(-2px);
   background: #38200b !important;
   box-shadow: inset -2px 3px 6px rgba(15, 8, 3, 0.82), 0 0 0 1px #271404;
   border-radius: 3px;

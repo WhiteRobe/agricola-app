@@ -115,6 +115,7 @@ html[data-theme="dark"] .action-tabs { background: #253329; border-color: var(--
 html[data-theme="dark"] .action-tab-btn { color: var(--ink-2); }
 html[data-theme="dark"] .action-tab-btn:hover { background: #3a4d3e; color: var(--ink); }
 html[data-theme="dark"] .action-tab-btn.active { color: #fff; }
+html[data-theme="dark"] .action-tab-btn.active .action-tab-count:not(:empty) { background: #264b31; color: #fff; }
 html[data-theme="dark"] .action-tab-btn:not(.active) .action-tab-count:not(:empty) { background: #40533f; color: #dcecc7; }
 html[data-theme="dark"] .space { background: linear-gradient(150deg, #354237, #2b372f); border-color: #8b906d; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
 html[data-theme="dark"] .space:hover:not(.disabled) { background: #415443; border-color: #b8c995; }

@@ -433,47 +433,51 @@
 /* ---- 庄园舞台容器与工坊双翼展区 (Estate Courtyard Wings) ---- */
 .farm-stage-container {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   position: relative;
+  min-width: 0;
+  overflow: hidden; /* 杜绝任何超框穿模 */
 }
 .estate-wing {
-  flex: 0 0 130px;
+  flex: 0 0 108px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   z-index: 5;
+  margin-top: 14px; /* 上移至农庄两肩开阔高位，彻底避开下半区的房屋遮挡 */
   transition: all 0.3s ease;
 }
 .wing-head-tag {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
   color: #8c6a38;
   letter-spacing: 0.5px;
   text-align: center;
-  padding: 2px 6px;
+  padding: 2px 4px;
   background: rgba(220, 190, 140, 0.22);
   border: 1px dashed rgba(160, 130, 80, 0.4);
   border-radius: 6px;
+  white-space: nowrap;
 }
 .wing-plots {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .estate-workshop-plot {
   background: var(--panel);
   border: 1.5px solid rgba(160, 130, 80, 0.5);
-  border-radius: 10px;
-  padding: 8px 6px;
-  box-shadow: 0 2px 6px rgba(50, 30, 10, 0.08);
+  border-radius: 9px;
+  padding: 6px 4px;
+  box-shadow: 0 2px 5px rgba(50, 30, 10, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 3px;
   cursor: default;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -483,8 +487,8 @@
   border-color: var(--leaf);
 }
 .workshop-art {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
 }
@@ -496,43 +500,43 @@
   gap: 2px;
 }
 .workshop-name {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 .wing-act-btn {
-  font-size: 10px !important;
-  padding: 2px 6px !important;
-  border-radius: 6px !important;
-  margin-top: 2px;
+  font-size: 9.5px !important;
+  padding: 1.5px 5px !important;
+  border-radius: 5px !important;
+  margin-top: 1px;
   font-weight: 800;
   color: var(--leaf-dark) !important;
   border-color: var(--leaf) !important;
 }
 .wing-tag {
-  font-size: 9.5px;
+  font-size: 9px;
   color: var(--ink-3);
   font-weight: 700;
 }
 .wing-empty-slot {
   border: 1.5px dashed rgba(160, 130, 80, 0.3);
-  border-radius: 10px;
-  padding: 18px 6px;
+  border-radius: 9px;
+  padding: 14px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   opacity: 0.55;
 }
-.wing-fence-ico { font-size: 14px; }
-.wing-empty-tip { font-size: 10px; color: var(--ink-3); }
+.wing-fence-ico { font-size: 13px; }
+.wing-empty-tip { font-size: 9.5px; color: var(--ink-3); }
 
-/* 窄屏或平板下优雅隐藏侧翼，保障移动端不超框 */
+/* 窄屏或平板下优雅隐藏侧翼，保障移动端绝对不超框 */
 @media (max-width: 1199px) {
   .estate-wing { display: none; }
   .farm-stage-container { gap: 0; }

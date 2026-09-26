@@ -17,9 +17,10 @@
 .pairs {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  gap: 12px 14px;
+  gap: 16px 14px;
   align-items: stretch;
   min-width: 0;
+  padding-top: 14px;
 }
 
 @media (max-width: 1199px) {
@@ -41,8 +42,24 @@
   transition: box-shadow .2s ease, background .2s ease, border-color .2s ease;
   display: flex; flex-direction: column;
   min-width: 0;
+  position: relative;
 }
 .col-card.me { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(92,141,78,0.12), var(--shadow); }
+.col-card-head {
+  display: flex; flex-direction: column; gap: 5px;
+  margin: 0 0 8px; width: 100%; min-width: 0;
+}
+.col-head-main {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; min-width: 0;
+}
+.col-head-main .nm {
+  font-weight: 800; font-size: 14px; flex: 1 1 auto;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.col-head-status {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
 .col-card h4 { margin: 0 0 8px; font-size: 14px; display:flex; align-items:center; gap:8px; }
 .col-card h4 .nm { font-weight: 800; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-card h4 .badge,
@@ -57,24 +74,31 @@
   animation: current-turn-pulse 2s ease-in-out infinite;
   position: relative;
 }
-.col-card.is-current-turn::before,
-.farm-card.is-current-turn::before {
-  content: "该他行动";
+
+/* 顶部行动指示胶囊标签（带跳动奔跑农夫） */
+.card-turn-pill {
   position: absolute;
-  top: -10px; right: 12px;
+  top: -11px;
+  right: 14px;
   background-color: var(--leaf);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><g fill='%23ffffff'><circle cx='30' cy='11' r='5.4'/><path d='M27 17l7 3 6-2c2-0.7 3.4 2 1.6 3.2L36 25l-6-2 2.5 8 5.5 7.5c1.4 2-1.4 4-3.1 2.3L28.5 33 25 26l-3.5 6-3.5 9c-0.8 2.2-4 1.4-3.6-0.9L18 30l4-9-4.5 1.5-4.5 5c-1.6 1.7-4.1-0.4-2.8-2.4l5.3-7c1-1.4 2.4-2.1 4-2.3z'/></g><g stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' opacity='0.75'><line x1='2' y1='16' x2='10' y2='16'/><line x1='1' y1='23' x2='8' y2='23'/><line x1='3' y1='30' x2='10' y2='30'/></g></svg>");
-  background-repeat: no-repeat;
-  background-position: 7px center;
-  background-size: 15px 15px;
   color: #fff;
   font-size: 11px;
   font-weight: 800;
-  padding: 2px 10px 2px 26px;
+  padding: 2.5px 10px 2.5px 8px;
   border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(92,141,78,.4);
-  letter-spacing: 1px;
+  box-shadow: 0 2px 6px rgba(92, 141, 78, 0.45);
+  letter-spacing: 0.5px;
   pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 15;
+  line-height: 1;
+}
+.card-turn-pill svg {
+  display: block;
+  animation: runner-dash 0.9s ease-in-out infinite;
+  filter: drop-shadow(0 1px 1px rgba(30, 60, 20, 0.35));
 }
 @keyframes current-turn-pulse {
   0%, 100% { box-shadow: 0 0 0 4px rgba(92,141,78,0.18), var(--shadow-lg); }
@@ -382,8 +406,189 @@
 }
 .farm-card .farm-head { display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
 .farm-card h3 { margin: 0; font-size: 16px; }
-/* 棋盘在 card 内垂直居中 */
-.farm-card .farm-board-wrap { margin-top: auto; margin-bottom: auto; }
+.farm-card .iso-toggle-btn {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.farm-card .iso-toggle-btn.active {
+  background: var(--leaf);
+  color: #fff;
+  border-color: var(--leaf-dark);
+}
+
+/* 棋盘在 card 内垂直居中与 2.5D 舞台 */
+.farm-card .farm-board-wrap {
+  margin-top: auto;
+  margin-bottom: auto;
+  transition: padding 0.35s ease;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.farm-card .farm-board-wrap.mode-iso {
+  perspective: 1200px;
+  perspective-origin: 50% 36%;
+  padding: 34px 10px 42px;
+}
+.farm-board-wrap.mode-iso .farm-board {
+  transform-style: preserve-3d;
+  transform: rotateX(54deg) rotateZ(-32deg) scale(1.05);
+  box-shadow:
+    -12px 22px 32px rgba(45, 25, 8, 0.42),
+    -4px 7px 12px rgba(45, 25, 8, 0.22),
+    0 0 0 2px #755936;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 0.4s ease;
+}
+
+/* 手机端防超框缩放保护 */
+@media (max-width: 767px) {
+  .farm-card .farm-board-wrap.mode-iso {
+    padding: 16px 2px 24px;
+  }
+  .farm-board-wrap.mode-iso .farm-board {
+    transform: rotateX(54deg) rotateZ(-32deg) scale(0.92);
+  }
+}
+@media (max-width: 380px) {
+  .farm-board-wrap.mode-iso .farm-board {
+    transform: rotateX(54deg) rotateZ(-32deg) scale(0.82);
+  }
+}
+
+/* 2.5D 下各格子的三维厚度与 Z 轴沉浮 */
+.mode-iso .cell {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: visible !important; /* 允许3D屋顶与作物自然挺立，不被格边裁切 */
+}
+/* 防止 hover filter 触发浏览器规范强制将 preserve-3d 压平为 2D 扁平面 */
+.mode-iso .cell:hover {
+  filter: none !important;
+  box-shadow: -4px 7px 12px rgba(30, 15, 5, 0.45);
+}
+.mode-iso .cell.cell-room:hover {
+  transform: translateZ(9px);
+  filter: none !important;
+}
+.mode-iso .cell.cell-room:hover .room-model-wrap {
+  transform: rotateZ(32deg) rotateX(-54deg) translateY(-10px) translateZ(15px);
+  filter: drop-shadow(-5px 8px 6px rgba(25, 12, 4, 0.6));
+}
+.room-model-wrap {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 3; pointer-events: none;
+}
+.mode-iso .room-model-wrap {
+  transform-style: preserve-3d;
+  transform: rotateZ(32deg) rotateX(-54deg) translateY(-8px) translateZ(12px);
+  transform-origin: 50% 90%;
+  filter: drop-shadow(-4px 6px 5px rgba(25, 12, 4, 0.52));
+  transition: transform 0.35s ease;
+}
+.mode-iso .cell.cell-room {
+  transform: translateZ(6px);
+  background-image: none !important;
+  background-color: #835b32 !important;
+  box-shadow:
+    -3px 5px 8px rgba(30, 15, 5, 0.55),
+    inset 0 0 0 1.2px rgba(255, 255, 255, 0.3);
+}
+.mode-iso .cell.cell-room .room-plate {
+  display: none; /* 2.5D模式下已有立体木屋/陶屋/石屋模型，省略死板黑标签 */
+}
+.mode-iso .cell.cell-field {
+  transform: translateZ(-2px);
+  background: #38200b !important;
+  box-shadow: inset -2px 3px 6px rgba(15, 8, 3, 0.82), 0 0 0 1px #271404;
+  border-radius: 3px;
+}
+.field-soil-wrap {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.field-soil-flat {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.field-sprout-billboard {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.mode-iso .field-sprout-billboard {
+  transform-style: preserve-3d;
+  transform: rotateZ(32deg) rotateX(-54deg) translateY(-6px) translateZ(8px);
+  transform-origin: 50% 88%;
+}
+.mode-iso .cell.cell-pasture {
+  transform: translateZ(2px);
+  box-shadow: -1px 2px 4px rgba(20, 40, 10, 0.3);
+}
+.mode-iso .cell.cell-stable-solo {
+  transform: translateZ(6px);
+  box-shadow: -2px 3px 6px rgba(40, 25, 10, 0.45);
+}
+.mode-iso .field-crops-wrap,
+.mode-iso .pasture-animal-wrap,
+.mode-iso .solo-stable-wrap {
+  transform-style: preserve-3d;
+  transform: rotateZ(32deg) rotateX(-54deg) translateY(-6px) translateZ(8px);
+  transform-origin: 50% 88%;
+  filter: drop-shadow(-3px 5px 4px rgba(25, 12, 4, 0.45));
+  transition: transform 0.35s ease;
+}
+.mode-iso .fence-post.built {
+  transform-style: preserve-3d;
+  transform: rotateZ(32deg) rotateX(-54deg) translateY(-10px) translateZ(10px);
+  transform-origin: 50% 100%;
+  width: 10px;
+  height: 22px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #c79457 0%, #95612c 50%, #46280e 100%);
+  border: 1px solid #301705;
+  box-shadow: -3px 5px 4px rgba(25, 12, 4, 0.55);
+  z-index: 22;
+}
+.mode-iso .fence-post.built .post-cap {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 5px;
+  border-radius: 50%;
+  background: #dfb278;
+  border: 1px solid #5a3412;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.3);
+}
+.mode-iso .fence-layer {
+  transform-style: preserve-3d;
+  z-index: 8;
+}
+.mode-iso .fence-layer .built {
+  transform: translateZ(9px);
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(-3px 5px 4px rgba(25, 12, 4, 0.48));
+}
+.fence-rail-svg {
+  display: block;
+  overflow: visible;
+  width: 100%;
+  height: 100%;
+}
+
 .farm-card .turn-arrow {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
   background: var(--leaf); color:#fff; font-weight: 800; letter-spacing: 1px;
@@ -498,12 +703,47 @@
   border: 1.5px solid #4a6e29;
   box-shadow: inset 0 0 8px rgba(30, 60, 15, 0.35);
 }
+.empty-soil-svg {
+  width: 75%;
+  height: 75%;
+  pointer-events: none;
+  opacity: 0.65;
+}
+.cell-stable-solo {
+  background: #cbb994 url("data:image/svg+xml,%3Csvg width='16' height='16' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='8' cy='8' r='1' fill='%239e8c68' opacity='0.4'/%3E%3C/svg%3E");
+  border: 1.5px solid #785a32;
+}
+.solo-stable-wrap {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative;
+}
+.stable-plate-tag {
+  font-size: 8.5px; font-weight: 800; color: #faeed2;
+  background: rgba(45, 26, 12, 0.88);
+  border: 1px solid #d4aa6e; border-radius: 3px;
+  padding: 0 4px; line-height: 1.2;
+  position: absolute; bottom: 2px;
+}
+.pasture-stable-sub {
+  position: absolute;
+  top: 2px; right: 2px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.genre-seal {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
 .pasture-animal-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
+  position: relative;
 }
 .farm-board .cell .pasture-empty {
   font-size: 10px;
@@ -1208,25 +1448,31 @@
    ============================================================ */
 body {
   position: relative;
-  background:
-    radial-gradient(1200px 500px at 15% -10%, rgba(217, 164, 65, 0.14), transparent 60%),
-    radial-gradient(1000px 460px at 95% 0%, rgba(92, 141, 78, 0.12), transparent 55%),
-    var(--bg);
+  background-color: var(--bg);
   background-attachment: fixed;
-  transition: background 1s ease;
+  transition: background-color 0.8s ease;
 }
-/* 季节主题：通过 body[data-season] 切换背景 */
-body[data-season="spring"] {
-  background: radial-gradient(1200px 500px at 50% 0%, rgba(255,180,200,.20), transparent 60%), var(--bg);
+/* 季节主题渐变遮罩：通过 ::before 优雅平滑过渡，避免 radial-gradient 瞬间断崖跳色 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.18;
+  transition: opacity 0.8s ease, background 0.8s ease;
 }
-body[data-season="summer"] {
-  background: radial-gradient(1200px 500px at 50% 0%, rgba(255,210,80,.22), transparent 60%), var(--bg);
+body[data-season="spring"]::before {
+  background: radial-gradient(1200px 500px at 50% 0%, #ffb4c8, transparent 60%);
 }
-body[data-season="autumn"] {
-  background: radial-gradient(1200px 500px at 50% 0%, rgba(220,120,40,.18), transparent 60%), var(--bg);
+body[data-season="summer"]::before {
+  background: radial-gradient(1200px 500px at 50% 0%, #ffd250, transparent 60%);
 }
-body[data-season="winter"] {
-  background: radial-gradient(1200px 500px at 50% 0%, rgba(180,210,230,.22), transparent 60%), var(--bg);
+body[data-season="autumn"]::before {
+  background: radial-gradient(1200px 500px at 50% 0%, #dc7828, transparent 60%);
+}
+body[data-season="winter"]::before {
+  background: radial-gradient(1200px 500px at 50% 0%, #b4d2e6, transparent 60%);
 }
 
 /* 大型背景时间轮（铺在页面中央） */
@@ -1515,6 +1761,25 @@ body[data-season="winter"] {
   font-family: var(--font); color: var(--ink);
   transition: all .14s ease;
   box-shadow: 0 2px 5px rgba(50, 30, 10, 0.06);
+}
+.imp-item-inner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.imp-art-wrap {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: rgba(180, 150, 110, 0.12);
+  border-radius: 8px;
+  border: 1px solid rgba(160, 130, 80, 0.22);
+}
+.imp-content {
+  flex: 1;
+  min-width: 0;
 }
 .imp-item:hover:not(:disabled) {
   border-color: #9c6e3b;

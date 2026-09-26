@@ -19,7 +19,8 @@ let _isRunning = false;
 // 节电与性能限额
 function getParticleLimit() {
   const isMobile = window.innerWidth < 768;
-  return isMobile ? 14 : 32;
+  if (_season === "winter") return isMobile ? 36 : 80;
+  return isMobile ? 16 : 36;
 }
 
 /**
@@ -66,12 +67,12 @@ function createAmbientParticle(isInit = false) {
     p.speedX = rand(0.8, 2.0); // 秋风瑟瑟
     p.speedY = rand(0.8, 1.6);
   } else if (_season === "winter") {
-    // 冬：轻盈白雪花
+    // 冬：多层晶莹雪花与飘雪
     p.color = "#ffffff";
-    p.speedX = rand(-0.3, 0.5);
-    p.speedY = rand(0.6, 1.5);
-    p.size = rand(2, 4);
-    p.opacity = rand(0.4, 0.85);
+    p.speedX = rand(-0.6, 0.8);
+    p.speedY = rand(0.9, 2.4);
+    p.size = rand(isMobile ? 3 : 3.8, isMobile ? 6.5 : 10.5);
+    p.opacity = rand(0.6, 0.98);
   }
 
   return p;
@@ -137,10 +138,26 @@ function renderLoop() {
     _ctx.fillStyle = p.color;
 
     if (p.kind === "winter") {
-      // 雪花圆形光晕
+      // 晶莹白雪花：带浅蓝冰晕与柔和蓬松核心
+      const rad = p.size / 2;
+      const grad = _ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
+      grad.addColorStop(0, "rgba(255, 255, 255, 1)");
+      grad.addColorStop(0.6, "rgba(235, 245, 255, 0.9)");
+      grad.addColorStop(1, "rgba(180, 215, 255, 0)");
+      _ctx.fillStyle = grad;
       _ctx.beginPath();
-      _ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+      _ctx.arc(0, 0, rad, 0, Math.PI * 2);
       _ctx.fill();
+
+      // 中大雪花绘制晶莹冰星六角
+      if (p.size > 5) {
+        _ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        _ctx.lineWidth = 1;
+        _ctx.beginPath();
+        _ctx.moveTo(-rad * 0.75, 0); _ctx.lineTo(rad * 0.75, 0);
+        _ctx.moveTo(0, -rad * 0.75); _ctx.lineTo(0, rad * 0.75);
+        _ctx.stroke();
+      }
     } else if (p.kind === "summer") {
       // 夏日微尘浮光
       _ctx.beginPath();
@@ -253,11 +270,14 @@ function stopAmbient() {
 export function setAmbientSeason(season) {
   if (_season === season) return;
   _season = season;
-  // 渐进更新粒子池属性
+  // 平滑过渡粒子池，避免瞬间清屏导致视觉闪烁跳跃
   const limit = getParticleLimit();
-  _particles = [];
-  for (let i = 0; i < limit; i++) {
-    _particles.push(createAmbientParticle(true));
+  if (_particles.length < limit) {
+    for (let i = _particles.length; i < limit; i++) {
+      _particles.push(createAmbientParticle(true));
+    }
+  } else if (_particles.length > limit) {
+    _particles.length = limit;
   }
 }
 

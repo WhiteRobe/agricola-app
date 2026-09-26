@@ -228,6 +228,59 @@ article.tut h3 { animation: card-pop-in 0.35s ease-out both; }
    媒體查詢：動效保護 + 設備適配
    ============================================================ */
 
+/* ============================================================
+   置顶实体抛物线飞行动效 (Flying FX) 与生机农庄微交互
+   ============================================================ */
+.fx-fly-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  overflow: hidden;
+}
+.fx-flyer {
+  position: fixed;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 8px rgba(30, 20, 10, 0.45));
+}
+.fx-flyer svg {
+  display: block;
+}
+
+/* 麦浪与胡萝卜微风轻拂 (Crop Breeze Sway) */
+@keyframes crop-breeze-sway {
+  0%, 100% { transform: rotate(0deg); }
+  35%      { transform: rotate(3.2deg) skewX(2deg); }
+  70%      { transform: rotate(-2.4deg) skewX(-1.5deg); }
+}
+.field-crops-wrap svg,
+.field-crop-svg,
+.field-sprout-svg {
+  transform-origin: 50% 90%;
+  animation: crop-breeze-sway 4.5s ease-in-out infinite;
+}
+.farm-board .cell:nth-child(2n) .field-crop-svg { animation-delay: -1.2s; }
+.farm-board .cell:nth-child(3n) .field-crop-svg { animation-delay: -2.6s; }
+.farm-board .cell:nth-child(5n) .field-crop-svg { animation-delay: -3.8s; }
+
+/* 木雕动物 Animeeple 弹性呼吸与悬浮轻颠 (Animal Idle & Hop) */
+@keyframes animal-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04, 0.97); }
+}
+.pasture-animal-wrap .agri-animeeple {
+  transform-origin: center bottom;
+  animation: animal-breathe 3.6s ease-in-out infinite;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.2, 1.4, 0.4, 1), filter 0.18s ease;
+}
+.pasture-animal-wrap .agri-animeeple:hover {
+  transform: scale(1.18, 1.12) translateY(-4px);
+  filter: drop-shadow(0 4px 6px rgba(35, 20, 5, 0.5));
+}
+.farm-board .cell:nth-child(2n) .agri-animeeple { animation-delay: -1.5s; }
+.farm-board .cell:nth-child(3n) .agri-animeeple { animation-delay: -2.8s; }
+
 /* 觸摸設備：避免 hover-only 效果留下"粘住"狀態 */
 @media (hover: none) {
   .btn:hover { filter: none; }

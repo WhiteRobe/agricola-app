@@ -39,6 +39,37 @@ body {
   min-height: 100vh;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.6s ease;
+}
+
+/* 四季与14轮昼夜色温推移 */
+body[data-season="spring"] {
+  --bg: #f5eedb;
+  --panel: #fffef8;
+}
+body[data-season="summer"] {
+  --bg: #f8eed7;
+  --panel: #fffef5;
+}
+body[data-season="autumn"] {
+  --bg: #f5ebdc;
+  --panel: #fffcf4;
+}
+body[data-season="winter"] {
+  --bg: #ebf0f5;
+  --bg-2: #dfe6ee;
+  --panel: #f8fafc;
+  --ink: #323b44;
+}
+
+/* 全屏动态氛围粒子画布（置底零交互） */
+.ambient-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
 }
 
 a { color: var(--sky); text-decoration: none; }

@@ -17,9 +17,17 @@ import {
   meepleSvg,
   runnerSvg,
   roomTileSvg,
+  roomModelSvg,
   fieldContentSvg,
   actionWoodcutSvg,
+  stableSvg,
+  emptySoilSvg,
+  majorImprovementSvg,
+  categorySealSvg,
+  fenceRailSvg,
 } from "/js/svg-icons.js";
+import { flyMeepleToSpace, flyTokenToStock, flyCropHarvest } from "/js/fx.js";
+import { initAmbientCanvas, setAmbientSeason, triggerHarvestConfetti } from "/js/ambient.js";
 
 const ICONS = ["🧑‍🌾", "👩‍🌾", "🧑‍🍳", "👴"];
 const PLAYER_COLORS = ["#e05d44", "#3f9d55", "#3d7ea6", "#d9932f"];
@@ -267,6 +275,29 @@ let _fenceMode = false;
 let _farmCtx = null;
 /** 行动板内部分页：'resources' (资源&市场) | 'actions' (行动&回合卡) | 'moor' (沼泽农夫) */
 let _actionSubTab = "resources";
+/** 2.5D Isometric 透视视角开关（默认桌面端开启，移动端窄屏默认2D，用户随时可切换） */
+let _isoMode = (() => {
+  try {
+    const v = localStorage.getItem("agri:isoMode");
+    if (v !== null) return v === "on";
+    return typeof window !== "undefined" && window.innerWidth >= 1024;
+  } catch {
+    return false;
+  }
+})();
+
+function toggleIsoMode() {
+  _isoMode = !_isoMode;
+  try { localStorage.setItem("agri:isoMode", _isoMode ? "on" : "off"); } catch {}
+  document.querySelectorAll(".farm-board-wrap").forEach((el) => {
+    el.classList.toggle("mode-iso", _isoMode);
+  });
+  document.querySelectorAll(".iso-toggle-btn").forEach((btn) => {
+    btn.innerHTML = _isoMode ? "📐 2.5D" : "📋 2D";
+    btn.classList.toggle("active", _isoMode);
+  });
+  sfx.select();
+}
 
 function switchActionSubTab(tab) {
   _actionSubTab = tab;
@@ -365,12 +396,22 @@ export function renderGame(root, s, me, conn) {
   const gKey = s.game && s.game.players ? `${s.code}:${s.game.players.length}:${_activeTab}` : "none";
   if (_animKey !== gKey) { _intro = true; _animKey = gKey; } else { _intro = false; }
 
-  // 音效：新回合 / 收获阶段
+  // 音效与礼花：新回合 / 收获阶段
   const gNow = s.game;
   if (gNow && prev && gNow.round !== prev.round) sfx.turn();
   const lastMsg = gNow && gNow.log && gNow.log.length ? gNow.log[gNow.log.length - 1].msg : "";
   const prevMsg = prev && prev.log && prev.log.length ? prev.log[prev.log.length - 1].msg : "";
-  if (/收获阶段开始/.test(lastMsg) && !/收获阶段开始/.test(prevMsg)) sfx.harvest();
+  if (/收获阶段开始/.test(lastMsg) && !/收获阶段开始/.test(prevMsg)) {
+    sfx.harvest();
+    triggerHarvestConfetti(45);
+  }
+
+  // 保存当前滚动位置并锁定最小高度，杜绝重渲染时高度坍塌导致页面强制滚动跳顶
+  const savedScrollY = typeof window !== "undefined" ? window.scrollY : 0;
+  const prevH = root.offsetHeight;
+  if (prevH > 100) {
+    root.style.minHeight = `${prevH}px`;
+  }
 
   root.innerHTML = "";
 
@@ -380,11 +421,13 @@ export function renderGame(root, s, me, conn) {
     return;
   }
 
-  const myPlayer = me.role === "player" ? g.players.find(p => p.id === me.pid) : null;
+  const myPlayer = me.role === "player" ? g.players.find((p) => p.id === me.pid) : null;
   const myTurn = g.waitingFor[0] === me.pid;
 
   // 顶栏（轮次 + 阶段 + 季节 + 揭示 + 油量表）
   const season = seasonOfRound(g.round);
+  initAmbientCanvas();
+  setAmbientSeason(season);
   const seasonInfo = SEASONS.find((s) => s.key === season);
   const top = document.createElement("div");
   top.id = "gameHeaderCard";
@@ -613,6 +656,19 @@ export function renderGame(root, s, me, conn) {
     // 推迟一帧，等入场动画结束
     setTimeout(() => openOccupationPicker(), 450);
   }
+
+  // 恢复滚动条位置，彻底解决每次点击后画面跳顶问题
+  if (savedScrollY > 0) {
+    window.scrollTo({ top: savedScrollY, behavior: "instant" });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: savedScrollY, behavior: "instant" });
+      setTimeout(() => { if (root) root.style.minHeight = ""; }, 120);
+    });
+  } else {
+    requestAnimationFrame(() => {
+      if (root) root.style.minHeight = "";
+    });
+  }
 }
 
 // ---- 玩家 stock + farm：每个玩家输出一行（同一 grid 行内两张卡自动等高）----
@@ -660,7 +716,14 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     let hayFormula = `预计收获阶段饲料消耗: ${p.animals.cattle || 0}头黄牛×1 = ${estHayNeed}干草\n【沼泽农夫扩展】收获阶段必须为每头黄牛提供1干草，若干草不足将导致黄牛饿死（损失黄牛）。`;
 
     const stk = (key, ic, val, name, isNum = true, costHint = null, formulaTip = null, buffHtml = "", incomeHtml = "") => {
-      const tipText = formulaTip ? `${name} · ${formulaTip}` : name;
+      let tipText = name;
+      if (formulaTip) {
+        if (formulaTip.startsWith(name)) {
+          tipText = formulaTip;
+        } else {
+          tipText = `${name} · ${formulaTip}`;
+        }
+      }
       return `<div class="stk" data-key="${key}" data-name="${name}" data-tip="${escapeHtml(tipText)}">
          <span class="stk-ic">${ic}</span>
          <div class="stk-val-wrap">
@@ -678,22 +741,27 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     const resInc = (key) => incomeChipHtml(inc, key);
     const pScore = liveScorePlayer(p);
     card.innerHTML = `
-      <h4>
-        <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
-        <span class="nm">${escapeHtml(p.name)}</span>
-        ${isMe ? '<span class="badge green">你</span>' : ""}
-        ${(p.id === _state.game?.startPlayerId || p.startingPlayer) ? '<span class="badge" style="background:#b45309;color:#ffffff;font-weight:700;padding:2px 7px;border-radius:10px;font-size:11px" title="起始玩家标记：在每轮首先行动">🚜 起始玩家</span>' : ""}
-        ${isTurn ? `<span class="turn turn-runner" title="行动中">${runnerSvg("#ffffff", 15)}</span>` : ""}
-        <button type="button" class="stock-score-badge" data-score-pid="${p.id}" data-tip="点击查看得分计算面板\n当前实时得分: ${pScore.total} 分">
-          <span class="score-crown">👑</span>
-          <span class="score-num">${pScore.total}</span>
-        </button>
-      </h4>
+      ${isTurn ? `<div class="card-turn-pill">${runnerSvg("#ffffff", 14)} 该他行动</div>` : ""}
+      <div class="col-card-head">
+        <div class="col-head-main">
+          <span class="avatar" style="width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${meepleSvg(PLAYER_COLORS[p.seat] || "#8e2316", 24)}</span>
+          <span class="nm">${escapeHtml(p.name)}</span>
+          ${isMe ? '<span class="badge green" style="padding:1px 6px;font-size:10.5px">你</span>' : ""}
+          <button type="button" class="stock-score-badge" data-score-pid="${p.id}" data-tip="点击查看得分计算面板\n当前实时得分: ${pScore.total} 分">
+            <span class="score-crown">👑</span>
+            <span class="score-num">${pScore.total}</span>
+          </button>
+        </div>
+        ${(p.id === _state.game?.startPlayerId || p.startingPlayer) ? `
+        <div class="col-head-status">
+          <span class="badge starter-badge" style="background:#b45309;color:#ffffff;font-weight:700;padding:2px 7px;border-radius:10px;font-size:10.5px" title="起始玩家标记：在每轮首先行动">🚜 起始玩家</span>
+        </div>` : ""}
+      </div>
       <div class="stock">
         <div class="stock-row stock-key">
           ${stk("food", tokenSvg("food", 20), p.food, "食物", true, estFoodNeed, foodFormula, resBuff("food"), resInc("food"))}
-          ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false, null, "家人 · 你的家庭成员。每名家人代表每轮可执行1次行动的工人。终局时每名家人直接提供 +3 分！")}
-          ${stk("beggings", "🃏", p.beggings, "乞讨卡", false, null, "乞讨卡 · 当收获阶段食物或燃料不足时被迫获得，每张乞讨卡在终局结算时惩罚性倒扣 3 分！")}
+          ${stk("family", meepleSvg(PLAYER_COLORS[p.seat], 20), p.family, "家人", false, null, "你的家庭成员。每名家人代表每轮可执行 1 次行动的工人。终局时每名家人直接提供 +3 分！")}
+          ${stk("beggings", "🃏", p.beggings, "乞讨卡", false, null, "当收获阶段食物或燃料不足时被迫获得，每张乞讨卡在终局结算时惩罚性倒扣 3 分！")}
         </div>
         ${_state.game.dlc?.moor ? `<div class="stock-label">沼泽物资</div>
         <div class="stock-row stock-moor">
@@ -726,7 +794,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
           tags.push(`<span class="imp-tag starter-tag" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;font-weight:700" data-tip="起始玩家标记：在每轮首先放置工人行动">🚜 起始玩家</span>`);
         }
         tags.push(...p.improvements.map(impTagHTML));
-        if (p.occupation) tags.push(`<span class="imp-tag occ-tag" data-tip="${escapeHtml(p.occupation.effect)}">${p.occupation.icon} ${escapeHtml(p.occupation.name)}</span>`);
+        if (p.occupation) tags.push(`<span class="imp-tag occ-tag" data-tip="${escapeHtml(p.occupation.effect)}">${categorySealSvg(p.occupation.category, 16)} ${escapeHtml(p.occupation.name)}</span>`);
         if (p.minorImprovements && p.minorImprovements.length) {
           tags.push(...p.minorImprovements.map((id) => `<span class="imp-tag" data-tip="${escapeHtml(minorEffectById(id) || minorNameById(id))}">${escapeHtml(minorNameById(id))}</span>`));
         }
@@ -755,12 +823,22 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     farmCard.dataset.panel = `p${i}`;
     const isMyFarm = p.id === myPlayer?.id;
     farmCard.innerHTML = `
+      ${p.id === currentTurnId ? `<div class="card-turn-pill">${runnerSvg("#ffffff", 14)} 该他行动</div>` : ""}
       <div class="farm-head">
         <h3>${p.id === currentTurnId ? "👉 " : ""}🚜 ${escapeHtml(p.name)} 的农场${isMyFarm ? ' <span class="badge green">你</span>' : ""}</h3>
-        <span class="muted" style="font-size:11px">${p.rooms} 间${houseLabel(p.roomType)}屋 · 剩余 ${Math.max(0, p.rooms - p.family)} 空房 · 乞讨 ${p.beggings} 张</span>
+        <div class="row" style="gap:6px;align-items:center">
+          <span class="muted" style="font-size:11px">${p.rooms} 间${houseLabel(p.roomType)}屋 · 剩余 ${Math.max(0, p.rooms - p.family)} 空房 · 乞讨 ${p.beggings} 张</span>
+          <button class="btn ghost small iso-toggle-btn${_isoMode ? " active" : ""}" type="button" title="切换 2D 平铺 / 2.5D 透视视角">${_isoMode ? "📐 2.5D" : "📋 2D"}</button>
+        </div>
       </div>
-      <div class="farm-board-wrap"></div>
+      <div class="farm-board-wrap${_isoMode ? " mode-iso" : ""}"></div>
     `;
+    farmCard.querySelectorAll(".iso-toggle-btn").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        toggleIsoMode();
+      };
+    });
     renderFarm(farmCard.querySelector(".farm-board-wrap"), p, isMyFarm && myTurn);
     host.appendChild(farmCard);
   });
@@ -905,8 +983,11 @@ function renderFarm(wrap, p, myTurn) {
   board.className = "farm-board";
   const cellSize = getCellSize();
   board.style.setProperty("--cell", cellSize + "px");
+  const isWinter = seasonOfRound(_state?.game?.round || 1) === "winter";
+
   for (let y = 0; y < 5; y++) for (let x = 0; x < 3; x++) {
     const cell = p.grid[y][x];
+    const pasture = (p.pastures || []).find(ps => ps.cells.includes(`${x},${y}`));
     const el = document.createElement("div");
     el.className = "cell hoverable";
     let html = "";
@@ -914,32 +995,45 @@ function renderFarm(wrap, p, myTurn) {
       el.classList.add("cell-room");
       // roomTileSvg 返回的是 CSS background-image 值（url("data:...")），必须内联到样式而不是 innerHTML
       el.style.backgroundImage = roomTileSvg(p.roomType);
-      html = `<div class="room-plate"><span class="room-plate-tag">${houseLabel(p.roomType)}</span></div>`;
+      html = `
+        <div class="room-model-wrap">${roomModelSvg(p.roomType, isWinter, Math.round(cellSize * 1.05))}</div>
+        <div class="room-plate"><span class="room-plate-tag">${houseLabel(p.roomType)}</span></div>
+      `;
     } else if (cell.kind === "field") {
       el.classList.add("cell-field");
       html = fieldContentSvg(cell.crop, cell.markers ?? 0);
     } else {
-      const pasture = p.pastures.find(ps => ps.cells.includes(`${x},${y}`));
       if (pasture) {
         el.classList.add("cell-pasture");
+        if (cell.stable) el.classList.add("has-stable");
         if (pasture.animal) {
-          html = `<div class="pasture-animal-wrap">${animalSvg(pasture.animal, 32)}</div>`;
+          html = `<div class="pasture-animal-wrap">${animalSvg(pasture.animal, Math.round(cellSize * 0.58))}${cell.stable ? `<div class="pasture-stable-sub">${stableSvg(true, isWinter, Math.round(cellSize * 0.42))}</div>` : ""}</div>`;
+        } else if (cell.stable) {
+          html = `<div class="pasture-animal-wrap">${stableSvg(true, isWinter, Math.round(cellSize * 0.65))}<span class="pasture-empty">马厩(2×)</span></div>`;
         } else {
           html = `<span class="pasture-empty">牧场</span>`;
         }
+      } else if (cell.stable) {
+        el.classList.add("cell-stable-solo");
+        html = `<div class="solo-stable-wrap">${stableSvg(false, isWinter, Math.round(cellSize * 0.68))}<span class="stable-plate-tag">圈舍</span></div>`;
       } else {
         el.classList.add("cell-empty");
+        html = emptySoilSvg();
       }
     }
     el.innerHTML = html;
     const kindNames = { empty: "荒地", room: `${houseLabel(p.roomType)}房屋`, field: "耕地" };
     const cropNames = { grain: "谷物", vegetable: "蔬菜" };
     let tip = `坐标 (${x}, ${y}) · ${kindNames[cell.kind] || cell.kind}`;
+    if (cell.stable) {
+      tip += pasture
+        ? " · 封闭马厩（容纳上限翻倍）"
+        : " · 独栋圈舍（可单独放牧 1 只宠物）";
+    }
     if (cell.kind === "field") {
       if (cell.crop) tip += ` · 已播种${cropNames[cell.crop] || cell.crop}（剩余收割次数：${cell.markers ?? 0} 次）`;
       else tip += " · 闲置田（可播种）";
     }
-    const pasture = p.pastures.find(ps => ps.cells.includes(`${x},${y}`));
     if (pasture) {
       const anNames = { sheep: "绵羊", boar: "野猪", cattle: "黄牛" };
       tip += ` · 牧场${pasture.animal ? `（放牧 ${anNames[pasture.animal] || pasture.animal}）` : "（空闲）"}`;
@@ -981,7 +1075,10 @@ function renderFarm(wrap, p, myTurn) {
     const hadH = prevEdges ? prevEdges.h[y][x] === true : false;
     const nowH = p.edges.h[y][x] === true;
     if (nowH && !hadH) queueFenceDraw(h);
-    if (nowH) h.classList.add("built");
+    if (nowH) {
+      h.classList.add("built");
+      h.innerHTML = fenceRailSvg("h", cellSize);
+    }
     if (_selFences.has(`h${x},${y}`)) h.classList.add("sel");
     // 段厚 14px，居中于格边（top edge of cell y）
     h.style.left = (x * step) + "px";
@@ -997,7 +1094,10 @@ function renderFarm(wrap, p, myTurn) {
     const hadV = prevEdges ? prevEdges.v[y][x] === true : false;
     const nowV = p.edges.v[y][x] === true;
     if (nowV && !hadV) queueFenceDraw(v);
-    if (nowV) v.classList.add("built");
+    if (nowV) {
+      v.classList.add("built");
+      v.innerHTML = fenceRailSvg("v", cellSize);
+    }
     if (_selFences.has(`v${x},${y}`)) v.classList.add("sel");
     v.style.left = (x * step - 7) + "px";
     v.style.top = (y * step) + "px";
@@ -1020,8 +1120,9 @@ function renderFarm(wrap, p, myTurn) {
       if (isConnectedBuilt) {
         const post = document.createElement("div");
         post.className = "fence-post built";
-        post.style.left = (vx * step - 4) + "px";
-        post.style.top = (vy * step - 4) + "px";
+        post.style.left = (vx * step - 5) + "px";
+        post.style.top = (vy * step - 5) + "px";
+        post.innerHTML = `<div class="post-cap"></div>`;
         fence.appendChild(post);
       }
     }
@@ -1039,15 +1140,16 @@ function queueFenceDraw(el) {
 
 function getCellSize() {
   const w = window.innerWidth;
-  if (w < 380) return 38;
-  if (w < 480) return 42;
-  if (w < 768) return 50;
+  if (w < 380) return 46;
+  if (w < 480) return 52;
+  if (w < 768) return 58;
   // 桌面/平板：每个玩家独占一行，农场卡宽度 ≈ 视口 - 左栏 - 行动板 - 间距
   const avail = w - 220 - 340 - 60;
-  if (avail >= 520) return 60;
-  if (avail >= 420) return 56;
-  if (avail >= 340) return 50;
-  return 44;
+  if (avail >= 620) return 84;
+  if (avail >= 500) return 76;
+  if (avail >= 400) return 68;
+  if (avail >= 320) return 62;
+  return 54;
 }
 
 // ---- 行动板渲染 ----
@@ -1462,9 +1564,19 @@ function onCellClick(p, x, y, cell) {
       opts.push({ label: "建房间（已占用）", disabled: true, hint: bRoom });
       opts.push({ label: "造马厩（已占用）", disabled: true, hint: bRoom });
     } else {
-      opts.push({ label: "建房间", action: () => doWithLoading(`buildRoom-${x}-${y}`, "建房间", () => sendAction({ type: "BuildRoom", x, y })) });
+      const { cost: roomCost, notes: roomNotes } = roomBuildCost(p);
+      const roomCostTxt = costLine(roomCost);
+      const roomLabel = roomNotes.length
+        ? `建房间 (${roomCostTxt} <span class="buff-chip neg" data-tip="${escapeHtml(roomNotes.join('；'))}">减免</span>)`
+        : `建房间 (${roomCostTxt})`;
+      opts.push({ label: roomLabel, action: () => doWithLoading(`buildRoom-${x}-${y}`, "建房间", () => sendAction({ type: "BuildRoom", x, y })) });
+
       if (!cell.stable && (p.stables || 0) < 4) {
-        opts.push({ label: "造马厩 (2木)", action: () => doWithLoading(`buildStable-${x}-${y}`, "造马厩", () => sendAction({ type: "BuildRoom", stables: [{ x, y }] })) });
+        const hasArch = p.occupation?.id === "stableArchitect";
+        const stableLabel = hasArch
+          ? `造马厩 (2木 <span class="buff-chip" data-tip="「圈舍建造师」职业：建造后返还 1 木材">返1木</span>)`
+          : `造马厩 (2木)`;
+        opts.push({ label: stableLabel, action: () => doWithLoading(`buildStable-${x}-${y}`, "造马厩", () => sendAction({ type: "BuildRoom", stables: [{ x, y }] })) });
       }
     }
     if (bPlow) opts.push({ label: "犁地（已占用）", disabled: true, hint: bPlow });
@@ -1488,8 +1600,31 @@ function onCellClick(p, x, y, cell) {
     }));
 }
 
+function triggerActionFlyEffects(sp, p) {
+  try {
+    const meCard = document.querySelector(".col-card.me");
+    const spaceBtn = document.querySelector(`.space[data-space="${sp.id}"]`);
+    const playerIdx = _state.game?.players?.findIndex((x) => x.id === p.id) ?? 0;
+    const pColor = PLAYER_COLORS[playerIdx] || "#c0392b";
+    if (meCard && spaceBtn) {
+      flyMeepleToSpace(meCard, spaceBtn, pColor);
+    }
+    const resMap = {
+      Wood: "wood", Clay: "clay", Reed: "reed", Stone: "stone",
+      Grain: "grain", Vegetable: "vegetable", Fishing: "food",
+    };
+    if (resMap[sp.id]) {
+      const stockEl = document.querySelector(`.col-card.me .res[data-kind="${resMap[sp.id]}"]`);
+      if (spaceBtn && stockEl) {
+        setTimeout(() => flyTokenToStock(spaceBtn, stockEl, resMap[sp.id]), 150);
+      }
+    }
+  } catch {}
+}
+
 function onSpaceClick(sp, p) {
   if (!debounce(`space-${sp.id}`, 300)) return;
+  triggerActionFlyEffects(sp, p);
   if (sp.id === "StartPlayer") {
     const isStarter = p && (_state.game?.startPlayerId === p.id || p.startingPlayer);
     if (isStarter) {
@@ -1558,6 +1693,7 @@ function onSpaceClick(sp, p) {
         ${notes.length ? `<div class="muted" style="font-size:11.5px">💡 ${notes.map(escapeHtml).join("；")}</div>` : ""}
         ${(p.occupation?.id === "masterBuilder") ? `<div class="muted" style="font-size:11.5px">💡 「建筑工长」职业：每建 1 间房返还 1 木</div>` : ""}
         ${(p.occupation?.id === "surveyor") ? `<div class="muted" style="font-size:11.5px">💡 「宅地测量员」职业：房间数 ≥3 后每建 1 间房 +2 食物</div>` : ""}
+        ${(p.occupation?.id === "stableArchitect") ? `<div class="muted" style="font-size:11.5px">💡 「圈舍建造师」职业：建造马厩时返还 1 木材</div>` : ""}
       </div>
       <p class="muted">你的资源：🪵 ${p.resources.wood} 木 · 🧱 ${p.resources.clay} 陶 · 🎋 ${p.resources.reed} 芦苇 · ⛏ ${p.resources.stone} 石</p>
       <p class="muted">提示：每间房 +1 个家人居住位，空房才能「添丁」。</p>
@@ -1702,10 +1838,28 @@ function onSpaceClick(sp, p) {
         const ok = canAfford(p, costObj);
         const disabled = built || !ok;
         const costHtml = hasDiscount ? annotatedCostLine(baseObj, costObj, notes) : cost;
+        const artKey = {
+          fireplace: "Fireplace_2",
+          fireplaceBig: "Fireplace_3",
+          cookingHearth: "CookingHearth_4",
+          cookingHearthBig: "CookingHearth_5",
+          clayOven: "ClayOven",
+          stoneOven: "StoneOven",
+          well: "Well",
+          joinery: "Joinery",
+          pottery: "Pottery",
+          basket: "BasketmakersWorkshop",
+        }[k] || k;
+        const artHtml = majorImprovementSvg(artKey, 38);
         return `<button class="imp-item${built ? " built" : ""}${!built && !ok ? " poor" : ""}" data-i="${k}" ${disabled ? "disabled" : ""}>
-          <div class="imp-line1"><b>${built ? "✓ " : ""}${name}</b><span class="vp-seal">${vp}</span></div>
-          <div class="imp-line2">${costHtml}${!built && !ok ? ` <span style="color:var(--barn)">（缺 ${shortfall(p, costObj)}）</span>` : ""}</div>
-          <div class="imp-line3">${eff}</div>
+          <div class="imp-item-inner">
+            <div class="imp-art-wrap">${artHtml}</div>
+            <div class="imp-content">
+              <div class="imp-line1"><b>${built ? "✓ " : ""}${name}</b><span class="vp-seal">${vp}</span></div>
+              <div class="imp-line2">${costHtml}${!built && !ok ? ` <span style="color:var(--barn)">（缺 ${shortfall(p, costObj)}）</span>` : ""}</div>
+              <div class="imp-line3">${eff}</div>
+            </div>
+          </div>
         </button>`;
       }).join("");
       grid.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => {
@@ -2268,6 +2422,47 @@ const TAKE_BUFF_TABLE = {
   Sheep: [{ occ: "shepherd", label: "牧羊人", extra: "额外 +1 只绵羊" }],
   Boar: [{ occ: "swineherd", label: "养猪人", extra: "额外 +1 只野猪" }],
   Cattle: [{ occ: "cattleFarmer", label: "牧牛人", extra: "额外 +1 只黄牛" }],
+  BuildRoom: [
+    { occ: "carpenter", label: "木匠", tag: "减免", extra: "建木屋每间房 −1 木材" },
+    { occ: "bricklayer", label: "砌砖工", tag: "减免", extra: "建陶屋每间房 −1 陶土" },
+    { occ: "wainwright", label: "车匠", tag: "减免", extra: "建房每间房 −1 芦苇" },
+    { occ: "thatcher", label: "盖顶工", tag: "减免", extra: "建房每间房 −1 芦苇" },
+    { occ: "masterBuilder", label: "建筑工长", tag: "返木", extra: "每建 1 间房返还 1 木材" },
+    { occ: "surveyor", label: "宅地测量员", tag: "奖食", extra: "房间数 ≥3 后每建 1 间房 +2 食物" },
+    { occ: "stableArchitect", label: "圈舍建造师", tag: "返木", extra: "建造马厩时返还 1 木材" },
+  ],
+  PlowField: [
+    { occ: "plowman", label: "犁地手", tag: "多犁", extra: "额外免费多犁 1 块田" },
+    { occ: "plowwright", label: "犁匠", tag: "返木", extra: "犁地额外获得 1 木材" },
+  ],
+  SowOrBake: [
+    { occ: "sower", label: "播种者", tag: "双播", extra: "可同时为 2 块农田播种" },
+    { occ: "cornShepherd", label: "麦田看守", tag: "奖食", extra: "播种后立即获得 1 食物" },
+    { occ: "baker", label: "面包师", tag: "加食", extra: "每次烤面包额外 +1 食物" },
+    { occ: "miller", label: "磨坊主", tag: "加食", extra: "烤面包每份谷物多得 1 食物" },
+    { occ: "breadBakerApprentice", label: "面包学徒", tag: "加食", extra: "烤面包额外 +1 食物" },
+  ],
+  Fences: [
+    { occ: "hedgeKeeper", label: "栅栏工", tag: "返木", extra: "建栅栏行动返还 2 木材" },
+    { occ: "stableArchitect", label: "圈舍建造师", tag: "返木", extra: "建造圈舍时返还 1 木材" },
+  ],
+  FamilyGrowth: [
+    { occ: "wetNurse", label: "保姆", tag: "免食", extra: "婴儿当轮不产生喂食负担" },
+    { occ: "midwife", label: "助产士", tag: "奖食", extra: "添丁完成后立即获得 2 食物" },
+    { occ: "governess", label: "家庭教师", tag: "得谷", extra: "婴儿当轮额外获得 1 谷物" },
+  ],
+  Renovate: [
+    { occ: "renovator", label: "翻修工", tag: "免苇", extra: "翻修省去全部芦苇消耗" },
+    { occ: "thatcher", label: "盖顶工", tag: "减免", extra: "翻修减免 1 芦苇消耗" },
+    { occ: "bricklayer", label: "砌砖工", tag: "减免", extra: "翻修陶屋减免 1 陶土" },
+    { occ: "masterMason", label: "石工大师", tag: "减免", extra: "翻修石屋减免 1 石材" },
+    { occ: "plasterer", label: "抹灰工", tag: "奖食", extra: "翻修完成后立即获得 1 食物" },
+  ],
+  BuildMajor: [
+    { occ: "cooper", label: "箍桶匠", tag: "减免", extra: "建造大改进减免 1 木材" },
+    { occ: "blacksmith", label: "铁匠", tag: "减免", extra: "建造大改进减免 1 石材" },
+    { occ: "kilnMaster", label: "窑炉大师", tag: "减免", extra: "建造大改进减免 1 陶土" },
+  ],
 };
 const RES_TO_SPACE = { wood: "Wood", clay: "Clay", reed: "Reed", stone: "Stone", grain: "Grain", vegetable: "Vegetable", food: "Fishing", sheep: "Sheep", boar: "Boar", cattle: "Cattle" };
 /** 该玩家在某个行动格取用时的职业加成列表 */
@@ -2279,8 +2474,9 @@ function takeBuffsFor(p, spaceId) {
 function buffChipHtml(p, spaceId) {
   const buffs = takeBuffsFor(p, spaceId);
   if (!buffs.length) return "";
-  const tip = buffs.map((b) => `「${b.label}」职业：取用${spaceName(spaceId)}时${b.extra}`).join("\n");
-  return `<span class="buff-chip" data-tip="${escapeHtml(tip)}">+1</span>`;
+  const tip = buffs.map((b) => `「${b.label}」职业：${b.extra}`).join("\n");
+  const tag = buffs[0].tag || "+1";
+  return `<span class="buff-chip" data-tip="${escapeHtml(tip)}">${tag}</span>`;
 }
 /** 建房间实付费用（与引擎 buildRoom 折扣规则一致） */
 function roomBuildCost(p) {
@@ -2797,14 +2993,21 @@ function donutSlice(cx, cy, rO, rI, startDeg, endDeg) {
   return `M ${x1} ${y1} A ${rO} ${rO} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${rI} ${rI} 0 ${large} 0 ${x4} ${y4} Z`;
 }
 
+let _lastAppliedRound = null;
+let _lastAppliedSeason = null;
+
 function applySeasonTheme(round) {
   const g = _state && _state.game;
   const isTts = !!(g && g.dlc?.seasons);
   const season = seasonOfRound(round);
   document.body.dataset.season = season;
 
-  const old = document.querySelector(".season-wheel");
-  if (old) old.remove();
+  let wheel = document.querySelector(".season-wheel");
+  if (_lastAppliedRound === round && _lastAppliedSeason === season && wheel) {
+    return;
+  }
+  _lastAppliedRound = round;
+  _lastAppliedSeason = season;
 
   const cx = 300, cy = 300;
   const rO = 264, rI = 172;   // 外/内半径 → 扇环
@@ -2891,8 +3094,11 @@ function applySeasonTheme(round) {
     <polygon points="${tipX},${tipY} ${polarPt(cx, cy, rO + 6, nowAngle - 3).join(',')} ${polarPt(cx, cy, rO + 6, nowAngle + 3).join(',')}" fill="#932815"/>
   `;
 
-  const wheel = document.createElement("div");
-  wheel.className = "season-wheel";
+  if (!wheel) {
+    wheel = document.createElement("div");
+    wheel.className = "season-wheel";
+    document.body.appendChild(wheel);
+  }
   wheel.dataset.round = String(round);
   wheel.title = `第 ${round} 轮 · ${SEASON_LABEL_ZH[season]}季 · 17世纪农事历法星盘`;
   wheel.innerHTML = `
@@ -2926,7 +3132,6 @@ function applySeasonTheme(round) {
             font-size="16" font-weight="800" fill="#634522" fill-opacity="0.75">${SEASON_LABEL_ZH[season]}季 · ${SEASON_ICON[season]}</text>
     </svg>
   `;
-  document.body.appendChild(wheel);
 }
 
 // ============================================================
@@ -3243,6 +3448,8 @@ export function renderFinished(root, s, me) {
   root.innerHTML = "";
   const g = s.game;
   if (!g) return;
+  initAmbientCanvas();
+  triggerHarvestConfetti(65);
   // 服务端未带 scores 时用客户端实时计分兜底；同时清洗 NaN/null（老房间数据）
   const safe = (v) => (typeof v === "number" && Number.isFinite(v)) ? v : 0;
   const sanitize = (br) => {

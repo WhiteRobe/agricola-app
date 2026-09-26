@@ -528,63 +528,379 @@ export function meepleSvg(colorHex = "#c0392b", size = 28, label = "") {
 }
 
 /**
- * 农场格背景：木屋、陶屋、石屋材质纹理
+ * 经典木质牲畜圈舍 / 马厩 (3D Stereoscopic Barn & Stable Model)
+ * @param {boolean} inPasture 是否位于封闭牧场内（在牧场内容量翻倍）
+ * @param {boolean} isWinter 是否为冬季（带屋顶积雪微霜）
+ * @param {number} size 尺寸 (px)
+ */
+export function stableSvg(inPasture = false, isWinter = false, size = 44) {
+  const s = size;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 64 64" class="agri-stable-3d ${inPasture ? "stable-in-pasture" : "stable-solo"}" aria-label="圈舍" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="stableRoofL_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#b85834"/>
+        <stop offset="100%" stop-color="#803318"/>
+      </linearGradient>
+      <linearGradient id="stableRoofR_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#722c15"/>
+        <stop offset="100%" stop-color="#461709"/>
+      </linearGradient>
+      <linearGradient id="stableWall_${s}" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#b68146"/>
+        <stop offset="100%" stop-color="#6a441b"/>
+      </linearGradient>
+    </defs>
+    <g filter="drop-shadow(-2px 4px 4px rgba(25,12,4,0.48))">
+      <!-- 椭圆地基投影 -->
+      <ellipse cx="32" cy="55" rx="26" ry="7" fill="rgba(25,12,4,0.32)"/>
+      <!-- 正面山墙木立面 -->
+      <polygon points="32,12 56,27 53,52 11,52 8,27" fill="url(#stableWall_${s})" stroke="#3e220a" stroke-width="1.4"/>
+      <!-- 正面原木墙体横向缝与角部木榫 -->
+      <line x1="11" y1="35" x2="53" y2="35" stroke="#482b10" stroke-width="1.2"/>
+      <line x1="11" y1="43" x2="53" y2="43" stroke="#482b10" stroke-width="1.2"/>
+      <circle cx="10" cy="35" r="1.5" fill="#301805"/>
+      <circle cx="54" cy="35" r="1.5" fill="#301805"/>
+      <circle cx="10" cy="43" r="1.5" fill="#301805"/>
+      <circle cx="54" cy="43" r="1.5" fill="#301805"/>
+      <!-- 拱门入口与深暗内膛 -->
+      <path d="M 23 52 L 23 34 C 23 28, 41 28, 41 34 L 41 52 Z" fill="#200f04" stroke="#4a250a" stroke-width="1.2"/>
+      <!-- 门口金黄干草堆料槽 -->
+      <ellipse cx="32" cy="49" rx="7" ry="3.5" fill="#e5b338"/>
+      <path d="M 27 49 Q 32 43 37 49" stroke="#ffe066" stroke-width="1.5" fill="none"/>
+      <!-- 3D 双坡屋顶：左坡受光面 -->
+      <polygon points="32,9 32,27 5,28 6,10" fill="url(#stableRoofL_${s})" stroke="#381006" stroke-width="1.3"/>
+      <!-- 3D 双坡屋顶：右坡阴影面 -->
+      <polygon points="32,9 58,26 55,29 32,27" fill="url(#stableRoofR_${s})" stroke="#2a0a03" stroke-width="1.3"/>
+      <!-- 屋顶屋脊压顶梁木 -->
+      <line x1="6" y1="9" x2="32" y2="9" stroke="#d47952" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- 侧边木支撑斜桁架 -->
+      <line x1="10" y1="28" x2="23" y2="42" stroke="#3e220a" stroke-width="1.3"/>
+      <line x1="54" y1="28" x2="41" y2="42" stroke="#3e220a" stroke-width="1.3"/>
+      <!-- 山墙顶部木雕公鸡/马头风向标 -->
+      <path d="M 32 9 L 32 3 M 29 5 Q 32 2 35 5" stroke="#d9aa38" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <!-- 冬季屋脊与屋檐积雪微霜 -->
+      ${isWinter ? `<path d="M 5 9 Q 18 7 32 8 Q 45 17 58 26" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.95"/><path d="M 5 28 Q 18 26 32 27 Q 44 27 55 29" stroke="#e6f2ff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.9"/>` : ""}
+      <!-- 封闭牧场内 2× 双倍容量铜牌徽饰 -->
+      ${inPasture ? `<g transform="translate(32, 22)">
+        <circle cx="0" cy="0" r="5.5" fill="#f8d348" stroke="#7a5508" stroke-width="1" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.4))"/>
+        <text x="0" y="2.5" font-size="7" font-weight="900" text-anchor="middle" fill="#583902">2×</text>
+      </g>` : ""}
+    </g>
+  </svg>`;
+}
+
+/**
+ * 3D 实体原木栅栏横梁 (3D Split-Rail Fence Timber Beam)
+ * @param {"h"|"v"} orientation 横向 (h) 或纵向 (v)
+ * @param {number} length 栅栏段长度 (像素)
+ */
+export function fenceRailSvg(orientation = "h", length = 76) {
+  const l = length;
+  if (orientation === "h") {
+    // 横向双排立体削皮原木栅栏梁，带有中间立柱加固与木纹倒角
+    return `<svg width="${l}" height="14" viewBox="0 0 ${l} 14" class="fence-rail-svg rail-h" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="railTopH" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#dfa56b"/>
+          <stop offset="50%" stop-color="#ba7d42"/>
+          <stop offset="100%" stop-color="#734217"/>
+        </linearGradient>
+      </defs>
+      <!-- 上梁原木 -->
+      <rect x="0" y="1" width="${l}" height="4.5" rx="1.5" fill="url(#railTopH)" stroke="#381b07" stroke-width="0.9"/>
+      <line x1="2" y1="2" x2="${l - 2}" y2="2" stroke="#f4d1a8" stroke-width="0.8" opacity="0.85"/>
+      <!-- 下梁原木 -->
+      <rect x="0" y="8" width="${l}" height="4.5" rx="1.5" fill="url(#railTopH)" stroke="#381b07" stroke-width="0.9"/>
+      <line x1="2" y1="9" x2="${l - 2}" y2="9" stroke="#f4d1a8" stroke-width="0.8" opacity="0.85"/>
+      <!-- 中间垂直固定短木桩（左右各1/3处） -->
+      <rect x="${Math.max(4, Math.round(l * 0.33) - 2)}" y="0" width="4.5" height="14" rx="1.2" fill="#5c3412" stroke="#250f02" stroke-width="0.8"/>
+      <rect x="${Math.max(8, Math.round(l * 0.67) - 2)}" y="0" width="4.5" height="14" rx="1.2" fill="#5c3412" stroke="#250f02" stroke-width="0.8"/>
+    </svg>`;
+  }
+
+  // 纵向双排立体削皮原木栅栏梁
+  return `<svg width="14" height="${l}" viewBox="0 0 14 ${l}" class="fence-rail-svg rail-v" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="railTopV" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#dfa56b"/>
+        <stop offset="50%" stop-color="#ba7d42"/>
+        <stop offset="100%" stop-color="#734217"/>
+      </linearGradient>
+    </defs>
+    <!-- 左竖梁原木 -->
+    <rect x="1" y="0" width="4.5" height="${l}" rx="1.5" fill="url(#railTopV)" stroke="#381b07" stroke-width="0.9"/>
+    <line x1="2" y1="2" x2="2" y2="${l - 2}" stroke="#f4d1a8" stroke-width="0.8" opacity="0.85"/>
+    <!-- 右竖梁原木 -->
+    <rect x="8" y="0" width="4.5" height="${l}" rx="1.5" fill="url(#railTopV)" stroke="#381b07" stroke-width="0.9"/>
+    <line x1="9" y1="2" x2="9" y2="${l - 2}" stroke="#f4d1a8" stroke-width="0.8" opacity="0.85"/>
+    <!-- 中间横向固定短木桩 -->
+    <rect x="0" y="${Math.max(4, Math.round(l * 0.33) - 2)}" width="14" height="4.5" rx="1.2" fill="#5c3412" stroke="#250f02" stroke-width="0.8"/>
+    <rect x="0" y="${Math.max(8, Math.round(l * 0.67) - 2)}" width="14" height="4.5" rx="1.2" fill="#5c3412" stroke="#250f02" stroke-width="0.8"/>
+  </svg>`;
+}
+
+/**
+ * 未开垦荒地微地貌（立体碎石、杂草丛、拓荒树桩点缀）
+ */
+export function emptySoilSvg() {
+  return `<svg viewBox="0 0 64 64" class="empty-soil-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <g filter="drop-shadow(0 1px 1px rgba(0,0,0,0.2))">
+      <!-- 拓荒树桩与年轮裂纹 -->
+      <ellipse cx="46" cy="46" rx="6" ry="3.8" fill="#8c7858" stroke="#5a4930" stroke-width="0.9"/>
+      <ellipse cx="46" cy="46" rx="3.5" ry="2.2" fill="none" stroke="#6f5d41" stroke-width="0.7"/>
+      <circle cx="46" cy="46" r="0.8" fill="#463824"/>
+      <!-- 立体碎石块 -->
+      <polygon points="12,48 18,46 20,50 14,52" fill="#a49372" stroke="#685a42" stroke-width="0.8"/>
+      <polygon points="18,46 22,48 20,50" fill="#c0b090"/>
+      <ellipse cx="26" cy="51" rx="2.5" ry="1.4" fill="#887656"/>
+      <!-- 野生杂草嫩丛与野花点缀 -->
+      <path d="M 12 20 Q 15 11 18 18 Q 21 9 24 19" stroke="#7ca358" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M 38 16 Q 41 9 44 17" stroke="#6b9445" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <circle cx="18" cy="10" r="1.5" fill="#f8e36e"/>
+    </g>
+  </svg>`;
+}
+
+/**
+ * 农场格背景：木屋、陶屋、石屋材质纹理（2D 扁平模式保留）
  * @param {"wood"|"clay"|"stone"} roomType
  */
 export function roomTileSvg(roomType = "wood") {
   if (roomType === "stone") {
-    // 沉稳石屋：错落方整花岗岩石块砌筑，带勾缝
-    return `url("data:image/svg+xml;utf8,<svg width='64' height='64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' fill='%239ca4ae'/><rect x='1' y='1' width='30' height='14' rx='1' fill='%23b4bcc6' stroke='%23484f58' stroke-width='0.9'/><rect x='33' y='1' width='30' height='14' rx='1' fill='%238a929c' stroke='%23484f58' stroke-width='0.9'/><rect x='1' y='17' width='14' height='14' rx='1' fill='%23a4acb6' stroke='%23484f58' stroke-width='0.9'/><rect x='17' y='17' width='30' height='14' rx='1' fill='%23c2cacf' stroke='%23484f58' stroke-width='0.9'/><rect x='49' y='17' width='14' height='14' rx='1' fill='%238a929c' stroke='%23484f58' stroke-width='0.9'/><rect x='1' y='33' width='30' height='14' rx='1' fill='%238a929c' stroke='%23484f58' stroke-width='0.9'/><rect x='33' y='33' width='30' height='14' rx='1' fill='%23a4acb6' stroke='%23484f58' stroke-width='0.9'/><rect x='1' y='49' width='20' height='14' rx='1' fill='%23c2cacf' stroke='%23484f58' stroke-width='0.9'/><rect x='23' y='49' width='24' height='14' rx='1' fill='%238a929c' stroke='%23484f58' stroke-width='0.9'/><rect x='49' y='49' width='14' height='14' rx='1' fill='%23b4bcc6' stroke='%23484f58' stroke-width='0.9'/></svg>")`;
+    // 沉稳石屋：错落方整花岗岩石块砌筑，带深色凹凸勾缝与微青苔
+    return `url("data:image/svg+xml;utf8,<svg width='64' height='64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' fill='%2388909a'/><rect x='1' y='1' width='30' height='14' rx='1' fill='%23adb6c0' stroke='%233e444c' stroke-width='1'/><rect x='33' y='1' width='30' height='14' rx='1' fill='%239ca4ad' stroke='%233e444c' stroke-width='1'/><rect x='1' y='17' width='14' height='14' rx='1' fill='%239ca4ad' stroke='%233e444c' stroke-width='1'/><rect x='17' y='17' width='30' height='14' rx='1' fill='%23c0c8cf' stroke='%233e444c' stroke-width='1'/><rect x='49' y='17' width='14' height='14' rx='1' fill='%2388909a' stroke='%233e444c' stroke-width='1'/><rect x='1' y='33' width='30' height='14' rx='1' fill='%239ca4ad' stroke='%233e444c' stroke-width='1'/><rect x='33' y='33' width='30' height='14' rx='1' fill='%23adb6c0' stroke='%233e444c' stroke-width='1'/><rect x='1' y='49' width='20' height='14' rx='1' fill='%23c0c8cf' stroke='%233e444c' stroke-width='1'/><rect x='23' y='49' width='24' height='14' rx='1' fill='%2388909a' stroke='%233e444c' stroke-width='1'/><rect x='49' y='49' width='14' height='14' rx='1' fill='%239ca4ad' stroke='%233e444c' stroke-width='1'/><circle cx='46' cy='18' r='1.5' fill='%235b7548'/><circle cx='4' cy='48' r='1.5' fill='%235b7548'/></svg>")`;
   }
   if (roomType === "clay") {
-    // 德式半木陶屋：赤陶红砖配深色交叉木框架 (Half-timbered)
-    return `url("data:image/svg+xml;utf8,<svg width='64' height='64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' fill='%23d97555'/><rect x='2' y='2' width='60' height='60' fill='%23eb8a6a'/><line x1='0' y1='32' x2='64' y2='32' stroke='%23542a18' stroke-width='4'/><line x1='32' y1='0' x2='32' y2='64' stroke='%23542a18' stroke-width='4'/><line x1='0' y1='0' x2='32' y2='32' stroke='%236e3922' stroke-width='3'/><line x1='32' y1='32' x2='64' y2='0' stroke='%236e3922' stroke-width='3'/><circle cx='32' cy='32' r='2' fill='%232b1308'/></svg>")`;
+    // 德式半木陶屋：赤陶红砖配深色交叉木框架 (Half-timbered / Fachwerk)
+    return `url("data:image/svg+xml;utf8,<svg width='64' height='64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' fill='%23c95a38'/><rect x='2' y='2' width='60' height='60' fill='%23e07250'/><line x1='0' y1='32' x2='64' y2='32' stroke='%23482010' stroke-width='4'/><line x1='32' y1='0' x2='32' y2='64' stroke='%23482010' stroke-width='4'/><line x1='0' y1='0' x2='32' y2='32' stroke='%235e2c18' stroke-width='3'/><line x1='32' y1='32' x2='64' y2='0' stroke='%235e2c18' stroke-width='3'/><line x1='0' y1='32' x2='32' y2='64' stroke='%235e2c18' stroke-width='3'/><line x1='32' y1='32' x2='64' y2='64' stroke='%235e2c18' stroke-width='3'/><circle cx='32' cy='32' r='2.5' fill='%23220c04'/></svg>")`;
   }
-  // 简朴木屋：横向深色橡木长板，带木板缝与铸铁钉
-  return `url("data:image/svg+xml;utf8,<svg width='64' height='64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' fill='%237a542b'/><rect x='0' y='1' width='64' height='14' fill='%239e703f'/><rect x='0' y='17' width='64' height='14' fill='%238c6235'/><rect x='0' y='33' width='64' height='14' fill='%239e703f'/><rect x='0' y='49' width='64' height='14' fill='%237d552b'/><line x1='0' y1='15.5' x2='64' y2='15.5' stroke='%23402710' stroke-width='1.5'/><line x1='0' y1='31.5' x2='64' y2='31.5' stroke='%23402710' stroke-width='1.5'/><line x1='0' y1='47.5' x2='64' y2='47.5' stroke='%23402710' stroke-width='1.5'/><circle cx='6' cy='8' r='1.2' fill='%23261608'/><circle cx='58' cy='8' r='1.2' fill='%23261608'/><circle cx='8' cy='24' r='1.2' fill='%23261608'/><circle cx='56' cy='24' r='1.2' fill='%23261608'/><circle cx='6' cy='40' r='1.2' fill='%23261608'/><circle cx='58' cy='40' r='1.2' fill='%23261608'/></svg>")`;
+  // 简朴原木屋：深色橡木长板、年轮木钉与接缝
+  return `url("data:image/svg+xml;utf8,<svg width='64' height='64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' fill='%236f4820'/><rect x='0' y='1' width='64' height='14' fill='%23936332'/><rect x='0' y='17' width='64' height='14' fill='%23805328'/><rect x='0' y='33' width='64' height='14' fill='%23936332'/><rect x='0' y='49' width='64' height='14' fill='%23744922'/><line x1='0' y1='15.5' x2='64' y2='15.5' stroke='%23381e08' stroke-width='1.8'/><line x1='0' y1='31.5' x2='64' y2='31.5' stroke='%23381e08' stroke-width='1.8'/><line x1='0' y1='47.5' x2='64' y2='47.5' stroke='%23381e08' stroke-width='1.8'/><circle cx='6' cy='8' r='1.4' fill='%231f1004'/><circle cx='58' cy='8' r='1.4' fill='%231f1004'/><circle cx='8' cy='24' r='1.4' fill='%231f1004'/><circle cx='56' cy='24' r='1.4' fill='%231f1004'/><circle cx='6' cy='40' r='1.4' fill='%231f1004'/><circle cx='58' cy='40' r='1.4' fill='%231f1004'/></svg>")`;
 }
 
 /**
- * 农田犁沟背景与生长的作物矢量图
+ * 3D 实体农舍建筑模型 (Stereoscopic Architectural House Model)
+ * 在 2.5D 透视下拔地而起：山墙坡屋顶、受光/背光面、木门、暖光窗棂、烟囱与袅袅青烟
+ * @param {"wood"|"clay"|"stone"} roomType
+ * @param {boolean} isWinter 是否为冬季
+ * @param {number} size 尺寸 (px)
+ */
+export function roomModelSvg(roomType = "wood", isWinter = false, size = 52) {
+  const s = size;
+  if (roomType === "stone") {
+    // 沉稳花岗岩石砌庄园城堡模型
+    return `<svg width="${s}" height="${s}" viewBox="0 0 68 68" class="agri-house-3d house-stone" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="stRoofL_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#607182"/>
+          <stop offset="100%" stop-color="#3d4955"/>
+        </linearGradient>
+        <linearGradient id="stRoofR_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#333d47"/>
+          <stop offset="100%" stop-color="#20272e"/>
+        </linearGradient>
+        <linearGradient id="stWall_${s}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#b0b9c2"/>
+          <stop offset="100%" stop-color="#737c85"/>
+        </linearGradient>
+      </defs>
+      <g filter="drop-shadow(-3px 5px 4px rgba(20,25,30,0.5))">
+        <!-- 地基阴影 -->
+        <ellipse cx="34" cy="60" rx="28" ry="7" fill="rgba(15,20,25,0.36)"/>
+        <!-- 正面石砌山墙 -->
+        <polygon points="34,10 60,26 57,56 11,56 8,26" fill="url(#stWall_${s})" stroke="#2a3036" stroke-width="1.4"/>
+        <!-- 花岗岩错落石砖勾缝 -->
+        <line x1="11" y1="36" x2="57" y2="36" stroke="#434b54" stroke-width="1"/>
+        <line x1="11" y1="46" x2="57" y2="46" stroke="#434b54" stroke-width="1"/>
+        <line x1="24" y1="26" x2="24" y2="36" stroke="#434b54" stroke-width="1"/>
+        <line x1="44" y1="26" x2="44" y2="36" stroke="#434b54" stroke-width="1"/>
+        <line x1="34" y1="36" x2="34" y2="46" stroke="#434b54" stroke-width="1"/>
+        <!-- 铁艺拱形城堡厚木门 -->
+        <path d="M 27 56 L 27 38 C 27 32, 41 32, 41 38 L 41 56 Z" fill="#2d1c10" stroke="#180e07" stroke-width="1.2"/>
+        <circle cx="39" cy="47" r="1.2" fill="#c4a35a"/>
+        <!-- 暖光石窗 -->
+        <rect x="15" y="38" width="7" height="9" rx="1.5" fill="#f8e79b" stroke="#363e46" stroke-width="1"/>
+        <line x1="18.5" y1="38" x2="18.5" y2="47" stroke="#363e46" stroke-width="0.8"/>
+        <!-- 顶部石砌大烟囱与升腾微烟 -->
+        <rect x="44" y="6" width="6" height="12" fill="#58626c" stroke="#2a3036" stroke-width="1"/>
+        <ellipse cx="47" cy="6" rx="3.5" ry="1.2" fill="#363e46"/>
+        <path d="M 47 4 Q 50 1 48 -2 Q 45 -5 49 -8" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.65"/>
+        <!-- 双坡青石屋顶：左坡受光面 -->
+        <polygon points="34,7 34,26 5,27 6,8" fill="url(#stRoofL_${s})" stroke="#22282e" stroke-width="1.3"/>
+        <!-- 双坡青石屋顶：右坡阴影面 -->
+        <polygon points="34,7 62,25 59,28 34,26" fill="url(#stRoofR_${s})" stroke="#191d21" stroke-width="1.3"/>
+        <line x1="6" y1="7.5" x2="34" y2="7.5" stroke="#8997a5" stroke-width="2" stroke-linecap="round"/>
+        <!-- 冬季白雪屋脊 -->
+        ${isWinter ? `<path d="M 5 7.5 Q 20 6 34 7 Q 48 16 62 25" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" fill="none"/>` : ""}
+      </g>
+    </svg>`;
+  }
+
+  if (roomType === "clay") {
+    // 德式黑森林半木结构红砖陶屋模型 (Fachwerk)
+    return `<svg width="${s}" height="${s}" viewBox="0 0 68 68" class="agri-house-3d house-clay" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="clRoofL_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#df5c32"/>
+          <stop offset="100%" stop-color="#a43314"/>
+        </linearGradient>
+        <linearGradient id="clRoofR_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#8c2b10"/>
+          <stop offset="100%" stop-color="#551505"/>
+        </linearGradient>
+      </defs>
+      <g filter="drop-shadow(-3px 5px 4px rgba(35,15,5,0.48))">
+        <!-- 地基阴影 -->
+        <ellipse cx="34" cy="60" rx="28" ry="7" fill="rgba(30,12,5,0.32)"/>
+        <!-- 奶白灰浆山墙面 -->
+        <polygon points="34,10 60,26 57,56 11,56 8,26" fill="#faeed9" stroke="#48220f" stroke-width="1.4"/>
+        <!-- 德式黑深色交叉木梁框架 (Fachwerk Beams) -->
+        <line x1="10" y1="36" x2="58" y2="36" stroke="#4a2410" stroke-width="2.5"/>
+        <line x1="10" y1="56" x2="58" y2="56" stroke="#4a2410" stroke-width="2.5"/>
+        <line x1="22" y1="26" x2="22" y2="56" stroke="#4a2410" stroke-width="2"/>
+        <line x1="46" y1="26" x2="46" y2="56" stroke="#4a2410" stroke-width="2"/>
+        <!-- 交叉人字斜撑 -->
+        <line x1="11" y1="36" x2="22" y2="56" stroke="#4a2410" stroke-width="1.8"/>
+        <line x1="57" y1="36" x2="46" y2="56" stroke="#4a2410" stroke-width="1.8"/>
+        <!-- 红砖小木门 -->
+        <rect x="27" y="38" width="14" height="18" fill="#753018" stroke="#361509" stroke-width="1.2"/>
+        <circle cx="38" cy="48" r="1.2" fill="#ffd166"/>
+        <!-- 绿色百叶小窗 -->
+        <rect x="14" y="39" width="6" height="8" fill="#f8e79b" stroke="#3d6830" stroke-width="1"/>
+        <rect x="48" y="39" width="6" height="8" fill="#f8e79b" stroke="#3d6830" stroke-width="1"/>
+        <!-- 红砖小烟囱 -->
+        <rect x="45" y="7" width="5.5" height="11" fill="#b84524" stroke="#4d1607" stroke-width="1"/>
+        <!-- 陡峭红陶瓦片屋顶：左坡受光面 -->
+        <polygon points="34,7 34,26 5,27 6,8" fill="url(#clRoofL_${s})" stroke="#401407" stroke-width="1.3"/>
+        <!-- 右坡阴影面 -->
+        <polygon points="34,7 62,25 59,28 34,26" fill="url(#clRoofR_${s})" stroke="#2b0a03" stroke-width="1.3"/>
+        <line x1="6" y1="7.5" x2="34" y2="7.5" stroke="#f48c66" stroke-width="2" stroke-linecap="round"/>
+        <!-- 冬季白雪屋脊 -->
+        ${isWinter ? `<path d="M 5 7.5 Q 20 6 34 7 Q 48 16 62 25" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" fill="none"/>` : ""}
+      </g>
+    </svg>`;
+  }
+
+  // 默认：原木山墙原木屋模型 (Rustic Timber Cottage)
+  return `<svg width="${s}" height="${s}" viewBox="0 0 68 68" class="agri-house-3d house-wood" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="wdRoofL_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#b67a3f"/>
+        <stop offset="100%" stop-color="#7c4a1e"/>
+      </linearGradient>
+      <linearGradient id="wdRoofR_${s}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#693c16"/>
+        <stop offset="100%" stop-color="#3d1f08"/>
+      </linearGradient>
+      <linearGradient id="wdWall_${s}" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#9e6631"/>
+        <stop offset="100%" stop-color="#583514"/>
+      </linearGradient>
+    </defs>
+    <g filter="drop-shadow(-3px 5px 4px rgba(30,15,5,0.48))">
+      <!-- 地基阴影 -->
+      <ellipse cx="34" cy="60" rx="28" ry="7" fill="rgba(25,12,4,0.32)"/>
+      <!-- 正面原木堆叠立面 -->
+      <polygon points="34,10 60,26 57,56 11,56 8,26" fill="url(#wdWall_${s})" stroke="#361c07" stroke-width="1.4"/>
+      <!-- 叠木缝与两侧切角年轮 -->
+      <line x1="11" y1="34" x2="57" y2="34" stroke="#3d2209" stroke-width="1.3"/>
+      <line x1="11" y1="42" x2="57" y2="42" stroke="#3d2209" stroke-width="1.3"/>
+      <line x1="11" y1="50" x2="57" y2="50" stroke="#3d2209" stroke-width="1.3"/>
+      <!-- 原木木桩截面圆圈 -->
+      <circle cx="10" cy="34" r="2.2" fill="#caa066" stroke="#48270b" stroke-width="0.8"/>
+      <circle cx="58" cy="34" r="2.2" fill="#caa066" stroke="#48270b" stroke-width="0.8"/>
+      <circle cx="10" cy="42" r="2.2" fill="#caa066" stroke="#48270b" stroke-width="0.8"/>
+      <circle cx="58" cy="42" r="2.2" fill="#caa066" stroke="#48270b" stroke-width="0.8"/>
+      <circle cx="10" cy="50" r="2.2" fill="#caa066" stroke="#48270b" stroke-width="0.8"/>
+      <circle cx="58" cy="50" r="2.2" fill="#caa066" stroke="#48270b" stroke-width="0.8"/>
+      <!-- 拱形深橡木门 -->
+      <path d="M 26 56 L 26 36 C 26 31, 42 31, 42 36 L 42 56 Z" fill="#2d1607" stroke="#48240b" stroke-width="1.2"/>
+      <circle cx="39" cy="46" r="1.2" fill="#ffd166"/>
+      <!-- 暖光小木窗 -->
+      <rect x="15" y="38" width="6.5" height="7.5" rx="1" fill="#ffeaa7" stroke="#48240b" stroke-width="1"/>
+      <!-- 石砌烟囱与袅袅烟雾 -->
+      <rect x="44" y="6" width="6" height="12" fill="#757f88" stroke="#384046" stroke-width="1"/>
+      <path d="M 47 4 Q 50 1 48 -2 Q 45 -5 49 -8" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+      <!-- 人字形双坡原木屋顶：左坡受光面 -->
+      <polygon points="34,7 34,26 5,27 6,8" fill="url(#wdRoofL_${s})" stroke="#2b1404" stroke-width="1.3"/>
+      <!-- 右坡阴影面 -->
+      <polygon points="34,7 62,25 59,28 34,26" fill="url(#wdRoofR_${s})" stroke="#1f0d02" stroke-width="1.3"/>
+      <line x1="6" y1="7.5" x2="34" y2="7.5" stroke="#dcb074" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- 冬季白雪屋脊 -->
+      ${isWinter ? `<path d="M 5 7.5 Q 20 6 34 7 Q 48 16 62 25" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" fill="none"/>` : ""}
+    </g>
+  </svg>`;
+}
+
+/**
+ * 农田犁沟背景与生长的作物立体模型 (Clean & Realistic Flat Soil Plots with Upright Crops)
  * @param {"grain"|"vegetable"|null} crop 作物类型
  * @param {number} markers 剩余收获轮次 (1/2/3)
  */
 export function fieldContentSvg(crop = null, markers = 0) {
   if (!crop || markers <= 0) {
-    // 翻好的肥沃犁田（未播种）：带有泥土犁沟与一颗破土小萌芽
+    // 翻好的深色肥沃整齐犁田（未播种）：平整规整的深棕耕犁泥垄 + 中间一小株破土嫩芽
     return `<div class="field-soil-wrap">
-      <svg viewBox="0 0 60 60" class="field-sprout-svg" xmlns="http://www.w3.org/2000/svg">
-        <path d="M 28 44 Q 30 32 30 26" stroke="#488628" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-        <path d="M 30 26 C 24 24, 20 28, 22 34 C 27 34, 29 30, 30 26 Z" fill="#69db7c"/>
-        <path d="M 30 26 C 36 22, 40 24, 38 30 C 34 32, 31 28, 30 26 Z" fill="#51cf66"/>
+      <svg viewBox="0 0 48 48" class="field-soil-flat" xmlns="http://www.w3.org/2000/svg">
+        <!-- 规整平整的四道直犁垄线，平铺于地表 -->
+        <rect x="2" y="2" width="44" height="44" rx="2" fill="#38200b"/>
+        <line x1="3" y1="9" x2="45" y2="9" stroke="#523114" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="3" y1="11" x2="45" y2="11" stroke="#221204" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="3" y1="19" x2="45" y2="19" stroke="#523114" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="3" y1="21" x2="45" y2="21" stroke="#221204" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="3" y1="29" x2="45" y2="29" stroke="#523114" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="3" y1="31" x2="45" y2="31" stroke="#221204" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="3" y1="39" x2="45" y2="39" stroke="#523114" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="3" y1="41" x2="45" y2="41" stroke="#221204" stroke-width="1.2" stroke-linecap="round"/>
       </svg>
+      <div class="field-sprout-billboard">
+        <svg viewBox="0 0 24 24" class="field-sprout-svg" xmlns="http://www.w3.org/2000/svg">
+          <g filter="drop-shadow(0 2px 2px rgba(0,0,0,0.5))">
+            <path d="M 12 21 L 12 11" stroke="#488628" stroke-width="2" stroke-linecap="round"/>
+            <path d="M 12 11 C 7 8, 5 13, 7 17 C 10 17, 11 13, 12 11 Z" fill="#69db7c"/>
+            <path d="M 12 11 C 17 8, 19 13, 17 17 C 14 17, 13 13, 12 11 Z" fill="#51cf66"/>
+          </g>
+        </svg>
+      </div>
     </div>`;
   }
 
   if (crop === "grain") {
-    // 生长中的谷物：根据剩余 markers 数量（1~3）渲染成排饱满麦穗
-    const ears = [];
-    if (markers >= 1) ears.push({ cx: 30, cy: 30, sc: 1.1 });
-    if (markers >= 2) ears.push({ cx: 18, cy: 33, sc: 0.9 });
-    if (markers >= 3) ears.push({ cx: 42, cy: 33, sc: 0.9 });
+    // 生长中的茂密立体金黄麦浪田！
+    const tiers = [];
+    if (markers >= 1) tiers.push({ cx: 24, cy: 22, sc: 1.05, rot: 0 });
+    if (markers >= 2) tiers.push({ cx: 14, cy: 25, sc: 0.85, rot: -7 });
+    if (markers >= 3) tiers.push({ cx: 34, cy: 25, sc: 0.85, rot: 7 });
 
     return `<div class="field-crops-wrap">
-      <svg viewBox="0 0 60 60" class="field-crop-svg" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 48 48" class="field-crop-svg wheat-field-3d" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="cropGrain" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#ffe066"/>
-            <stop offset="60%" stop-color="#fab005"/>
-            <stop offset="100%" stop-color="#b27300"/>
+          <linearGradient id="wheatGold" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fff085"/>
+            <stop offset="45%" stop-color="#fab005"/>
+            <stop offset="100%" stop-color="#a66a00"/>
+          </linearGradient>
+          <linearGradient id="wheatStem" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#e5a11c"/>
+            <stop offset="100%" stop-color="#734907"/>
           </linearGradient>
         </defs>
-        ${ears.map(e => `
-          <g transform="translate(${e.cx - 15}, ${e.cy - 20}) scale(${e.sc * 0.65})">
-            <path d="M 12 40 C 18 32, 26 22, 34 10" stroke="#af740b" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-            <ellipse cx="20" cy="27" rx="3" ry="5.5" transform="rotate(-35 20 27)" fill="url(#cropGrain)"/>
-            <ellipse cx="25" cy="23" rx="3" ry="5.5" transform="rotate(35 25 23)" fill="url(#cropGrain)"/>
-            <ellipse cx="24" cy="21" rx="3" ry="5.5" transform="rotate(-35 24 21)" fill="url(#cropGrain)"/>
-            <ellipse cx="29" cy="17" rx="3" ry="5.5" transform="rotate(35 29 17)" fill="url(#cropGrain)"/>
-            <ellipse cx="33" cy="11" rx="2.5" ry="4.8" transform="rotate(30 33 11)" fill="url(#cropGrain)"/>
+        ${tiers.map(t => `
+          <g transform="translate(${t.cx}, ${t.cy}) rotate(${t.rot}) scale(${t.sc * 0.7})" filter="drop-shadow(0 2px 2px rgba(30,15,0,0.45))">
+            <!-- 麦秆束身 -->
+            <path d="M -8 18 Q -3 6 0 -8" stroke="url(#wheatStem)" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M 0 20 Q 0 6 0 -10" stroke="url(#wheatStem)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            <path d="M 8 18 Q 3 6 0 -8" stroke="url(#wheatStem)" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <!-- 左右饱满麦穗颗粒与金色麦芒 -->
+            <ellipse cx="-6" cy="3" rx="3.2" ry="5.5" transform="rotate(-30 -6 3)" fill="url(#wheatGold)"/>
+            <ellipse cx="6" cy="3" rx="3.2" ry="5.5" transform="rotate(30 6 3)" fill="url(#wheatGold)"/>
+            <ellipse cx="-4" cy="-3" rx="3" ry="5.2" transform="rotate(-28 -4 -3)" fill="url(#wheatGold)"/>
+            <ellipse cx="4" cy="-3" rx="3" ry="5.2" transform="rotate(28 4 -3)" fill="url(#wheatGold)"/>
+            <ellipse cx="0" cy="-10" rx="2.8" ry="5" fill="url(#wheatGold)"/>
+            <!-- 麦穗顶芒针线 -->
+            <line x1="-6" y1="0" x2="-10" y2="-6" stroke="#ffe066" stroke-width="1" stroke-linecap="round"/>
+            <line x1="6" y1="0" x2="10" y2="-6" stroke="#ffe066" stroke-width="1" stroke-linecap="round"/>
+            <line x1="0" y1="-12" x2="0" y2="-19" stroke="#ffe066" stroke-width="1.2" stroke-linecap="round"/>
           </g>
         `).join("")}
       </svg>
@@ -592,24 +908,30 @@ export function fieldContentSvg(crop = null, markers = 0) {
     </div>`;
   }
 
-  // crop === "vegetable": 根部半埋在土里的胡萝卜带绿缨
+  // crop === "vegetable": 垄土上半露出饱满的橙红胡萝卜头，顶上茂密羽状绿缨
   const roots = [];
-  if (markers >= 1) roots.push({ cx: 24, cy: 30 });
-  if (markers >= 2) roots.push({ cx: 36, cy: 32 });
+  if (markers >= 1) roots.push({ cx: 24, cy: 25, sc: 1.0 });
+  if (markers >= 2) roots.push({ cx: 14, cy: 28, sc: 0.85 });
 
   return `<div class="field-crops-wrap">
-    <svg viewBox="0 0 60 60" class="field-crop-svg" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 48 48" class="field-crop-svg carrot-patch-3d" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="cropVeg" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#ff922b"/>
+        <linearGradient id="carrotOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffa94d"/>
+          <stop offset="45%" stop-color="#fd7e14"/>
           <stop offset="100%" stop-color="#d9480f"/>
         </linearGradient>
       </defs>
       ${roots.map(r => `
-        <g transform="translate(${r.cx - 12}, ${r.cy - 16}) scale(0.65)">
-          <path d="M 18 10 C 22 5, 26 2, 24 0 C 21 2, 18 6, 17 9 Z" fill="#40c057"/>
-          <path d="M 15 10 C 13 4, 11 1, 9 2 C 10 5, 12 7, 13 10 Z" fill="#37b24d"/>
-          <path d="M 21 9 C 23 13, 20 15, 17 20 C 13 25, 8 32, 6 34 C 7 24, 13 13, 17 9 Z" fill="url(#cropVeg)" stroke="#802100" stroke-width="0.8"/>
+        <g transform="translate(${r.cx}, ${r.cy}) scale(${r.sc * 0.75})" filter="drop-shadow(0 2px 2px rgba(35,15,5,0.4))">
+          <!-- 茂密羽状绿缨叶片 -->
+          <path d="M 0 -2 Q -9 -14 -6 -20 Q -2 -12 0 -2" fill="#40c057"/>
+          <path d="M 0 -2 Q 0 -18 2 -22 Q 4 -14 0 -2" fill="#51cf66"/>
+          <path d="M 0 -2 Q 9 -14 6 -20 Q 2 -12 0 -2" fill="#37b24d"/>
+          <!-- 泥土里露出的粗壮胡萝卜头 -->
+          <path d="M -7 0 C -7 -2, 7 -2, 7 0 C 6 8, 3 17, 0 22 C -3 17, -6 8, -7 0 Z" fill="url(#carrotOrange)" stroke="#802100" stroke-width="1"/>
+          <line x1="-4" y1="4" x2="3" y2="4" stroke="#a43306" stroke-width="1"/>
+          <line x1="-3" y1="9" x2="2" y2="9" stroke="#a43306" stroke-width="1"/>
         </g>
       `).join("")}
     </svg>
@@ -786,3 +1108,249 @@ export function actionWoodcutSvg(id, size = 32) {
       return `<span style="font-size:${s}px">⚡</span>`;
   }
 }
+
+/**
+ * 经典大发展设施专属版画徽章 (Major Improvements Woodcut Art)
+ * 8 大主力工坊设施：水井、壁炉、烹饪灶、陶土烤炉、石烤炉、木工坊、陶工坊、制篮工坊
+ * @param {string} id
+ * @param {number} size 尺寸 (px)
+ */
+export function majorImprovementSvg(id, size = 44) {
+  const s = size;
+  switch (id) {
+    case "Well":
+      // 水井：石砌圆井、木制支架摇臂与悬吊水桶
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-well" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="wellStone" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9aa2ab"/>
+            <stop offset="100%" stop-color="#646b74"/>
+          </linearGradient>
+        </defs>
+        <g filter="drop-shadow(1px 2px 2px rgba(20,25,30,0.35))">
+          <!-- 井顶遮雨木棚 -->
+          <polygon points="26,6 46,18 42,21 26,11 10,21 6,18" fill="#7a4b22" stroke="#3d2109" stroke-width="1.2"/>
+          <!-- 木支柱与辘轳横梁 -->
+          <line x1="12" y1="19" x2="12" y2="35" stroke="#543011" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="40" y1="19" x2="40" y2="35" stroke="#543011" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="12" y1="21" x2="40" y2="21" stroke="#543011" stroke-width="2"/>
+          <!-- 吊绳与提水木桶 -->
+          <line x1="26" y1="21" x2="26" y2="29" stroke="#bda574" stroke-width="1.4"/>
+          <rect x="23" y="29" width="6" height="7" rx="1" fill="#8c5826" stroke="#3b1f07" stroke-width="0.8"/>
+          <!-- 圆形石砌井台 -->
+          <ellipse cx="26" cy="38" rx="18" ry="8" fill="url(#wellStone)" stroke="#393e45" stroke-width="1.3"/>
+          <ellipse cx="26" cy="37" rx="12" ry="4.5" fill="#324956" stroke="#222b30" stroke-width="1"/>
+          <!-- 井水水光 -->
+          <ellipse cx="26" cy="37.5" rx="8" ry="2.5" fill="#5c879d" opacity="0.85"/>
+        </g>
+      </svg>`;
+
+    case "Fireplace_2":
+    case "Fireplace_3":
+      // 壁炉：厚重石砌火塘、铁艺吊钩与跃动的红炭火苗
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-fireplace" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="fpStone" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#8f5038"/>
+            <stop offset="100%" stop-color="#5a2e1d"/>
+          </linearGradient>
+          <linearGradient id="fireGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#ff3e00"/>
+            <stop offset="50%" stop-color="#ff9900"/>
+            <stop offset="100%" stop-color="#ffee55"/>
+          </linearGradient>
+        </defs>
+        <g filter="drop-shadow(1px 2px 2px rgba(40,15,5,0.4))">
+          <!-- 外部石造拱形炉体 -->
+          <path d="M 10 44 L 10 20 Q 10 10 26 10 Q 42 10 42 20 L 42 44 Z" fill="url(#fpStone)" stroke="#381b10" stroke-width="1.4"/>
+          <!-- 内膛黑色炭坑 -->
+          <path d="M 16 44 L 16 26 Q 16 18 26 18 Q 36 18 36 26 L 36 44 Z" fill="#24120a"/>
+          <!-- 炉火 -->
+          <path d="M 21 42 Q 22 30 26 24 Q 30 30 31 42 Q 26 38 21 42 Z" fill="url(#fireGrad)"/>
+          <circle cx="26" cy="32" r="3" fill="#ffffff" opacity="0.75"/>
+          <!-- 烟囱顶部石梁 -->
+          <rect x="8" y="8" width="36" height="5" rx="1.5" fill="#4d2414" stroke="#2a1006" stroke-width="1"/>
+        </g>
+      </svg>`;
+
+    case "CookingHearth_4":
+    case "CookingHearth_5":
+      // 烹饪灶：专业铸铁烹饪台、双耳大炖锅与升腾香气
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-hearth" xmlns="http://www.w3.org/2000/svg">
+        <g filter="drop-shadow(1px 2px 2px rgba(30,20,10,0.4))">
+          <!-- 灶台底座 -->
+          <rect x="8" y="24" width="36" height="20" rx="3" fill="#a44c32" stroke="#542012" stroke-width="1.4"/>
+          <rect x="13" y="32" width="26" height="12" rx="1.5" fill="#32140a"/>
+          <!-- 灶底火炭 -->
+          <circle cx="20" cy="38" r="2" fill="#ff6b00"/>
+          <circle cx="26" cy="37" r="2.5" fill="#ffbb00"/>
+          <circle cx="32" cy="38" r="2" fill="#ff6b00"/>
+          <!-- 铸铁大炖锅 -->
+          <path d="M 16 24 C 16 16, 36 16, 36 24 Z" fill="#454c54" stroke="#22272c" stroke-width="1.3"/>
+          <ellipse cx="26" cy="18" rx="10" ry="2" fill="#58626c"/>
+          <line x1="14" y1="20" x2="16" y2="20" stroke="#22272c" stroke-width="2"/>
+          <line x1="36" y1="20" x2="38" y2="20" stroke="#22272c" stroke-width="2"/>
+          <!-- 蒸腾热气波浪线 -->
+          <path d="M 22 14 Q 20 10 23 6" stroke="#f1d08a" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.85"/>
+          <path d="M 29 13 Q 32 9 29 5" stroke="#f1d08a" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.85"/>
+        </g>
+      </svg>`;
+
+    case "ClayOven":
+      // 陶土烤炉：圆形红泥柴火穹顶窑，散发出烘烤香气
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-clayoven" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="clayDome" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#e06943"/>
+            <stop offset="100%" stop-color="#9a3c1c"/>
+          </linearGradient>
+        </defs>
+        <g filter="drop-shadow(1px 2px 2px rgba(40,15,5,0.4))">
+          <!-- 泥窑底座 -->
+          <rect x="10" y="38" width="32" height="6" rx="2" fill="#753018" stroke="#40180a" stroke-width="1.2"/>
+          <!-- 半球形红陶圆顶 -->
+          <path d="M 12 38 C 12 18, 40 18, 40 38 Z" fill="url(#clayDome)" stroke="#521f0e" stroke-width="1.4"/>
+          <!-- 拱形烤口 -->
+          <path d="M 20 38 L 20 28 C 20 23, 32 23, 32 28 L 32 38 Z" fill="#2d1208" stroke="#ff8c42" stroke-width="1"/>
+          <!-- 炉内面包暖光 -->
+          <ellipse cx="26" cy="34" rx="4" ry="2" fill="#ffd166"/>
+        </g>
+      </svg>`;
+
+    case "StoneOven":
+      // 石烤炉：双层厚重石砌烘焙巨窑，带长柄木质烤面包铲
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-stoneoven" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="soStone" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#a4acb5"/>
+            <stop offset="100%" stop-color="#646b73"/>
+          </linearGradient>
+        </defs>
+        <g filter="drop-shadow(1px 2px 2px rgba(25,25,30,0.4))">
+          <!-- 方石外立面 -->
+          <rect x="8" y="14" width="36" height="30" rx="3" fill="url(#soStone)" stroke="#393e44" stroke-width="1.4"/>
+          <line x1="8" y1="28" x2="44" y2="28" stroke="#393e44" stroke-width="1"/>
+          <!-- 拱门石圈 -->
+          <path d="M 17 40 L 17 26 C 17 20, 35 20, 35 26 L 35 40 Z" fill="#202428" stroke="#525b63" stroke-width="1.2"/>
+          <!-- 炉火暖光 -->
+          <ellipse cx="26" cy="35" rx="5" ry="2.5" fill="#f4a261"/>
+          <!-- 依靠在旁的烤面包长木铲 -->
+          <line x1="39" y1="8" x2="44" y2="42" stroke="#875323" stroke-width="2" stroke-linecap="round"/>
+          <ellipse cx="38" cy="11" rx="3" ry="4.5" transform="rotate(-15 38 11)" fill="#b07d46" stroke="#5c3411" stroke-width="0.8"/>
+        </g>
+      </svg>`;
+
+    case "Joinery":
+      // 木工坊：手工角尺、木工刨刀与原木年轮
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-joinery" xmlns="http://www.w3.org/2000/svg">
+        <g filter="drop-shadow(1px 2px 2px rgba(35,20,5,0.4))">
+          <!-- 工作木台 -->
+          <rect x="8" y="30" width="36" height="14" rx="2" fill="#845528" stroke="#482b12" stroke-width="1.3"/>
+          <line x1="14" y1="36" x2="14" y2="44" stroke="#482b12" stroke-width="2"/>
+          <line x1="38" y1="36" x2="38" y2="44" stroke="#482b12" stroke-width="2"/>
+          <!-- 木工刨刀 -->
+          <polygon points="14,24 30,24 28,30 12,30" fill="#c49764" stroke="#503112" stroke-width="1"/>
+          <rect x="22" y="19" width="3.5" height="5" fill="#3c4349"/>
+          <!-- 手摇钻/角尺 -->
+          <path d="M 32 10 L 44 22 L 40 25 L 34 19 L 34 26 L 30 26 Z" fill="#d9a441" stroke="#684a14" stroke-width="1"/>
+        </g>
+      </svg>`;
+
+    case "Pottery":
+      // 陶工坊：旋转陶轮底座与刚刚拉胚成型的红陶双耳花瓶
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-pottery" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="potGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#e2704b"/>
+            <stop offset="100%" stop-color="#a43e20"/>
+          </linearGradient>
+        </defs>
+        <g filter="drop-shadow(1px 2px 2px rgba(40,15,5,0.4))">
+          <!-- 陶轮飞轮底盘 -->
+          <ellipse cx="26" cy="40" rx="18" ry="5" fill="#69717a" stroke="#363b40" stroke-width="1.3"/>
+          <ellipse cx="26" cy="38" rx="12" ry="3.5" fill="#939ca6"/>
+          <!-- 优雅红陶花瓶 -->
+          <path d="M 21 16 L 31 16 C 31 22, 37 25, 34 32 C 32 36, 20 36, 18 32 C 15 25, 21 22, 21 16 Z" fill="url(#potGrad)" stroke="#5c1f0d" stroke-width="1.3"/>
+          <ellipse cx="26" cy="16" rx="5" ry="1.5" fill="#f89370"/>
+        </g>
+      </svg>`;
+
+    case "BasketmakersWorkshop":
+      // 制篮工坊：精细手工编结的芦苇柳条双提梁菜篮
+      return `<svg width="${s}" height="${s}" viewBox="0 0 52 52" class="major-art art-basket" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="basketReed" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d6b885"/>
+            <stop offset="100%" stop-color="#997843"/>
+          </linearGradient>
+        </defs>
+        <g filter="drop-shadow(1px 2px 2px rgba(35,30,10,0.4))">
+          <!-- 提手藤圈 -->
+          <path d="M 16 26 C 16 10, 36 10, 36 26" stroke="#7a5a29" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- 篮身梯形轮廓 -->
+          <polygon points="12,24 40,24 35,42 17,42" fill="url(#basketReed)" stroke="#583f19" stroke-width="1.4"/>
+          <!-- 经纬编织十字花纹 -->
+          <line x1="14" y1="30" x2="38" y2="30" stroke="#684c22" stroke-width="1.2"/>
+          <line x1="15" y1="36" x2="37" y2="36" stroke="#684c22" stroke-width="1.2"/>
+          <line x1="22" y1="24" x2="20" y2="42" stroke="#684c22" stroke-width="1.2"/>
+          <line x1="26" y1="24" x2="26" y2="42" stroke="#684c22" stroke-width="1.2"/>
+          <line x1="30" y1="24" x2="32" y2="42" stroke="#684c22" stroke-width="1.2"/>
+        </g>
+      </svg>`;
+
+    default:
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 48"><circle cx="24" cy="24" r="18" fill="#d9a441"/></svg>`;
+  }
+}
+
+/**
+ * 7 大职业流派中世纪古典火漆印章徽饰 (Occ Genre Seals)
+ * 替代系统 Emoji，统一德式版画风
+ * @param {"resource"|"farming"|"livestock"|"building"|"cooking"|"family"|"prestige"} category
+ * @param {number} size 尺寸 (px)
+ */
+export function categorySealSvg(category, size = 20) {
+  const s = size;
+  let glyph = "";
+  let bg = "#6b5030";
+
+  switch (category) {
+    case "resource":
+      bg = "#5a432b";
+      glyph = `<path d="M 8 18 L 18 8 M 12 6 L 20 14" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>`;
+      break;
+    case "farming":
+      bg = "#47703c";
+      glyph = `<path d="M 8 18 Q 14 10 18 6 Q 16 14 8 18 Z" fill="#ffffff"/>`;
+      break;
+    case "livestock":
+      bg = "#804e28";
+      glyph = `<path d="M 6 12 Q 10 6 14 12 Q 18 6 22 12" stroke="#ffffff" stroke-width="2" fill="none"/>`;
+      break;
+    case "building":
+      bg = "#9c3822";
+      glyph = `<polygon points="12,6 20,12 4,12" fill="#ffffff"/><rect x="7" y="12" width="10" height="7" fill="#ffffff"/>`;
+      break;
+    case "cooking":
+      bg = "#a86820";
+      glyph = `<circle cx="12" cy="14" r="5" fill="#ffffff"/><path d="M 9 9 Q 12 6 15 9" stroke="#ffffff" stroke-width="1.5" fill="none"/>`;
+      break;
+    case "family":
+      bg = "#4d7fa3";
+      glyph = `<circle cx="12" cy="9" r="3" fill="#ffffff"/><path d="M 7 19 C 7 14, 17 14, 17 19 Z" fill="#ffffff"/>`;
+      break;
+    case "prestige":
+      bg = "#8a2a1e";
+      glyph = `<polygon points="12,5 14,10 19,10 15,13 17,18 12,15 7,18 9,13 5,10 10,10" fill="#f8d648"/>`;
+      break;
+    default:
+      bg = "#555555";
+      glyph = `<circle cx="12" cy="12" r="4" fill="#ffffff"/>`;
+  }
+
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" class="genre-seal genre-${category}" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10.5" fill="${bg}" stroke="#ffffff" stroke-width="1" stroke-opacity="0.45" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.3))"/>
+    ${glyph}
+  </svg>`;
+}
+

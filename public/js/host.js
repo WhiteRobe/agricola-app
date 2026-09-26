@@ -174,7 +174,7 @@ function openRoomConfigModal() {
         </label>
       </div>
       <div class="row spread mt16" style="align-items:center">
-        <span class="muted" style="font-size:12px">所有浏览器共享同一房间池</span>
+        <span class="muted" style="font-size:12px">建立房间后，DLC 配置将无法更改</span>
         <div class="row" style="gap:8px">
           <button class="btn ghost" id="roomCfgCancel" type="button">取消</button>
           <button class="btn big gold" id="roomCfgConfirm" type="button">✓ 创建房间</button>
@@ -374,9 +374,12 @@ function renderManageContent(meta) {
     <hr class="sep">
     <h4 class="mt0">📜 动态日志</h4>
     <div id="liveLog" class="log"></div>
-    <div class="row mt16" style="gap:8px; justify-content:flex-end">
-      <button id="btnDelete" class="btn red small">🗑 解散</button>
-      <button id="closeManage" class="btn ghost">关闭</button>
+    <div class="row mt16" style="gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap">
+      <a href="/play.html?code=${encodeURIComponent(meta.roomCode)}" class="btn gold" style="font-weight:700">🎮 直接加入房间</a>
+      <div class="row" style="gap:8px">
+        <button id="btnDelete" class="btn red small">🗑 解散</button>
+        <button id="closeManage" class="btn ghost">关闭</button>
+      </div>
     </div>
   `;
 }

@@ -190,32 +190,30 @@
 
 ### 架构示意图
 
-```text
-                       ┌──────────────────────────────────────────────┐
-                       │          Cloudflare Edge Network             │
-                       │        (Workers + Durable Objects)           │
-                       └──────────────────────┬───────────────────────┘
-                                              │
-              ┌───────────────────────────────┴───────────────────────────────┐
-              ▼                                                               ▼
-   ┌───────────────────────┐                                     ┌─────────────────────────┐
-   │     静态资源服务      │                                     │     Worker 接入层       │
-   │  HTML5 / CSS3 / ES-M  │                                     │   REST API + WS Gateway │
-   └───────────────────────┘                                     └────────────┬────────────┘
-                                                                              │
-                                             ┌────────────────────────────────┴────────────────┐
-                                             ▼                                                 ▼
-                                  ┌────────────────────┐                            ┌─────────────────────┐
-                                  │    Registry DO     │                            │       Room DO       │
-                                  │ (全局单例注册中心)   │                            │ (每个房间独立实例)  │
-                                  │ - 房间池分配与仲裁   │                            │ - WebSocket 睡眠唤醒 │
-                                  │ - 4位纯数字匹配路由  │                            │ - 状态存储与事件广播 │
-                                  └────────────────────┘                            └──────────┬──────────┘
-                                                                                               ▼
-                                                                                    ┌─────────────────────┐
-                                                                                    │  src/game/engine.ts │
-                                                                                    │  核心游戏规则状态机  │
-                                                                                    └─────────────────────┘
+```mermaid
+flowchart TB
+    Edge["<b>☁ Cloudflare Edge Network</b><br/>(Workers + Durable Objects)"]
+    Static["<b>静态资源服务</b><br/>HTML5 / CSS3 / ES-M"]
+    Worker["<b>Worker 接入层</b><br/>REST API + WS Gateway"]
+    Registry["<b>Registry DO</b><br/>(全局单例注册中心)<br/>• 房间池分配与仲裁<br/>• 4 位纯数字匹配路由"]
+    Room["<b>Room DO</b><br/>(每个房间独立实例)<br/>• WebSocket 睡眠唤醒<br/>• 状态存储与事件广播"]
+    Engine["<b>src/game/engine.ts</b><br/>核心游戏规则状态机"]
+
+    Edge --> Static
+    Edge --> Worker
+    Worker --> Registry
+    Worker --> Room
+    Room --> Engine
+
+    classDef cloud fill:#fff4e1,stroke:#f6821f,stroke-width:2px,color:#222
+    classDef svc   fill:#e3f2fd,stroke:#1976d2,stroke-width:1.5px,color:#0d47a1
+    classDef do    fill:#e8f5e9,stroke:#388e3c,stroke-width:1.5px,color:#1b5e20
+    classDef core  fill:#fce4ec,stroke:#c2185b,stroke-width:1.5px,color:#880e4f
+
+    class Edge cloud
+    class Static,Worker svc
+    class Registry,Room do
+    class Engine core
 ```
 
 | 🧩 模块 | 📍 文件 | 🎯 职责 |

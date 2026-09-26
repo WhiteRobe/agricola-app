@@ -269,3 +269,4 @@ $("btnLeave").onclick = () => {
 start();
 import("/js/tutorial.js").then((m) => m.bindTutorialTriggers());
 import("/js/sfx.js").then((m) => m.bindSfx());
+import("/js/bgm.js");

@@ -45,7 +45,7 @@ function renderEmpty() {
   $("roomList").innerHTML = `
     <div class="card soft empty-state anim-pop-in">
       <div class="empty-state-art" aria-hidden="true">${roomModelSvg("wood", false, 56)}</div>
-      <h3 class="mt8">当前暂无活跃房间</h3>
+      <h2 class="mt8">当前暂无活跃房间</h2>
       <p class="muted">点上方「＋ 新建房间」即可开启新的农场对局。</p>
     </div>`;
 }
@@ -107,7 +107,7 @@ function roomCardHTML(r, i) {
     <div class="card room-card anim-pop-in" data-code="${escapeHtml(r.roomCode)}" style="cursor:pointer; transition: box-shadow .15s, transform .15s;">
       <div class="row spread">
         <div>
-          <h3 class="mt0 mb8" style="font-size:17px">🚜 房间 <span class="mono" style="font-size:20px; letter-spacing:4px; color:var(--leaf-dark)">${escapeHtml(r.roomCode)}</span></h3>
+          <h2 class="mt0 mb8" style="font-size:17px">🚜 房间 <span class="mono" style="font-size:20px; letter-spacing:4px; color:var(--leaf-dark)">${escapeHtml(r.roomCode)}</span></h2>
           <p class="muted mb0">旁观码 <span class="mono">${escapeHtml(r.specCode || "")}</span> · 玩家：${players}</p>
         </div>
         <div class="row" style="gap:8px; flex-wrap:wrap">

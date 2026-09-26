@@ -1,0 +1,192 @@
+/* 夜间农庄：深松绿、烟熏木与烛金。放在其他样式后加载。 */
+html[data-theme="dark"] { color-scheme: dark; }
+html[data-theme="dark"] body {
+  --bg: #141d19;
+  --bg-2: #263329;
+  --panel: #202b25;
+  --panel-2: #29372d;
+  --ink: #f1ead6;
+  --ink-2: #d2c8af;
+  --ink-3: #b5bfa9;
+  --line: #52634e;
+  --barn: #e28165;
+  --barn-dark: #f3a38d;
+  --leaf: #739d69;
+  --leaf-dark: #b5d79c;
+  --gold: #e5bd74;
+  --gold-light: #343525;
+  --sky: #a3cde3;
+  --plum: #c5a0ce;
+  --red: #ee927b;
+  --shadow: 0 3px 14px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.2);
+  --shadow-lg: 0 16px 42px rgba(0,0,0,.42);
+  background: radial-gradient(900px 420px at 50% -10%, rgba(177,145,84,.14), transparent 70%),
+    radial-gradient(800px 520px at 90% 12%, rgba(63,110,87,.12), transparent 65%),
+    radial-gradient(circle at 14% 18%, rgba(232,219,174,.11) 1px, transparent 1.5px),
+    radial-gradient(circle at 78% 38%, rgba(232,219,174,.08) 1px, transparent 1.5px),
+    var(--bg);
+  background-size: auto, auto, 180px 180px, 250px 250px, auto;
+}
+html[data-theme="dark"] body[data-season="spring"] { --bg: #14221d; --panel: #1e2d27; }
+html[data-theme="dark"] body[data-season="summer"] { --bg: #201f18; --panel: #2c2c23; }
+html[data-theme="dark"] body[data-season="autumn"] { --bg: #251d18; --panel: #302821; }
+html[data-theme="dark"] body[data-season="winter"] { --bg: #16212b; --bg-2: #273641; --panel: #222f39; --panel-2: #293943; --line: #536979; }
+html[data-theme="dark"] body::before { opacity: .11; }
+html[data-theme="dark"] .season-wheel { opacity: .14; filter: saturate(.8); }
+
+html[data-theme="dark"] .brand .logo { background: linear-gradient(145deg, #6b885c, #345243); border: 1px solid #83976b; }
+html[data-theme="dark"] .theme-toggle { border-color: #8e7954; color: #f3dfad; background: #26342c; }
+html[data-theme="dark"] .theme-toggle:hover { background: #344638; }
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .mode-card,
+html[data-theme="dark"] .modal,
+html[data-theme="dark"] .act-modal,
+html[data-theme="dark"] .leaderboard-modal,
+html[data-theme="dark"] .guide-card,
+html[data-theme="dark"] .occ-card,
+html[data-theme="dark"] .minor-card,
+html[data-theme="dark"] .occ-gallery-card {
+  background-color: var(--panel);
+  background-image: radial-gradient(rgba(221,200,150,.035) 1px, transparent 1px);
+  border-color: var(--line);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+html[data-theme="dark"] .card.soft,
+html[data-theme="dark"] .player-chip,
+html[data-theme="dark"] .log .li,
+html[data-theme="dark"] .mini-log .li,
+html[data-theme="dark"] .lb-row,
+html[data-theme="dark"] .score-grid-row,
+html[data-theme="dark"] .rules-cell,
+html[data-theme="dark"] .rules-note,
+html[data-theme="dark"] .phase-item,
+html[data-theme="dark"] .job-tag-card,
+html[data-theme="dark"] .kb-card,
+html[data-theme="dark"] .toc,
+html[data-theme="dark"] .flow-step { background: var(--panel-2); border-color: var(--line); color: var(--ink); }
+html[data-theme="dark"] .card:not(.col-card):not(.farm-card):not(.action-board) { background-color: rgba(32,43,37,.94); }
+html[data-theme="dark"] .mode-card:first-child { border-color: #8ca36b; box-shadow: 0 0 0 1px rgba(196,166,99,.18), var(--shadow-lg); }
+html[data-theme="dark"] .hero-art-piece,
+html[data-theme="dark"] .mode-card .ic,
+html[data-theme="dark"] .empty-state-art { background: radial-gradient(circle at 50% 30%, #504a32, #303a2b 75%); border: 1px solid #877550; box-shadow: 0 7px 22px rgba(0,0,0,.23); }
+html[data-theme="dark"] .hero-art-main { box-shadow: 0 0 0 3px rgba(210,172,99,.1), 0 0 36px rgba(210,172,99,.2); }
+html[data-theme="dark"] .hero h1 { color: #f8edcd; text-shadow: 0 2px 14px rgba(220,170,88,.18); }
+
+html[data-theme="dark"] .btn { background: linear-gradient(180deg, #608954, #456e46); color: #fffdf4; }
+html[data-theme="dark"] .btn.gold { background: linear-gradient(180deg, #dfb864, #ba8640); color: #281b0e; }
+html[data-theme="dark"] .btn.blue { background: linear-gradient(180deg, #628eab, #3e6887); }
+html[data-theme="dark"] .btn.ghost { background: #2a372e; color: var(--ink); border-color: var(--line); }
+html[data-theme="dark"] .btn.ghost:hover { background: #36473a; }
+html[data-theme="dark"] .btn.danger-ghost { background: transparent; color: #ffae98; border-color: #995a50; }
+html[data-theme="dark"] .btn.danger-ghost:hover { background: #49302b; }
+html[data-theme="dark"] .input,
+html[data-theme="dark"] .gallery-search-input { background: #19251f; color: var(--ink); border-color: #66775e; }
+html[data-theme="dark"] .input::placeholder,
+html[data-theme="dark"] .gallery-search-input::placeholder { color: #acb9a4; }
+html[data-theme="dark"] .input:focus,
+html[data-theme="dark"] .gallery-search-input:focus { background: #21332a; border-color: #a5c486; box-shadow: 0 0 0 3px rgba(154,192,129,.2); }
+html[data-theme="dark"] .field-error { color: #ffae98; }
+html[data-theme="dark"] .badge { background: #344334; color: #e4dcc2; border-color: #667459; }
+html[data-theme="dark"] .badge.green { background: #294537; color: #c6e9bd; border-color: #62966d; }
+html[data-theme="dark"] .badge.gold,
+html[data-theme="dark"] .harvest-countdown { background: #4a4029; color: #f4d893; border-color: #a48248; }
+html[data-theme="dark"] .badge.red { background: #492d2a; color: #ffc1af; border-color: #a96b5c; }
+html[data-theme="dark"] .modal-mask { background: rgba(2,9,7,.72); }
+html[data-theme="dark"] .toast { background: #293b30; border: 1px solid #819574; }
+html[data-theme="dark"] .toast.err { background: #663a32; border-color: #bb7865; }
+html[data-theme="dark"] .code-display { background: linear-gradient(160deg, #3b6549, #263d34); border: 1px solid #749473; }
+html[data-theme="dark"] .code-display[style*="background:linear-gradient"] { background: linear-gradient(160deg, #426b86, #263f59) !important; }
+html[data-theme="dark"] .dlc-opt { background: #27362b; border-color: #5f7158; }
+html[data-theme="dark"] .dlc-opt:has(input:checked) { background: #31563b; border-color: #a4c58b; }
+
+/* 对局桌面与行动格 */
+html[data-theme="dark"] .col-card,
+html[data-theme="dark"] .farm-card,
+html[data-theme="dark"] .action-board { background-color: rgba(28,39,33,.9); border-color: #68745c; }
+html[data-theme="dark"] .col-card.is-current-turn,
+html[data-theme="dark"] .farm-card.is-current-turn { background-color: rgba(35,53,39,.94); background-image: linear-gradient(180deg, rgba(124,166,94,.14), transparent); border-color: #a3c98d; }
+html[data-theme="dark"] .card-turn-pill,
+html[data-theme="dark"] .m-tab.sel,
+html[data-theme="dark"] .action-tab-btn.active { background: #426846; color: #fff; border-color: #93ba83; }
+html[data-theme="dark"] .game-status-detail { border-color: var(--line); }
+html[data-theme="dark"] .action-guide { background: #2f3a2f; color: var(--ink-2); border-color: #647055; }
+html[data-theme="dark"] .action-tabs { background: #253329; border-color: var(--line); }
+html[data-theme="dark"] .action-tab-btn { color: var(--ink-2); }
+html[data-theme="dark"] .action-tab-btn:hover { background: #3a4d3e; color: var(--ink); }
+html[data-theme="dark"] .action-tab-btn.active { color: #fff; }
+html[data-theme="dark"] .action-tab-btn:not(.active) .action-tab-count:not(:empty) { background: #40533f; color: #dcecc7; }
+html[data-theme="dark"] .space { background: linear-gradient(150deg, #354237, #2b372f); border-color: #8b906d; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+html[data-theme="dark"] .space:hover:not(.disabled) { background: #415443; border-color: #b8c995; }
+html[data-theme="dark"] .space.actable { border-color: #b79c64; box-shadow: 0 0 0 1px rgba(227,188,108,.15), 0 4px 12px rgba(0,0,0,.3); }
+html[data-theme="dark"] .space.disabled { background: #29352d; border-color: #5c6856; box-shadow: none; }
+html[data-theme="dark"] .space.is-used { background: #28342d; border-color: #65806b; box-shadow: inset 0 2px 8px rgba(0,0,0,.32); }
+html[data-theme="dark"] .space .name,
+html[data-theme="dark"] .space.disabled .name { color: #f1e7ca; }
+html[data-theme="dark"] .space .meta,
+html[data-theme="dark"] .space.disabled .meta { color: #c8c5aa; }
+html[data-theme="dark"] .section-sub,
+html[data-theme="dark"] .stock-label { color: #c9d1b7; }
+html[data-theme="dark"] .stock-key .stk,
+html[data-theme="dark"] .stock-mat .stk,
+html[data-theme="dark"] .stock-crop .stk,
+html[data-theme="dark"] .stock-animal .stk { background: rgba(18,29,23,.45); border-color: #637357; }
+html[data-theme="dark"] .stock-key .stk .stk-v,
+html[data-theme="dark"] .stock-score-badge { color: #f4d58d; }
+html[data-theme="dark"] .stk-cost-hint { color: #c5c2ab; }
+html[data-theme="dark"] .occ-tag { color: #b9d9fa !important; background: #244254 !important; border-color: #7297ae !important; }
+html[data-theme="dark"] .imp-tag,
+html[data-theme="dark"] .stock-score-badge { color: #f3d38d; background: #443b27; border-color: #a78b53; }
+html[data-theme="dark"] .imp-tag.starter-tag[style] { background: #4a3a25 !important; color: #f3d38d !important; border-color: #bd9455 !important; }
+html[data-theme="dark"] .gauge { background: #27352d; }
+html[data-theme="dark"] #mobileTabs { background: rgba(25,37,30,.96); border-color: var(--line); }
+html[data-theme="dark"] .m-tab { background: #2d3b31; color: var(--ink); border-color: #6c7962; }
+html[data-theme="dark"] .m-tab.sel { background: #426846; color: #fff; }
+
+/* 农场棋盘保留木质材料，夜间降低地块亮度并让物件保持清晰。 */
+html[data-theme="dark"] .farm-board { background: #3e3e31; border-color: #a69068; box-shadow: inset 0 3px 12px rgba(0,0,0,.48), 0 8px 22px rgba(0,0,0,.28); }
+html[data-theme="dark"] .farm-board .cell,
+html[data-theme="dark"] .farm-board .cell.cell-empty { background: #66654f; border-color: #979475; }
+html[data-theme="dark"] .farm-board .cell.cell-field { background-color: #382817; border-color: #806341; }
+html[data-theme="dark"] .farm-board .cell.cell-pasture { background: #436840; border-color: #83a76b; }
+html[data-theme="dark"] .farm-board .cell.cell-room { border-color: #d1ad72; }
+html[data-theme="dark"] .moor-board-wrap,
+html[data-theme="dark"] .moor-cell { background-color: #2d3a2d; border-color: #61735d; color: var(--ink); }
+html[data-theme="dark"] .moor-cell.is-reclaimed { background: #4a4730; }
+html[data-theme="dark"] .moor-cell.is-sown { background: #5b5030; }
+
+/* 弹窗、日志、教程和工具抽屉 */
+html[data-theme="dark"] .act-modal-foot,
+html[data-theme="dark"] .tut-drawer,
+html[data-theme="dark"] .log-drawer { background: var(--panel); color: var(--ink); }
+html[data-theme="dark"] .tut-drawer-head,
+html[data-theme="dark"] .log-drawer-head { background: linear-gradient(180deg, #304037, #243128); border-color: var(--line); }
+html[data-theme="dark"] .tut-drawer-body .tip-box,
+html[data-theme="dark"] .tip-box { background: linear-gradient(135deg, #50422a, #373a2b); color: var(--ink); border-color: #d1a861; }
+html[data-theme="dark"] .tut-drawer-body h2,
+html[data-theme="dark"] .guide-card-title,
+html[data-theme="dark"] .rules-h { color: #c6e1a6; }
+html[data-theme="dark"] .tut-drawer-body .toc ol li a { color: #c6e1a6; }
+html[data-theme="dark"] .score-table,
+html[data-theme="dark"] .score-table th,
+html[data-theme="dark"] .score-table tr { background: var(--panel-2); color: var(--ink); }
+html[data-theme="dark"] .strat-tab-btn { background: #2c3b31; color: var(--ink); }
+html[data-theme="dark"] .strat-tab-btn:hover,
+html[data-theme="dark"] .occ-gallery-card:hover,
+html[data-theme="dark"] .occ-card:hover,
+html[data-theme="dark"] .minor-card.actable:hover { background: #35473a; color: var(--ink); }
+html[data-theme="dark"] .strat-tab-btn.active { background: #426846; color: #fff; }
+html[data-theme="dark"] .strat-box.pro { background: #25412e; color: #d6efd1; border-color: #598b62; }
+html[data-theme="dark"] .strat-box.con { background: #4b302b; color: #f5c6b7; border-color: #9c6659; }
+html[data-theme="dark"] .occ-gallery-card .gc-cat { color: #f2d28b; background: #493d28; }
+html[data-theme="dark"] .fab-item { background: #26352b; border-color: #77866c; color: var(--ink); }
+html[data-theme="dark"] .fab-item:hover { background: #354a39; }
+html[data-theme="dark"] .fab-item.on { background: #426846; }
+html[data-theme="dark"] .fence-panel { background: rgba(28,40,32,.97); color: var(--ink); border-color: #a8ca8f; }
+html[data-theme="dark"] .rules-cell.key { background: #344b36; color: #c9e5bb; }
+html[data-theme="dark"] .log .li.harvest,
+html[data-theme="dark"] .mini-log .li.harvest { background: #3a3b29; }
+
+@media (max-width: 767px) {
+  html[data-theme="dark"] .action-tabs { background: #253329; }
+}

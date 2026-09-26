@@ -10,6 +10,7 @@ import {
 } from "/js/anim.js";
 import { lock, unlock, run, debounce } from "/js/loading.js";
 import { bindSfx, sfx, isSfxOn, toggleSfx } from "/js/sfx.js";
+import { isBgmOn, toggleBgm, setBgmSeason, startBgm } from "/js/bgm.js";
 import { OCCUPATIONS, MINOR_IMPROVEMENTS } from "/js/dlc-data.js";
 import {
   tokenSvg,
@@ -428,6 +429,8 @@ export function renderGame(root, s, me, conn) {
   const season = seasonOfRound(g.round);
   initAmbientCanvas();
   setAmbientSeason(season);
+  setBgmSeason(season);
+  if (isBgmOn()) startBgm();
   const seasonInfo = SEASONS.find((s) => s.key === season);
   const top = document.createElement("div");
   top.id = "gameHeaderCard";
@@ -2699,6 +2702,10 @@ function ensureFab(g) {
         <span class="fab-ic">${isSfxOn() ? "🔊" : "🔇"}</span>
         <span class="fab-txt">音效${isSfxOn() ? "开" : "关"}</span>
       </button>
+      <button class="fab-item" data-fab="bgm">
+        <span class="fab-ic">${isBgmOn() ? "🎵" : "🔇"}</span>
+        <span class="fab-txt">音乐${isBgmOn() ? "开" : "关"}</span>
+      </button>
     </div>
     <button class="fab-main" aria-label="菜单" aria-expanded="${wasOpen}">
       <span class="fab-main-ic">🧰</span>
@@ -2756,6 +2763,15 @@ function ensureFab(g) {
     btn.querySelector(".fab-ic").textContent = on ? "🔊" : "🔇";
     btn.querySelector(".fab-txt").textContent = `音效${on ? "开" : "关"}`;
     toast(on ? "音效已开启" : "音效已关闭");
+    // 不收起菜单，方便继续点
+  };
+  fab.querySelector('[data-fab="bgm"]').onclick = (e) => {
+    e.stopPropagation();
+    const on = toggleBgm();
+    const btn = fab.querySelector('[data-fab="bgm"]');
+    btn.querySelector(".fab-ic").textContent = on ? "🎵" : "🔇";
+    btn.querySelector(".fab-txt").textContent = `音乐${on ? "开" : "关"}`;
+    toast(on ? "田园背景音乐已开启" : "田园背景音乐已关闭");
     // 不收起菜单，方便继续点
   };
 

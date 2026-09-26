@@ -1248,7 +1248,7 @@ function renderSpaces(container, g, p, myTurn, kind) {
 
     const canAct = myTurn && open && stock > 0 && !used && !frozen;
     const card = document.createElement("div");
-    card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "") + (frozen ? " frozen" : "");
+    card.className = "space" + (canAct ? " actable" : " disabled") + (used ? " is-used" : "") + (!open ? " is-locked" : "") + (frozen ? " frozen" : "");
     // Buff 标注：当前视角玩家在该格取用时有职业加成 → 灰字 +1（悬浮注明来源）
     const buffChip = p && !used && open && !frozen ? buffChipHtml(p, sp.id) : "";
     card.innerHTML = `

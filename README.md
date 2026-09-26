@@ -2,8 +2,6 @@
 
 网页版经典德式桌游《农家乐》（*Agricola: Revised Edition 2016*，Uwe Rosenberg 设计），支持 1 到 4 人在线联机，手机和电脑用浏览器打开就能玩。
 
-在线体验：[farm.whiterobe.top](https://farm.whiterobe.top)
-
 ---
 
 ## 游戏特色

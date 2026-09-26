@@ -22,9 +22,9 @@
 </p>
 
 <p align="center">
-  <a href="screenshots/preview-day.png"><img src="screenshots/preview-day.png" width="48%" alt="日间模式预览"/></a>
+  <a href="screenshots/preview-day.png?v=2"><img src="screenshots/preview-day.png?v=2" width="48%" alt="日间模式预览"/></a>
   &nbsp;
-  <a href="screenshots/preview-night.png"><img src="screenshots/preview-night.png" width="48%" alt="夜间模式预览"/></a>
+  <a href="screenshots/preview-night.png?v=2"><img src="screenshots/preview-night.png?v=2" width="48%" alt="夜间模式预览"/></a>
 </p>
 <p align="center"><sub>☀️ 日间模式 &nbsp;·&nbsp; 🌙 夜间模式 &nbsp;·&nbsp; 均为 2.5D 立体沙盘视角下的实际对局画面</sub></p>
 

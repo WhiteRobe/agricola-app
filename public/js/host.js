@@ -155,15 +155,15 @@ function openRoomConfigModal() {
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgOcc">
           <div>
-            <div class="dlc-title">🎴 88 种经典职业 + 小发展卡</div>
-            <div class="muted" style="font-size:12px">开局每位玩家从 7 张随机职业中精选 1 张就任（全套 88 张官方经典职业涵盖 7 大流派）；场上抽 1 张「小发展卡」供争抢。极大丰富策略深度，强烈推荐！</div>
+            <div class="dlc-title">🎴 自定义职业 + 小发展卡</div>
+            <div class="muted" style="font-size:12px">开局每位玩家从 7 张随机职业中精选 1 张就任；项目内置 88 张自定义职业，场上抽 1 张小发展卡供争抢。</div>
           </div>
         </label>
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgMoor">
           <div>
-            <div class="dlc-title">🌲 沼泽农夫（荒野之地扩展）</div>
-            <div class="muted" style="font-size:12px">新增燃料/干草资源 + 公有沼泽板（拓荒/播种/收获）+ 5 张新大发展卡。收获阶段新增燃料取暖与黄牛喂干草，带来更拟真的农耕开拓体验。可与职业扩展自由叠加。</div>
+            <div class="dlc-title">🌲 沼泽农夫 · III 级</div>
+            <div class="muted" style="font-size:12px">每人随机抽取一张起始卡，放置 5 片森林和 3 片沼泽；特殊行动不占工人，新增马匹、燃料取暖、医务所与 14 张重大改进。III 级启用职业与全部 117 张沼泽小发展卡，开局可换牌。</div>
           </div>
         </label>
         <label class="dlc-opt">
@@ -214,9 +214,10 @@ async function confirmRoomConfig() {
   const moor = !!_dlcModalMask?.querySelector("#roomCfgMoor")?.checked;
   const seasons = !!_dlcModalMask?.querySelector("#roomCfgSeasons")?.checked;
   const dlc = {
-    occupations: occ,
-    minorImprovements: occ, // 与职业同开关（同一分组）
+    occupations: occ || moor,
+    minorImprovements: occ || moor,
     moor,
+    ...(moor ? { moorLevel: 3 } : {}),
     seasons,
   };
   // 关弹窗 + 异步建房间

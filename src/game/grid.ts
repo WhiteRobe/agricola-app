@@ -76,12 +76,13 @@ function hasEdge(e: FenceEdges, kind: "h" | "v", x: number, y: number): boolean 
  * 注意：房间/田地格（blocked）不进入牧场，但洪泛可以穿过它们 ——
  * 因为“封闭”的定义是每一条边界边都有栅栏，与隔壁是不是房间无关。
  */
-export function computePastures(W: number, H: number, edges: FenceEdges, blocked: Set<string>): { cells: string[]; rects: boolean }[] {
+export function computePastures(W: number, H: number, edges: FenceEdges, blocked: Set<string>, holes: Set<string> = new Set()): { cells: string[]; rects: boolean }[] {
   const reachable = new Set<string>();
   const queue: [number, number][] = [];
   const tryEnter = (x: number, y: number) => {
     const key = `${x},${y}`;
     if (x < 0 || y < 0 || x >= W || y >= H) return;
+    if (holes.has(key)) return;
     if (reachable.has(key)) return;
     reachable.add(key);
     queue.push([x, y]);
@@ -102,6 +103,13 @@ export function computePastures(W: number, H: number, edges: FenceEdges, blocked
     if (!isOutsideBlocked("v", 0, y) && !hasEdge(edges, "v", 0, y)) tryEnter(0, y);
     if (!isOutsideBlocked("v", W, y) && !hasEdge(edges, "v", W, y)) tryEnter(W - 1, y);
   }
+  for (const hole of holes) {
+    const [x, y] = hole.split(",").map(Number);
+    if (y > 0 && !hasEdge(edges, "h", x, y)) tryEnter(x, y - 1);
+    if (y + 1 < H && !hasEdge(edges, "h", x, y + 1)) tryEnter(x, y + 1);
+    if (x > 0 && !hasEdge(edges, "v", x, y)) tryEnter(x - 1, y);
+    if (x + 1 < W && !hasEdge(edges, "v", x + 1, y)) tryEnter(x + 1, y);
+  }
   while (queue.length) {
     const [x, y] = queue.shift()!;
     const neigh: [number, number, "h" | "v", number, number][] = [
@@ -113,6 +121,7 @@ export function computePastures(W: number, H: number, edges: FenceEdges, blocked
     for (const [nx, ny, via, ex, ey] of neigh) {
       if (isOutsideBlocked(via, ex, ey)) continue; // 出农场 → 不可达
       if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      if (holes.has(`${nx},${ny}`)) continue;
       if (reachable.has(`${nx},${ny}`)) continue;
       if (hasEdge(edges, via, ex, ey)) continue;
       tryEnter(nx, ny);
@@ -199,8 +208,8 @@ export function isSingleRectangle(cells: string[]): boolean {
 /** 栅栏合法性校验：
  *  1. 每一段新增栅栏必须贴着某个围合区域的边界（不许有悬空的栅栏段）；
  *  2. 官方规则：牧场只要由栅栏（及农场地界）完全围闭，可以是任意形状（矩形、L型、T型、多边形等）。 */
-export function validateEnclosure(W: number, H: number, edges: FenceEdges, addedIds: string[], blocked: Set<string> = new Set()): { ok: boolean; reason?: string } {
-  const pastures = computePastures(W, H, edges, blocked);
+export function validateEnclosure(W: number, H: number, edges: FenceEdges, addedIds: string[], blocked: Set<string> = new Set(), holes: Set<string> = new Set()): { ok: boolean; reason?: string } {
+  const pastures = computePastures(W, H, edges, blocked, holes);
 
   // 围合区域边界上的所有栅栏段 id
   const boundary = new Set<string>();

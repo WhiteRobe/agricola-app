@@ -106,7 +106,7 @@ export const ANIMAL_MARKET: Record<AnimalType, { appearsRound: number }> = {
   cattle: { appearsRound: 12 },  // 修订版：第 12 轮起开放
 };
 
-// ---- 重大改进（修订版固定 10 个 + Farmers of the Moor 5 个）----
+// ---- 重大改进（修订版固定 10 个 + Farmers of the Moor 14 个；另留 5 个旧档兼容项）----
 //  cost: 建造费用 | vp: 游戏结束得分 | cook/bake: 转换能力 | moor: 仅 Moor 房间
 //  cook 中的数值代表 1 单位该物品转换得多少食物（产出乘数）
 export const MAJOR_IMPROVEMENTS: Record<string, any> = {
@@ -120,22 +120,27 @@ export const MAJOR_IMPROVEMENTS: Record<string, any> = {
   joinery:       { cost: { stone: 2, wood: 2 }, vp: 2, cook: { wood: 2 }, workshopBonus: "wood", zh: "木工坊（2 石材 + 2 木材）· 每次收获阶段 1 木材 → 2 食物" },
   pottery:       { cost: { stone: 2, clay: 2 }, vp: 2, cook: { clay: 2 }, workshopBonus: "clay", zh: "陶器坊（2 石材 + 2 陶土）· 每次收获阶段 1 陶土 → 2 食物" },
   basket:        { cost: { stone: 2, reed: 2 }, vp: 2, cook: { reed: 3 }, workshopBonus: "reed", zh: "编筐坊（2 石材 + 2 芦苇）· 每次收获阶段 1 芦苇 → 3 食物" },
-  // ---- Farmers of the Moor 专属大改进（仅 dlc.moor=true 时大改进池才包含）----
+  // 旧存档兼容：以下五张曾用于自定义沼泽玩法，新局已禁止建造。
   heatingStove:  { cost: { stone: 3, wood: 2 }, vp: 2, moor: true, fuelOnlyOne: true, zh: "取暖炉（3 石材 + 2 木材）· 收获阶段全家仅消耗 1 燃料" },
   peatKiln:      { cost: { clay: 2, wood: 1 }, vp: 2, moor: true, harvestFuelBonus: 1, zh: "泥炭窑（2 陶土 + 1 木材）· 每次收获阶段 +1 燃料" },
   moorCook:      { cost: { stone: 2, wood: 1 }, vp: 3, moor: true, cook: { vegetable: 3, sheep: 2, boar: 3, cattle: 4 }, zh: "沼泽灶（2 石材 + 1 木材）· 随时烹饪无需壁炉" },
   tileOven:      { cost: { stone: 3, clay: 2 }, vp: 3, moor: true, bake: { maxGrain: 2, foodPerGrain: 4, moorTile: true }, zh: "瓷砖烤炉（3 石材 + 2 陶土）· 烤面包每次额外 +1 谷物容量" },
   firewood:      { cost: { stone: 2, reed: 2 }, vp: 2, moor: true, fuelScore: 1, zh: "柴火棚（2 石材 + 2 芦苇）· 终局按剩余燃料折算胜利点" },
+  horseSlaughterhouseA: { cost: { clay: 1, stone: 1 }, vp: 2, moor: true, blockedBy: "fireplace", cook: { sheep: 1, boar: 1, cattle: 2, horse: 2 }, zh: "马屠宰场（陶土 1、石材 1）" },
+  horseSlaughterhouseB: { cost: { clay: 1, stone: 1 }, vp: 2, moor: true, blockedBy: "fireplaceBig", cook: { sheep: 1, boar: 1, cattle: 2, horse: 2 }, zh: "马屠宰场（陶土 1、石材 1）" },
+  cookhouseA: { cost: { clay: 6 }, vp: 2, moor: true, blockedBy: "cookingHearth", cook: { vegetable: 3, sheep: 2, boar: 3, cattle: 4, horse: 2 }, bake: { maxGrain: Infinity, foodPerGrain: 3 }, zh: "炊事房（陶土 6）" },
+  cookhouseB: { cost: { clay: 6 }, vp: 2, moor: true, blockedBy: "cookingHearthBig", cook: { vegetable: 3, sheep: 2, boar: 3, cattle: 4, horse: 2 }, bake: { maxGrain: Infinity, foodPerGrain: 3 }, zh: "炊事房（陶土 6）" },
+  villageChurch: { cost: { wood: 2, stone: 4 }, vp: 4, moor: true, blockedBy: "well", zh: "乡村教堂（木材 2、石材 4）" },
+  heatingOven: { cost: { clay: 1, stone: 1 }, vp: 1, moor: true, blockedBy: "clayOven", zh: "取暖烤炉（陶土 1、石材 1）" },
+  tiledOven: { cost: { clay: 2, stone: 1 }, vp: 1, moor: true, blockedBy: "stoneOven", zh: "瓷砖烤炉（陶土 2、石材 1）" },
+  furnitureStall: { cost: { wood: 1, stone: 1 }, vp: 2, moor: true, blockedBy: "joinery", zh: "家具摊（木材 1、石材 1）" },
+  ceramicsStall: { cost: { clay: 1, stone: 1 }, vp: 2, moor: true, blockedBy: "pottery", zh: "陶器摊（陶土 1、石材 1）" },
+  basketStall: { cost: { reed: 1, stone: 1 }, vp: 2, moor: true, blockedBy: "basket", zh: "篮筐摊（芦苇 1、石材 1）" },
+  peatCharcoalKiln: { cost: { stone: 1 }, vp: 1, moor: true, zh: "泥炭炭窑（石材 1）" },
+  forestersLodge: { cost: { wood: 1, clay: 2 }, vp: 1, moor: true, zh: "护林人小屋（木材 1、陶土 2）" },
+  museumOfMoors: { cost: { clay: 1, reed: 1, stone: 1 }, vp: 3, moor: true, blockedBy: "peatCharcoalKiln", zh: "沼泽博物馆（陶土 1、芦苇 1、石材 1）" },
+  ridingStables: { cost: { wood: 2, clay: 1, reed: 1 }, vp: 3, moor: true, blockedBy: "forestersLodge", zh: "骑术马厩（木材 2、陶土 1、芦苇 1）" },
 };
-
-// ---- Farmers of the Moor：沼泽板尺寸常量 ----
-export const MOOR_W = 4;
-export const MOOR_H = 4;
-/** 沼泽板最大格子数（Moor 容量校验） */
-export const MOOR_MAX_RECLAIMED = MOOR_W * MOOR_H;
-/** 沼泽田撒种规则：grain = 3 markers / vegetable = 2 markers（与普通田一致） */
-export const MOOR_FUEL_PER_FAMILY = 1;
-export const MOOR_HAY_PER_CATTLE = 1;
 
 // ---- 计分表（★ 全部确认）----
 export const SCORE: any = {

@@ -53,7 +53,7 @@ export interface RoomState {
   closed: boolean;
   closedReason?: string;
   /** 主持人创建房间时勾选的 DLC */
-  dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean; seasons: boolean };
+  dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean; moorLevel?: 1 | 2 | 3; seasons: boolean };
 }
 
 export const PLAYER_COLORS = ["#e05d44", "#3f9d55", "#3d7ea6", "#d9932f"];
@@ -100,7 +100,14 @@ function snapshot(room: RoomState, extra: Record<string, unknown> = {}) {
       seat: p.seat,
       color: PLAYER_COLORS[p.seat % PLAYER_COLORS.length],
     })),
-    game: room.game,
+    game: room.game ? {
+      ...(room.game as Record<string, unknown>),
+      setupDecks: undefined,
+      setupDiscards: undefined,
+      soloSpecialDeckCount: (room.game as { soloSpecialDeck?: unknown[] }).soloSpecialDeck?.length || 0,
+      soloSpecialDeck: undefined,
+      soloSpecialDiscard: undefined,
+    } : null,
     log: room.log.slice(-60),
     ...extra,
   };
@@ -238,7 +245,7 @@ export class Room {
         code: string;
         specCode: string;
         hostToken: string;
-        dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean; seasons: boolean };
+        dlc?: { occupations: boolean; minorImprovements: boolean; moor: boolean; moorLevel?: 1 | 2 | 3; seasons: boolean };
       };
       const existing = await this.state.storage.get<RoomState>("room");
       if (!existing) {
@@ -254,7 +261,7 @@ export class Room {
           log: [{ t: Date.now(), msg: "房间已创建，等待玩家加入…" }],
           closed: false,
           // dlc：可选；不传或非真值时全部关闭
-          dlc: { occupations: !!dlc?.occupations, minorImprovements: !!dlc?.minorImprovements, moor: !!dlc?.moor, seasons: !!dlc?.seasons },
+          dlc: { occupations: !!dlc?.occupations, minorImprovements: !!dlc?.minorImprovements, moor: !!dlc?.moor, ...(dlc?.moor ? { moorLevel: dlc.moorLevel === 3 ? 3 as const : dlc.moorLevel === 2 ? 2 as const : 1 as const } : {}), seasons: !!dlc?.seasons },
         };
         await this.state.storage.put("room", room);
       }

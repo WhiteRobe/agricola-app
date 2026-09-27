@@ -278,6 +278,16 @@ export function tokenSvg(kind, size = 26) {
 export function animalSvg(type, size = 30) {
   const s = size;
   switch (type) {
+    case "horse":
+      return `<svg width="${s}" height="${s}" viewBox="0 0 60 48" class="agri-animeeple meeple-horse" aria-label="马" xmlns="http://www.w3.org/2000/svg">
+        <g filter="drop-shadow(1px 2px 2px rgba(35,20,10,.35))" fill="#a46c3d" stroke="#4f2f1a" stroke-width="1.4">
+          <path d="M12 19 Q22 13 41 17 L47 13 L50 8 L55 9 L53 25 L47 27 L43 23 Q31 30 16 26 Z"/>
+          <path d="M17 25 L15 43 L20 43 L23 28 M37 25 L37 43 L42 43 L44 24"/>
+          <path d="M12 18 Q6 13 5 20 Q6 30 11 31" fill="none" stroke="#4f2f1a" stroke-width="3"/>
+          <path d="M47 13 L46 6 L50 9 M52 12 L54 6 L55 12"/>
+          <circle cx="51" cy="17" r="1.2" fill="#24180f" stroke="none"/>
+        </g>
+      </svg>`;
     case "sheep":
       // 木羊：白/浅米色蓬松云朵剪影，带黑木蹄子与头部小耳
       return `<svg width="${s}" height="${s}" viewBox="0 0 54 44" class="agri-animeeple meeple-sheep" aria-label="羊" xmlns="http://www.w3.org/2000/svg">
@@ -1379,4 +1389,3 @@ export function categorySealSvg(category, size = 20) {
     ${glyph}
   </svg>`;
 }
-

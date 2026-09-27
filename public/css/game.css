@@ -678,6 +678,30 @@
   transform: translateZ(6px);
   box-shadow: -2px 3px 6px rgba(40, 25, 10, 0.45);
 }
+.terrain-model-wrap { display: none; }
+.mode-iso .cell.cell-terrain-forest,
+.mode-iso .cell.cell-terrain-moor {
+  transform: translateZ(3px);
+  box-shadow: -3px 5px 8px rgba(18, 28, 17, .55), inset 0 0 0 2px rgba(220, 233, 179, .13);
+}
+.mode-iso .cell.cell-terrain-moor {
+  box-shadow: -3px 5px 8px rgba(17, 26, 24, .5), inset 0 0 0 2px rgba(180, 209, 184, .15);
+}
+.mode-iso .cell.cell-terrain-forest:hover,
+.mode-iso .cell.cell-terrain-moor:hover { transform: translateZ(7px); }
+.mode-iso .cell.cell-terrain-forest .terrain-token,
+.mode-iso .cell.cell-terrain-moor .terrain-token { display: none; }
+.mode-iso .terrain-model-wrap {
+  display: block;
+  position: absolute;
+  inset: -15% -10% -3%;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  transform: rotateZ(32deg) rotateX(-54deg) translateY(-9px) translateZ(14px);
+  transform-origin: 50% 85%;
+  filter: drop-shadow(-4px 7px 4px rgba(9, 24, 16, .5));
+}
+.mode-iso .terrain-art { width: 100%; height: 100%; overflow: visible; }
 .mode-iso .field-crops-wrap,
 .mode-iso .pasture-animal-wrap,
 .mode-iso .solo-stable-wrap {
@@ -802,14 +826,21 @@
   transform-style: preserve-3d;
   z-index: 8;
 }
-.mode-iso .fence-layer .built {
-  transform: translateZ(9px);
+.mode-iso .fence-layer .seg.built {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
   filter: drop-shadow(-3px 5px 4px rgba(25, 12, 4, 0.48));
 }
-.mode-iso .fence-layer.editing .seg {
+.mode-iso .fence-layer .fh.built {
+  transform-origin: 50% 100%;
+  transform: translateZ(3px) rotateX(-90deg);
+}
+.mode-iso .fence-layer .fv.built {
+  transform-origin: 100% 50%;
+  transform: translateZ(3px) rotateY(90deg);
+}
+.mode-iso .fence-layer.editing .seg:not(.built) {
   transform: translateZ(4px);
 }
 .mode-iso .fence-layer .seg.sel {
@@ -1216,6 +1247,37 @@
 .fence-panel-ops { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ---- 行动板 ---- */
+.mulligan-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 18px 0 12px;
+}
+.mulligan-tab {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mulligan-tab.active {
+  background: #365e32;
+  border-color: #365e32;
+  color: #fff;
+}
+.mulligan-tab span { font-size: 12px; font-weight: 500; margin-left: 4px; }
+.mulligan-panel[hidden] { display: none; }
+.mulligan-card { display: flex; align-items: flex-start; gap: 12px; padding: 12px; cursor: pointer; }
+.mulligan-card input { margin-top: 4px; flex: none; }
+.mulligan-card span { min-width: 0; }
+@media (max-width: 520px) {
+  .mulligan-tab { padding: 9px 5px; font-size: 12px; }
+  .mulligan-tab span { display: block; margin: 2px 0 0; font-size: 10px; }
+}
+
 .action-board {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 14px; box-shadow: var(--shadow);
@@ -1229,19 +1291,18 @@
 
 /* ---- 行动板内部分页 (Tab) ---- */
 .action-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
   margin: 0 0 12px;
   background: rgba(0, 0, 0, 0.05);
   padding: 4px;
   border-radius: 10px;
   border: 1px solid var(--line);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .action-tab-btn {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 7px 8px;
+  padding: 7px 6px;
   font-size: 12.5px;
   font-weight: 600;
   border: none;
@@ -1252,12 +1313,11 @@
   transition: all 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   text-align: center;
   user-select: none;
 }
 .action-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.55);
   color: var(--ink);
 }
 .action-tab-btn.active {
@@ -1265,9 +1325,19 @@
   color: #fff;
   box-shadow: 0 2px 6px rgba(78, 124, 76, 0.35);
 }
-.action-tab-count { display: inline-block; font-size: 10px; font-weight: 800; margin-left: 2px; }
-.action-tab-count:not(:empty) { padding: 1px 4px; border-radius: 6px; background: rgba(255,255,255,.2); }
-.action-tab-btn:not(.active) .action-tab-count:not(:empty) { background: #e6eddb; color: var(--leaf-dark); }
+/* ---- Moor tab 专属色系（金棕，区别于基础 tab 的叶绿）---- */
+.action-tab-btn[data-act-tab="moor"] {
+  color: #8d6534;
+}
+.action-tab-btn[data-act-tab="moor"]:hover {
+  background: rgba(184, 138, 74, 0.14);
+  color: #6e4a25;
+}
+.action-tab-btn[data-act-tab="moor"].active {
+  background: linear-gradient(180deg, #c49052, #8d6534);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(141, 101, 52, 0.4);
+}
 .action-sub-panel {
   display: none;
 }
@@ -1452,6 +1522,9 @@
   overflow: hidden;
   padding: 0;
 }
+.act-modal.hand-modal { height: min(86vh, 760px); }
+.hand-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.hand-modal [role="tabpanel"][hidden] { display: none; }
 .act-modal-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; padding: 14px 16px 10px;
@@ -2423,6 +2496,9 @@ body[data-season="winter"]::before {
   background: rgba(180, 110, 40, 0.1);
   color: #8c4a0f;
   border: 1px solid rgba(180, 110, 40, 0.2);
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .minor-gallery-card .gc-vp {

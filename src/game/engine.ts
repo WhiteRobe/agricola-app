@@ -1111,6 +1111,7 @@ export function dispatchGame(g: GameState, pid: string, action: EngineAction): A
   }
   if (action.type === "SetHeatPlan") {
     if (!g.dlc?.moor) return { ok: false, msg: "未启用沼泽农夫" };
+    if (action.amount == null) { p.heatPlan = undefined; return { ok: true }; }
     const amount = Number(action.amount);
     if (!Number.isInteger(amount) || amount < 0 || amount > p.rooms + (p.minorImprovements.includes("M032") ? 1 : 0)) return { ok: false, msg: "取暖燃料数量无效" };
     p.heatPlan = amount;
@@ -1229,7 +1230,7 @@ function dispatchAction(g: GameState, p: PlayerState, a: EngineAction): ActionRe
       }
       return advanceTurn(g);
     }
-    case "ChooseOccupation": return g.dlc?.moor ? { ok: false, msg: "沼泽 III 级的职业需使用行动格打出" } : playOccupation(g, p, a);
+    case "ChooseOccupation": return g.dlc?.moor ? { ok: false, msg: "请通过「职业」行动打出手牌中的职业卡" } : playOccupation(g, p, a);
     case "PlayOccupation": return advance(g, p, spaceOfAction(a, g)!, playOccupation(g, p, a));
     case "PlayMinor": return advance(g, p, "BuildMajor", playMinorImprovement(g, p, a));
     case "TakeMinorImprovement": return takeMinorImprovement(g, p, a);
@@ -1846,7 +1847,7 @@ function bakeBread(g: GameState, p: PlayerState, a: EngineAction): ActionResult 
 }
 
 function sideJob(g: GameState, p: PlayerState, a: EngineAction): ActionResult {
-  if (!g.dlc?.moor || g.dlc.moorLevel !== 1 || g.numPlayers === 1) return { ok: false, msg: "副业行动只用于 I 级多人沼泽对局" };
+  if (!g.dlc?.moor || g.dlc.moorLevel !== 1 || g.numPlayers === 1) return { ok: false, msg: "本局不能使用「副业」行动" };
   const stable = !!a.buildStable;
   const bread = !!a.bakeBread;
   if (!stable && !bread) return { ok: false, msg: "请选择建一座马厩或烤面包" };

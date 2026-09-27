@@ -26,6 +26,7 @@ import {
   majorImprovementSvg,
   categorySealSvg,
   fenceRailSvg,
+  terrainModelSvg,
   cradleSvg,
 } from "/js/svg-icons.js";
 import { flyMeepleToSpace, flyTokenToStock, flyCropHarvest } from "/js/fx.js";
@@ -484,6 +485,8 @@ export function renderGame(root, s, me, conn) {
     root.style.minHeight = `${prevH}px`;
   }
 
+  const selectedMulliganIds = new Set([...root.querySelectorAll("[data-mulligan]:checked")].map(input => input.dataset.mulligan));
+  const activeMulliganTab = root.querySelector(".mulligan-tab.active")?.dataset.mulliganTab || "occupations";
   root.innerHTML = "";
 
   const g = s.game;
@@ -496,13 +499,37 @@ export function renderGame(root, s, me, conn) {
     const mePlayer = me.role === "player" ? g.players.find(player => player.id === me.pid) : null;
     const waiting = g.setupPending.includes(me.pid);
     const cards = waiting && mePlayer ? [
-      ...(mePlayer.occupationHand || []).map(card => ({ ...card, group: "职业" })),
-      ...(mePlayer.minorHand || []).map(card => ({ ...card, group: card.id.startsWith("M") ? "沼泽小发展" : "普通小发展" })),
+      ...(mePlayer.occupationHand || []).map(card => ({ ...card, group: "职业", kind: "occupations" })),
+      ...(mePlayer.minorHand || []).map(card => ({ ...card, group: card.id.startsWith("M") ? "沼泽小发展" : "普通小发展", kind: card.id.startsWith("M") ? "moor" : "normal" })),
     ] : [];
     root.innerHTML = `<div class="card" style="max-width:760px;margin:32px auto;padding:28px"><h2>🌲 开局换牌</h2>
-      <p class="muted">按官方规则的换牌方式，每人可以一次性选出任意张手牌，更换同类卡。也可以保留全部手牌。</p>
-      ${waiting ? `<div class="stack gap8">${cards.map(card => `<label class="card" style="display:flex;align-items:flex-start;gap:12px;padding:12px"><input type="checkbox" data-mulligan="${escapeHtml(card.id)}"><span><b>${escapeHtml(card.group)} · ${escapeHtml(card.name)}</b><br><small>${escapeHtml(card.effect || "")}</small></span></label>`).join("")}</div>
+      <p class="muted">可一次换掉任意张手牌，换到的仍是同类卡。也可以一张都不换。</p>
+      ${waiting ? `<div class="mulligan-tabs" role="tablist" aria-label="手牌种类">
+          <button class="mulligan-tab ${activeMulliganTab === "occupations" ? "active" : ""}" type="button" role="tab" data-mulligan-tab="occupations" aria-controls="mulligan-occupations" aria-selected="${activeMulliganTab === "occupations"}">职业 <span data-mulligan-count="occupations"></span></button>
+          <button class="mulligan-tab ${activeMulliganTab === "moor" ? "active" : ""}" type="button" role="tab" data-mulligan-tab="moor" aria-controls="mulligan-moor" aria-selected="${activeMulliganTab === "moor"}">沼泽小发展 <span data-mulligan-count="moor"></span></button>
+          <button class="mulligan-tab ${activeMulliganTab === "normal" ? "active" : ""}" type="button" role="tab" data-mulligan-tab="normal" aria-controls="mulligan-normal" aria-selected="${activeMulliganTab === "normal"}">普通小发展 <span data-mulligan-count="normal"></span></button>
+        </div>
+        ${["occupations", "moor", "normal"].map(kind => `<div class="mulligan-panel stack gap8" id="mulligan-${kind}" role="tabpanel" ${activeMulliganTab === kind ? "" : "hidden"}>
+          ${cards.filter(card => card.kind === kind).map(card => `<label class="card mulligan-card"><input type="checkbox" data-mulligan="${escapeHtml(card.id)}" data-mulligan-kind="${kind}" ${selectedMulliganIds.has(card.id) ? "checked" : ""}><span><b>${escapeHtml(card.name)}</b><br><small>${escapeHtml(card.effect || "")}</small></span></label>`).join("")}
+        </div>`).join("")}
         <button class="btn primary mt16" id="confirmMulligan">确认换牌并准备开始</button>` : `<p>等待其他玩家完成换牌（剩余 ${g.setupPending.length} 人）…</p>`}</div>`;
+    const updateMulliganCounts = () => {
+      for (const kind of ["occupations", "moor", "normal"]) {
+        const total = root.querySelectorAll(`[data-mulligan-kind="${kind}"]`).length;
+        const selected = root.querySelectorAll(`[data-mulligan-kind="${kind}"]:checked`).length;
+        root.querySelector(`[data-mulligan-count="${kind}"]`).textContent = selected ? `${selected}/${total} 已选` : `${total} 张`;
+      }
+    };
+    root.querySelectorAll(".mulligan-tab").forEach(tab => tab.addEventListener("click", () => {
+      root.querySelectorAll(".mulligan-tab").forEach(button => {
+        const active = button === tab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+        root.querySelector(`#mulligan-${button.dataset.mulliganTab}`).hidden = !active;
+      });
+    }));
+    root.querySelectorAll("[data-mulligan]").forEach(input => input.addEventListener("change", updateMulliganCounts));
+    if (waiting) updateMulliganCounts();
     root.querySelector("#confirmMulligan")?.addEventListener("click", () => {
       const ids = [...root.querySelectorAll("[data-mulligan]:checked")].map(input => input.dataset.mulligan);
       sendAction({ type: "Mulligan", ids });
@@ -513,6 +540,16 @@ export function renderGame(root, s, me, conn) {
   const myPlayer = me.role === "player" ? g.players.find((p) => p.id === me.pid) : null;
   const myTurn = g.waitingFor[0] === me.pid;
   const reservedBuilder = g.players.find(player => player.reservedMajorAvailable);
+  const farmTerrain = myPlayer?.grid?.flat() || [];
+  const forestCount = farmTerrain.filter(cell => cell.terrain === "forest").length;
+  const moorCount = farmTerrain.filter(cell => cell.terrain === "moor").length;
+  const terrainHint = !myPlayer
+    ? "玩家可点击自己农场中的森林或沼泽，选择对应的特殊行动。"
+    : myPlayer.moorEnabled && myPlayer.moorStartCard == null && forestCount + moorCount === 0
+      ? "这间房创建时没有放置起始森林和沼泽。你仍可通过卡牌获得地形；新建的沼泽房间会按起始卡放置地形。"
+    : forestCount + moorCount === 0
+      ? "你的农场目前没有森林或沼泽，暂时不能伐木、刀耕火种或挖泥炭。获得新地形后，点击对应农场格使用这些行动；马市、集市等行动仍可直接点卡牌。"
+      : `点击自己农场中的${forestCount && moorCount ? "森林或沼泽" : forestCount ? "森林" : "沼泽"}，选择对应的特殊行动。`;
   if (myPlayer?.reservedMajorAvailable && !prev?.players?.find(player => player.id === me.pid)?.reservedMajorAvailable) {
     _actionSubTab = "moor";
   }
@@ -560,7 +597,7 @@ export function renderGame(root, s, me, conn) {
   `;
   root.appendChild(top);
 
-  // 顶栏「🎴 DLC 规则」按钮更新（开任意 DLC 时展示，位于顶部 title 教程与连接状态中间）
+  // 顶栏「🧩 DLC 规则」按钮更新（开任意 DLC 时展示，位于顶部 title 教程与连接状态中间）
   const topDlcBtn = document.getElementById("topDlcBtn");
   const hasDlc = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor || g.dlc.seasons));
   if (topDlcBtn) {
@@ -622,14 +659,14 @@ export function renderGame(root, s, me, conn) {
   layout.innerHTML = `
     <div class="pairs" id="pairsGrid"></div>
     <div class="action-board" id="actionBoard">
-      <h3><span class="ab-title">📋 行动板</span> <span class="head-info">轮到 <b id="turnName">●</b></span>${g.dlc && (g.dlc.occupations || g.dlc.minorImprovements) ? ' <span class="dlc-banner">🎴 DLC</span>' : ""}${g.dlc?.moor ? ' <span class="dlc-banner moor-banner">🌲 沼泽农夫</span>' : ""}</h3>
+      <h3><span class="ab-title">📋 行动板</span> <span class="head-info">轮到 <b id="turnName">●</b></span></h3>
       <p class="action-guide">${myTurn && !me.spectator ? "选择下方亮色行动格放置一名家人。灰色格会标明开放或占用状态。" : me.spectator ? "旁观中：可查看所有行动和占用状态。" : "等待当前玩家行动；行动格会显示开放和占用状态。"}</p>
       
       <!-- 行动板内部分页 -->
       <div class="action-tabs">
-        <button class="action-tab-btn ${_actionSubTab === "resources" ? "active" : ""}" data-act-tab="resources" type="button">🌾 资源与市场 <span class="action-tab-count" data-count="resources"></span></button>
-        <button class="action-tab-btn ${_actionSubTab === "actions" ? "active" : ""}" data-act-tab="actions" type="button">🎯 农事与建造 <span class="action-tab-count" data-count="actions"></span></button>
-        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 沼泽 <span class="action-tab-count" data-count="moor"></span></button>` : ""}
+        <button class="action-tab-btn ${_actionSubTab === "resources" ? "active" : ""}" data-act-tab="resources" type="button" title="资源与市场">🌾 资源</button>
+        <button class="action-tab-btn ${_actionSubTab === "actions" ? "active" : ""}" data-act-tab="actions" type="button" title="农事与建造">🎯 修葺</button>
+        ${g.dlc?.moor ? `<button class="action-tab-btn ${_actionSubTab === "moor" ? "active" : ""}" data-act-tab="moor" type="button">🌲 沼泽</button>` : ""}
       </div>
 
       <!-- 分页 1: 永久资源 + 动物市场 -->
@@ -647,7 +684,7 @@ export function renderGame(root, s, me, conn) {
         <div class="section-sub">🎴 回合卡行动（揭示后永久可用 · 每轮每格一次）</div>
         <div id="roundGrid" class="spaces-grid"></div>
         ${g.dlc && g.dlc.minorImprovements && !g.dlc.moor ? `
-        <div class="section-sub">🎴 小发展卡（抢一次入个人持有）</div>
+        <div class="section-sub">🎴 小发展卡 · 派 1 名工人拿取</div>
         <div id="minorGrid" class="spaces-grid"></div>` : ""}
       </div>
 
@@ -655,7 +692,7 @@ export function renderGame(root, s, me, conn) {
       ${g.dlc?.moor ? `
       <div class="action-sub-panel ${_actionSubTab === "moor" ? "active" : ""}" data-panel="moor">
         <div class="section-sub">🌲 特殊行动卡 · 不消耗工人</div>
-        <p class="muted moor-hint">点击自己农场中的森林或沼泽，可选择伐木、刀耕火种或挖泥炭。${g.numPlayers === 1 ? "每轮可付 2 食物保留特殊行动卡，并当轮再用一次。" : "另一位玩家再次使用同一张卡需支付 2 食物。"}</p>
+        <p class="muted moor-hint">${terrainHint}${g.numPlayers === 1 ? "每轮可付 2 食物保留特殊行动卡，并当轮再用一次。" : "另一位玩家再次使用同一张卡需支付 2 食物。"}</p>
         <div id="moorSpecialGrid" class="spaces-grid"></div>
         <div class="section-sub">🔥 取暖与医务所</div>
         <div id="moorUtilityGrid" class="spaces-grid"></div>
@@ -687,12 +724,6 @@ export function renderGame(root, s, me, conn) {
   if (g.dlc?.moor) {
     renderMoorSpecial(layout.querySelector("#moorSpecialGrid"), layout.querySelector("#moorUtilityGrid"), g, focusPlayer, myTurn);
   }
-  layout.querySelectorAll(".action-tab-count").forEach((count) => {
-    const panel = layout.querySelector(`.action-sub-panel[data-panel="${count.dataset.count}"]`);
-    const n = panel?.querySelectorAll(".actable").length || 0;
-    count.textContent = myTurn && n ? `${n} 可选` : "";
-  });
-
   // 日志（独立面板：移动端 tab / 桌面抽屉）
   renderLogInto(layout.querySelector("#liveLog"), g.log, prev);
   refreshLogDrawer(g.log, prev);
@@ -1001,7 +1032,7 @@ function renderPlayersAndFarms(host, players, me, currentTurnId, myTurn, myPlaye
     farmCard.innerHTML = `
       ${p.id === currentTurnId ? `<div class="card-turn-pill">${runnerSvg("#ffffff", 14)} 该他行动</div>` : ""}
       <div class="farm-head">
-        <h3>${p.id === currentTurnId ? "👉 " : ""}🚜 ${escapeHtml(p.name)} 的农场${p.moorStartCard ? ` <span class="badge">起始卡 ${p.moorStartCard}</span>` : ""}${isMyFarm ? ' <span class="badge green">你</span>' : ""}</h3>
+        <h3>${p.id === currentTurnId ? "👉 " : ""}🚜 ${escapeHtml(p.name)} 的农场${p.moorStartCard != null ? ` <span class="badge">起始卡 ${p.moorStartCard}</span>` : ""}${isMyFarm ? ' <span class="badge green">你</span>' : ""}</h3>
         <div class="row" style="gap:6px;align-items:center">
           <span class="muted" style="font-size:11px">${p.rooms} 间${houseLabel(p.roomType)}屋${p.minorImprovements?.includes("M032") ? " + 泥炭小屋" : ""} · 剩余 ${Math.max(0, p.rooms + (p.minorImprovements?.includes("M032") ? 1 : 0) - p.family)} 空房 · 乞讨 ${p.beggings} 张</span>
           <button class="btn ghost small iso-toggle-btn${_isoMode ? " active" : ""}" type="button" title="切换 2D 平铺 / 2.5D 透视视角">${_isoMode ? "📐 2.5D" : "📋 2D"}</button>
@@ -1339,7 +1370,7 @@ function renderFarm(wrap, p, myTurn) {
       html = fieldContentSvg(cell.crop, cell.markers ?? 0);
     } else if (cell.terrain) {
       el.classList.add(`cell-terrain-${cell.terrain}`);
-      html = `<div class="terrain-token"><span>${cell.terrain === "forest" ? "🌲" : "🟫"}</span><small>${cell.terrain === "forest" ? `森林${(cell.forestLayers || 1) > 1 ? ` ×${cell.forestLayers}` : ""}${cell.buriedMoor ? " · 下层沼泽" : ""}` : "沼泽"}</small>${alloc?.isForestHome ? `<small>🐾 ${anNames[alloc.type] || alloc.type}</small>` : ""}${p.guestForestCell === key ? "<small>👤 小屋访客</small>" : ""}</div>`;
+      html = `<div class="terrain-model-wrap">${terrainModelSvg(cell.terrain, cell.forestLayers || 1)}</div><div class="terrain-token"><span>${cell.terrain === "forest" ? "🌲" : "🟫"}</span><small>${cell.terrain === "forest" ? `森林${(cell.forestLayers || 1) > 1 ? ` ×${cell.forestLayers}` : ""}${cell.buriedMoor ? " · 下层沼泽" : ""}` : "沼泽"}</small>${alloc?.isForestHome ? `<small>🐾 ${anNames[alloc.type] || alloc.type}</small>` : ""}${p.guestForestCell === key ? "<small>👤 小屋访客</small>" : ""}</div>`;
     } else if (cell.kind === "empty" && cell.crop) {
       el.classList.add("cell-empty", "cell-no-till");
       html = `${fieldContentSvg(cell.crop, cell.markers ?? 0)}<span class="no-till-tag">免耕 · 仍算空地</span>`;
@@ -2025,7 +2056,7 @@ function renderMoorSpecial(container, utility, g, p, myTurn) {
   if (p) {
     const heat = document.createElement("button");
     heat.className = "btn small";
-    heat.textContent = `🔥 下次收获取暖：${p.heatPlan == null ? "自动支付" : `最多 ${p.heatPlan} 燃料`}`;
+    heat.textContent = `🔥 下次收获取暖：${p.heatPlan == null ? "自动使用燃料" : `最多用 ${p.heatPlan} 燃料`}`;
     heat.onclick = () => {
       const discount = p.roomType === "stone" ? 2 : p.roomType === "clay" ? 1 : 0;
       let need = Math.max(0, p.rooms - discount - (p.improvements?.includes("heatingOven") ? 1 : 0));
@@ -2034,7 +2065,11 @@ function renderMoorSpecial(container, utility, g, p, myTurn) {
       if (p.minorImprovements?.includes("M086")) need = Math.max(0, need - Math.floor((p.animals?.sheep || 0) / 2));
       if (p.minorImprovements?.includes("M082") && p.firewoodUse && p.resources.wood > 0) need = Math.max(0, need - 1);
       if (p.minorImprovements?.includes("M032")) need += 1;
-      openModal("🔥 设置下次收获取暖", `<p class="muted">需要 ${need} 燃料。少付的每 1 燃料会使一名家人卧床。</p>${Array.from({ length: need + 1 }, (_, amount) => `<button class="btn small" data-heat="${amount}">支付 ${amount} 燃料</button>`).join("")}`, root => {
+      openModal("🔥 下次收获如何取暖", `<p class="muted">按当前农舍预计需要 ${need} 燃料；收获时会按届时的农舍与卡牌重新计算。默认自动使用库存中的燃料，最多支付所需数量。你也可以设置用量上限，留存燃料。每少付 1 燃料，就有 1 名家人卧床。本设置仅对下一次收获生效。</p><button class="btn small ghost" id="autoHeat">自动使用燃料（默认）</button>${Array.from({ length: need + 1 }, (_, amount) => `<button class="btn small" data-heat="${amount}">最多用 ${amount} 燃料</button>`).join("")}`, root => {
+        root.querySelector("#autoHeat").onclick = () => {
+          sendAction({ type: "SetHeatPlan", amount: null });
+          closeModal();
+        };
         root.querySelectorAll("[data-heat]").forEach(btn => btn.onclick = () => {
           sendAction({ type: "SetHeatPlan", amount: Number(btn.dataset.heat) });
           closeModal();
@@ -2110,36 +2145,32 @@ function openHandDrawer(tab = "occupation") {
         <b>${m.icon} ${escapeHtml(m.name)}</b>
         <button class="btn small" data-play-minor="${escapeHtml(m.id)}">建造小发展</button>
       </div>
-      <div class="muted mt4" style="font-size:12px">${escapeHtml(m.id)} · 费用：${escapeHtml(m.costText || Object.entries(m.cost || {}).map(([key, value]) => `${value} ${key}`).join("、") || "免费")} · ${m.vp || 0} 分${m.prereqText ? ` · 条件：${escapeHtml(m.prereqText)}` : ""}</div>
+      <div class="muted mt4" style="font-size:12px">费用：${escapeHtml(m.costText || Object.entries(m.cost || {}).map(([key, value]) => `${value} ${{ wood: "木材", clay: "陶土", reed: "芦苇", stone: "石材", grain: "谷物", vegetable: "蔬菜", food: "食物", fuel: "燃料" }[key] || key}`).join("、") || "免费")} · ${m.vp || 0} 分${m.prereqText ? ` · 打出条件：${escapeHtml(m.prereqText)}` : ""}</div>
       <div class="muted mt4" style="font-size:12px">${escapeHtml(m.effect)}</div>
     </div>
   `).join("") : '<div class="muted p12">手里没有小发展卡了</div>';
 
-  openModal("🎴 玩家私密手牌", `
-    <div class="row gap8 mb12" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap">
-      <div class="row gap8">
-        <button class="btn small ${tab === "occupation" ? "" : "ghost"}" id="tabOcc">职业手牌 (${occs.length})</button>
-        <button class="btn small ${tab === "minor" ? "" : "ghost"}" id="tabMinor">小发展卡 (${minors.length})</button>
-      </div>
-      <button class="btn small ghost" id="btnHandDrawerGallery" style="margin-left:auto">
-        📖 ${tab === "occupation" ? "职业图鉴 (88)" : "小发展图鉴"}
-      </button>
+  openModal("🎴 我的手牌", `
+    <div class="hand-tabs" role="tablist" aria-label="手牌种类">
+      <button class="btn small ${tab === "occupation" ? "" : "ghost"}" type="button" role="tab" id="tabOcc" aria-controls="handOccupations" aria-selected="${tab === "occupation"}">职业 (${occs.length})</button>
+      <button class="btn small ${tab === "minor" ? "" : "ghost"}" type="button" role="tab" id="tabMinor" aria-controls="handMinors" aria-selected="${tab === "minor"}">小发展卡 (${minors.length})</button>
     </div>
-    <div id="drawerContent">
-      ${tab === "occupation" ? occHtml : minorHtml}
-    </div>
+    <div id="handOccupations" role="tabpanel" ${tab === "occupation" ? "" : "hidden"}>${occHtml}</div>
+    <div id="handMinors" role="tabpanel" ${tab === "minor" ? "" : "hidden"}>${minorHtml}</div>
   `, (root) => {
-    root.querySelector("#tabOcc").onclick = () => { closeModal(); openHandDrawer("occupation"); };
-    root.querySelector("#tabMinor").onclick = () => { closeModal(); openHandDrawer("minor"); };
-    const btnGall = root.querySelector("#btnHandDrawerGallery");
-    if (btnGall) btnGall.onclick = () => {
-      closeModal();
-      if (tab === "occupation") {
-        import("/js/tutorial.js").then((m) => m.openOccupationGalleryDrawer());
-      } else {
-        import("/js/tutorial.js").then((m) => m.openMinorGalleryDrawer(_state?.game));
-      }
+    root.querySelector(".act-modal").classList.add("hand-modal");
+    const selectTab = (kind) => {
+      const isOccupation = kind === "occupation";
+      root.querySelector("#tabOcc").classList.toggle("ghost", !isOccupation);
+      root.querySelector("#tabMinor").classList.toggle("ghost", isOccupation);
+      root.querySelector("#tabOcc").setAttribute("aria-selected", String(isOccupation));
+      root.querySelector("#tabMinor").setAttribute("aria-selected", String(!isOccupation));
+      root.querySelector("#handOccupations").hidden = !isOccupation;
+      root.querySelector("#handMinors").hidden = isOccupation;
+      root.querySelector(".act-modal-body").scrollTop = 0;
     };
+    root.querySelector("#tabOcc").onclick = () => selectTab("occupation");
+    root.querySelector("#tabMinor").onclick = () => selectTab("minor");
     root.querySelectorAll("[data-play-occ]").forEach(btn => btn.onclick = () => {
       sendAction({ type: "PlayOccupation", id: btn.dataset.playOcc });
       closeModal();
@@ -2368,7 +2399,7 @@ function buildFencePanel() {
     <div class="fence-panel-txt">
       <b>🪵 建栅栏</b>
       <span class="muted">点击棋盘上的<b>虚线格边</b>选择栅栏段 · 每段 1 木 · 上限 15 段<br>
-      必须围成<b>完整矩形</b>牧场（可多个）才能提交</span>
+      栅栏要围成<b>封闭牧场</b>，可以是 L 形等形状；森林和沼泽要先清除，才能纳入牧场</span>
     </div>
     <div class="fence-panel-ops">
       <span class="badge">已选 <b id="fenceCount">0</b> 段</span>
@@ -2888,7 +2919,7 @@ function onSpaceClick(sp, p, moorCardId = null, retainSpecial = false) {
       ${_state.game.dlc?.minorImprovements && (p.minorHand || []).length && !moorCardId ? '<button class="btn small" id="mPlayMinor">🎴 从手牌打出小发展卡</button>' : ""}
       <div class="imp-list" id="mImpGrid"></div>
       <p class="muted" style="margin-top:10px;font-size:12px">
-        🍳 壁炉/烹饪灶：<b>随时</b>可把谷物/蔬菜/牲畜换成食物（不占行动，点玩家卡上的改进标签即可烹饪）。<br>
+        🍳 壁炉/烹饪灶：<b>随时</b>可把蔬菜/牲畜换成食物（不占行动，点玩家卡上的改进标签即可烹饪）。<br>
         🍞 壁炉、烹饪灶、炊事房和陶土/石头烤炉：在「撒种/烤面包」行动中烤面包。
       </p>
     `, (root) => {
@@ -2896,9 +2927,9 @@ function onSpaceClick(sp, p, moorCardId = null, retainSpecial = false) {
       if (minorButton) minorButton.onclick = () => { closeModal(); openHandDrawer("minor"); };
       const grid = root.querySelector("#mImpGrid");
       const list = [
-        ["fireplace",     "壁炉",       "2 陶",        "1 分", "2 谷/菜/羊/猪 → 1 食物；3 牛 → 1 食物（随时）"],
+        ["fireplace",     "壁炉",       "2 陶",        "1 分", "每份蔬菜/羊/猪 → 2 食物；每头牛 → 3 食物（随时）"],
         ["fireplaceBig",  "大壁炉",     "3 陶",        "1 分", "与壁炉完全相同（适合陶多 / 想多占 1 分时建）"],
-        ["cookingHearth", "烹饪灶",     "4 陶",        "1 分", "1 谷/菜/羊/猪 → 2 食物；3 牛 → 2 食物（随时）"],
+        ["cookingHearth", "烹饪灶",     "4 陶",        "1 分", "每份蔬菜/猪 → 3 食物；每只羊 → 2 食物；每头牛 → 4 食物（随时）"],
         ["cookingHearthBig","大烹饪灶",  "5 陶",        "1 分", "与烹饪灶完全相同（适合陶多 / 想多占 1 分时建）"],
         ["clayOven",      "陶土烤炉",   "3 陶 + 1 石", "2 分", "烤面包：1 谷 → 5 食物"],
         ["stoneOven",     "石头烤炉",   "3 石 + 1 陶", "3 分", "烤面包：2 谷 → 每谷 4 食物"],
@@ -3027,11 +3058,16 @@ function makeFakeBtn(key) {
 }
 
 // ---- 模态 ----
+let _modalCloseTimer = null;
 function openModal(title, bodyHTML, onMount, options = {}) {
   const { closable = true, hideCancel = false } = options;
   window.__modalClosable = closable;
   const mask = document.getElementById("modalRoot");
   const box = document.getElementById("modalBox");
+  if (_modalCloseTimer) {
+    clearTimeout(_modalCloseTimer);
+    _modalCloseTimer = null;
+  }
   mask.classList.remove("hiding");
   box.innerHTML = `
     <div class="act-modal entering${!closable ? " modal-unclosable" : ""}">
@@ -3113,11 +3149,13 @@ function closeModal(force = false) {
   window.__modalClosable = true;
   const mask = document.getElementById("modalRoot");
   if (!mask) return;
-  if (reducedMotion()) { mask.classList.add("hidden"); return; }
+  if (_modalCloseTimer) clearTimeout(_modalCloseTimer);
+  if (reducedMotion()) { _modalCloseTimer = null; mask.classList.add("hidden"); return; }
   mask.classList.add("hiding");
-  setTimeout(() => {
+  _modalCloseTimer = setTimeout(() => {
     mask.classList.add("hidden");
     mask.classList.remove("hiding");
+    _modalCloseTimer = null;
   }, 160);
 }
 
@@ -3383,9 +3421,9 @@ const MAJOR_ZH = {
 };
 /** 改进悬浮说明（费用 / 得分 / 效果）—— 修订版数值 */
 const MAJOR_TIP = {
-  fireplace:        "壁炉 · 2 陶土 · +1 分\n随时烹饪：2 谷物/蔬菜/绵羊/野猪 → 1 食物；3 黄牛 → 1 食物\n👉 点此标签烹饪",
+  fireplace:        "壁炉 · 2 陶土 · +1 分\n随时烹饪：每份蔬菜/绵羊/野猪换 2 食物；每头黄牛换 3 食物。谷物需用烤面包行动。\n👉 点此标签烹饪",
   fireplaceBig:     "大壁炉 · 3 陶土 · +1 分\n随时烹饪，效果与壁炉完全相同\n👉 点此标签烹饪",
-  cookingHearth:    "烹饪灶 · 4 陶土 · +1 分\n随时烹饪：1 谷物/蔬菜/绵羊/野猪 → 2 食物；3 黄牛 → 2 食物\n👉 点此标签烹饪",
+  cookingHearth:    "烹饪灶 · 4 陶土 · +1 分\n随时烹饪：每份蔬菜/野猪换 3 食物；每只绵羊换 2 食物；每头黄牛换 4 食物。谷物需用烤面包行动。\n👉 点此标签烹饪",
   cookingHearthBig: "大烹饪灶 · 5 陶土 · +1 分\n随时烹饪，效果与烹饪灶完全相同\n👉 点此标签烹饪",
   clayOven:         "陶土烤炉 · 3 陶土 + 1 石材 · +2 分\n烤面包：每次最多 1 谷物 → 5 食物",
   stoneOven:        "石头烤炉 · 3 石材 + 1 陶土 · +3 分\n烤面包：每次最多 2 谷物 → 每份谷物 4 食物",
@@ -3395,7 +3433,7 @@ const MAJOR_TIP = {
   basket:           "编筐坊 · 2 石材 + 2 芦苇 · +2 分\n收获阶段 1 芦苇 → 3 食物（不占行动）\n👉 点此标签转换",
   heatingStove:     "取暖炉 · 3 石材 + 2 木材 · +2 分\n收获阶段全家仅消耗 1 燃料取暖（不论家人数）",
   peatKiln:         "泥炭窑 · 2 陶土 + 1 木材 · +2 分\n每次收获阶段自动 +1 燃料",
-  moorCook:         "沼泽灶 · 2 石材 + 1 木材 · +3 分\n随时烹饪：1 谷物/蔬菜/绵羊/野猪 → 2 食物；3 黄牛 → 2 食物\n👉 点此标签烹饪",
+  moorCook:         "沼泽灶 · 2 石材 + 1 木材 · +3 分\n随时烹饪：每份蔬菜/野猪换 3 食物；每只绵羊换 2 食物；每头黄牛换 4 食物。\n👉 点此标签烹饪",
   tileOven:         "瓷砖烤炉 · 3 石材 + 2 陶土 · +3 分\n烤面包：每次最多 2 谷物 → 每份谷物 4 食物",
   firewood:         "柴火棚 · 2 石材 + 2 芦苇 · +2 分\n终局时每份剩余燃料直接折算 1 分胜利点",
   horseSlaughterhouseA: "马屠宰场 · 1 陶土 + 1 石材 · +2 分\n可烹饪马匹和其他牲畜",
@@ -3413,22 +3451,22 @@ const MAJOR_TIP = {
   museumOfMoors: "沼泽博物馆 · +3 分\n指定重大改进减免 1 建材",
   ridingStables: "骑术马厩 · +3 分\n每轮开始有 2 匹马时获得 1 食物",
 };
-/** 可烹饪/转换的改进 → 消耗比（多少单位换 1 食物，与引擎 cook 字段一致） */
+/** 可烹饪/转换的改进 → 每份原料产出的食物，与引擎 cook 字段一致 */
 const COOK_RULES = {
-  fireplace:     { grain: 2, vegetable: 2, sheep: 2, boar: 2, cattle: 3 },
-  fireplaceBig:  { grain: 2, vegetable: 2, sheep: 2, boar: 2, cattle: 3 },
-  cookingHearth: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 },
-  cookingHearthBig: { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 },
-  moorCook:      { grain: 0.5, vegetable: 0.5, sheep: 0.5, boar: 0.5, cattle: 1.5 },
-  horseSlaughterhouseA: { sheep: 1, boar: 1, cattle: 0.5, horse: 0.5 },
-  horseSlaughterhouseB: { sheep: 1, boar: 1, cattle: 0.5, horse: 0.5 },
-  cookhouseA: { vegetable: 1 / 3, sheep: 0.5, boar: 1 / 3, cattle: 0.25, horse: 0.5 },
-  cookhouseB: { vegetable: 1 / 3, sheep: 0.5, boar: 1 / 3, cattle: 0.25, horse: 0.5 },
-  joinery:       { wood: 0.5 },
-  pottery:       { clay: 0.5 },
-  basket:        { reed: 1 / 3 },
-  M105: { vegetable: 0.5, sheep: 0.5, boar: 1 / 3, cattle: 1 / 3, horse: 0.5 },
-  M106: { sheep: 1, boar: 0.5, cattle: 1 / 3, horse: 0.5 },
+  fireplace:     { vegetable: 2, sheep: 2, boar: 2, cattle: 3 },
+  fireplaceBig:  { vegetable: 2, sheep: 2, boar: 2, cattle: 3 },
+  cookingHearth: { vegetable: 3, sheep: 2, boar: 3, cattle: 4 },
+  cookingHearthBig: { vegetable: 3, sheep: 2, boar: 3, cattle: 4 },
+  moorCook:      { vegetable: 3, sheep: 2, boar: 3, cattle: 4 },
+  horseSlaughterhouseA: { sheep: 1, boar: 1, cattle: 2, horse: 2 },
+  horseSlaughterhouseB: { sheep: 1, boar: 1, cattle: 2, horse: 2 },
+  cookhouseA: { vegetable: 3, sheep: 2, boar: 3, cattle: 4, horse: 2 },
+  cookhouseB: { vegetable: 3, sheep: 2, boar: 3, cattle: 4, horse: 2 },
+  joinery:       { wood: 2 },
+  pottery:       { clay: 2 },
+  basket:        { reed: 3 },
+  M105: { vegetable: 2, sheep: 2, boar: 3, cattle: 3, horse: 2 },
+  M106: { sheep: 1, boar: 2, cattle: 3, horse: 2 },
 };
 
 // ---- 工具 ----
@@ -3448,26 +3486,27 @@ function openCookModal(impName) {
   const p = g.players.find((x) => x.id === me.pid);
   if (!p || (!p.improvements.includes(impName) && !p.minorImprovements?.includes(impName))) return toast("你还没有这个改进", true);
   const rule = (p.minorImprovements || []).includes("M107") && ["fireplace", "fireplaceBig", "cookingHearth", "cookingHearthBig"].includes(impName)
-    ? { ...COOK_RULES[impName], horse: 0.5 } : COOK_RULES[impName];
+    ? { ...COOK_RULES[impName], horse: 2 } : COOK_RULES[impName];
   if (!rule) return;
   const ANIMAL_ZH_C = { sheep: "绵羊", boar: "野猪", cattle: "黄牛", horse: "马" };
   const rows = Object.entries(rule).map(([k, ratio]) => {
     const owned = k === "grain" || k === "vegetable" || k === "wood" || k === "clay" || k === "reed"
       ? (p.resources[k] || 0)
       : k === "horse" ? (p.horses || 0) : (p.animals[k] || 0);
-    const hint = ratio >= 1 ? `${ratio} 单位 → 1 食物` : `1 单位 → ${Math.round(1 / ratio)} 食物`;
+    const unit = ({ sheep: "只", boar: "头", cattle: "头", horse: "匹", reed: "根" })[k] || "份";
+    const hint = `1 ${unit} → ${ratio} 食物`;
     const zhName = ANIMAL_ZH_C[k] || resZh(k);
     return { k, ratio, owned, hint, zhName };
   }).filter((r) => r.owned > 0);
   const totalOwned = rows.reduce((s, r) => s + r.owned, 0);
   if (totalOwned === 0) return toast("没有可烹饪的原料", true);
   const body = `
-    <p class="muted" style="margin-top:0">用「${MAJOR_ZH[impName] || minorNameById(impName)}」烹饪（不占行动）。填数量，确认后换取食物。</p>
+    <p class="muted" style="margin-top:0">用「${MAJOR_ZH[impName] || minorNameById(impName)}」烹饪（不占行动）。选择数量，确认后换取食物。</p>
     <div class="cook-rows">${rows.map((r) => `
       <div class="cook-row" data-k="${r.k}" data-ratio="${r.ratio}" data-owned="${r.owned}">
         <span class="cook-ic">${({ grain: "🌾", vegetable: "🥕", wood: "🪵", clay: "🧱", reed: "🎋", sheep: "🐑", boar: "🐗", cattle: "🐄", horse: "🐴" })[r.k] || "•"}</span>
         <span class="cook-name">${r.zhName} <span class="muted">（有 ${r.owned} · ${r.hint}）</span></span>
-        <input type="number" class="input cook-n" min="0" max="${r.owned}" value="0" data-k="${r.k}">
+        <span class="cook-select-wrap"><select class="input cook-n" data-k="${r.k}" aria-label="使用${r.zhName}的数量">${Array.from({ length: r.owned + 1 }, (_, n) => `<option value="${n}">${n}</option>`).join("")}</select></span>
       </div>`).join("")}
     </div>
     <div class="row spread mt8" style="align-items:center">
@@ -3485,15 +3524,20 @@ function openCookModal(impName) {
         const row = inp.closest(".cook-row");
         const ratio = parseFloat(row.dataset.ratio);
         const n = Math.max(0, Math.min(parseInt(inp.value || "0", 10) || 0, parseInt(row.dataset.owned, 10)));
-        if (ratio > 0) food += n / ratio;
+        if (ratio > 0) food += n * ratio;
       });
       food = Math.floor(food);
       if (impName === "M106") food += Math.floor((Number(inputs.find(inp => inp.dataset.k === "horse")?.value) || 0) / 2);
+      const usedCount = key => Number(inputs.find(inp => inp.dataset.k === key)?.value) || 0;
+      if (hasOccupation(p, "slaughterer")) food += usedCount("sheep") + usedCount("boar") + usedCount("cattle");
+      if (hasOccupation(p, "tanner") && (usedCount("cattle") > 0 || usedCount("boar") > 0)) food += 2;
+      if (hasOccupation(p, "smokehouseMaster") && (usedCount("cattle") > 0 || usedCount("boar") > 0 || usedCount("sheep") > 0)) food += 2;
+      if (hasOccupation(p, "herbalist")) food += usedCount("vegetable");
       preview.textContent = String(food);
       confirmBtn.disabled = food <= 0;
       return food;
     };
-    inputs.forEach((inp) => inp.addEventListener("input", recalc));
+    inputs.forEach((inp) => inp.addEventListener("change", recalc));
     confirmBtn.onclick = () => {
       const used = {};
       inputs.forEach((inp) => {
@@ -3851,8 +3895,8 @@ function ensureFab(g) {
         <span class="fab-txt">价格 / 规则速查</span>
       </button>
       ${dlcOn ? `<button class="fab-item" data-fab="dlc">
-        <span class="fab-ic">🎴</span>
-        <span class="fab-txt">DLC 规则</span>
+        <span class="fab-ic">🧩</span>
+        <span class="fab-txt">扩展规则</span>
       </button>` : ""}
       <button class="fab-item${_showGuide ? " on" : ""}" data-fab="guide">
         <span class="fab-ic">❓</span>
@@ -4048,13 +4092,13 @@ const RULES_DATA = {
   ],
   buildings: [
     ["🏠 建房间", "每间消耗 5 木材/陶土/石材（按现有房屋材质）+ 2 芦苇", "必须与现有房间正交相邻 · 每间增加 1 个工人居住位"],
-    ["🪵 建栅栏", "每段消耗 1 木材 · 每人最多建造 15 段栅栏", "必须围成封闭的完整矩形牧场；栅栏不可拆除"],
-    ["🔨 翻修", "整栋房屋全部翻新 · 每间消耗 1 陶土/石材 + 1 芦苇", "木屋 0 分 → 陶屋 1 分/间 → 石屋 2 分/间"],
+    ["🪵 建栅栏", "每段消耗 1 木材 · 每人最多建造 15 段栅栏", "须围成封闭牧场，形状不限；森林和沼泽不能直接纳入牧场；栅栏不可拆除"],
+    ["🔨 翻修", "整栋房屋全部翻新 · 每间消耗 1 陶土/石材，整栋再付 1 芦苇", "木屋 0 分 → 陶屋 1 分/间 → 石屋 2 分/间"],
   ],
   majors: [
-    ["壁炉", "2 陶土", "1 分", "随时烹饪：2 谷物/蔬菜/绵羊/野猪 → 1 食物；3 黄牛 → 1 食物"],
+    ["壁炉", "2 陶土", "1 分", "随时烹饪：每份蔬菜/绵羊/野猪换 2 食物；每头黄牛换 3 食物。谷物需使用烤面包行动"],
     ["大壁炉", "3 陶土", "1 分", "随时烹饪，功能与壁炉完全相同（陶土充足时可建来抢分）"],
-    ["烹饪灶", "4 陶土", "1 分", "随时烹饪：1 谷物/蔬菜/绵羊/野猪 → 2 食物；3 黄牛 → 2 食物"],
+    ["烹饪灶", "4 陶土", "1 分", "随时烹饪：每份蔬菜/野猪换 3 食物；每只绵羊换 2 食物；每头黄牛换 4 食物。谷物需使用烤面包行动"],
     ["大烹饪灶", "5 陶土", "1 分", "随时烹饪，功能与烹饪灶完全相同（陶土充足时可建来抢分）"],
     ["陶土烤炉", "3 陶土 + 1 石材", "2 分", "烤面包行动：每次最多 1 谷物 → 5 食物"],
     ["石头烤炉", "3 石材 + 1 陶土", "3 分", "烤面包行动：每次最多 2 谷物 → 每份谷物 4 食物"],
@@ -4360,7 +4404,7 @@ const GUIDE_STEPS = [
   },
   {
     title: "🌾 【重要】关键结算：收获阶段",
-    body: "全剧在 <b>第 4、7、9、11、13、14 轮结束时</b> 自动触发收获阶段：<br>① <b>农田收割</b>；<br>② <b>喂养与取暖</b>：成年人吃 2 食物（本轮新生儿 1 食物），食物不足拿乞讨卡。沼泽农夫扩展按房间取暖，缺燃料使家人卧床；<br>③ <b>牲畜与马匹繁殖</b>：同种动物至少 2 只且有空位时繁殖。",
+    body: "游戏在 <b>第 4、7、9、11、13、14 轮结束时</b> 自动触发收获阶段：<br>① <b>农田收割</b>；<br>② <b>喂养与取暖</b>：成年人吃 2 食物（本轮新生儿 1 食物），食物不足拿乞讨卡。沼泽农夫扩展按房间取暖，缺燃料使家人卧床；<br>③ <b>牲畜与马匹繁殖</b>：同种动物至少 2 只且有空位时繁殖。",
     selector: "#gameHeaderCard",
     tab: "home",
   },

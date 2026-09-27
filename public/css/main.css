@@ -266,8 +266,15 @@ a:hover { text-decoration: underline; }
   background: rgba(255,253,246,0.06); border: 1px solid rgba(176,155,110,0.35);
 }
 .cook-row .cook-ic { font-size: 20px; text-align: center; }
-.cook-row .cook-name { font-size: 13px; }
-.cook-row .cook-n { width: 100%; text-align: center; padding: 6px 4px; }
+.cook-row .cook-name { font-size: 13px; min-width: 0; }
+.cook-row .cook-select-wrap { position: relative; display: block; }
+.cook-row .cook-select-wrap::after {
+  content: ""; position: absolute; right: 14px; top: 50%;
+  width: 7px; height: 7px; border-right: 2px solid var(--ink-2);
+  border-bottom: 2px solid var(--ink-2); transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+.cook-row .cook-n { width: 100%; appearance: none; cursor: pointer; padding: 8px 30px 8px 12px; font-weight: 700; }
 .dlc-panel h4 { margin: 0 0 8px; font-size: 13.5px; }
 .dlc-banner {
   display: inline-block; padding: 1px 8px; border-radius: 999px;

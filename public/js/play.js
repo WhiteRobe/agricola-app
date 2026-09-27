@@ -124,7 +124,7 @@ function render(s) {
 
   _latestState = s;
 
-  // 顶栏「🎴 DLC 规则」按钮更新（开任意 DLC 时展示，位于教程与连接状态之间）
+  // 顶栏「🧩 DLC 规则」按钮更新（开任意 DLC 时展示，位于教程与连接状态之间）
   const topDlcBtn = document.getElementById("topDlcBtn");
   const dlcConfig = s.game?.dlc || s.dlc;
   const hasDlc = !!(dlcConfig && (dlcConfig.occupations || dlcConfig.minorImprovements || dlcConfig.moor || dlcConfig.seasons));

@@ -147,35 +147,35 @@ function openRoomConfigModal() {
   _dlcModalMask.innerHTML = `
     <div class="modal anim-pop-in" style="max-width:520px;width:100%">
       <div class="row spread" style="align-items:center;margin-bottom:6px">
-        <h3 class="mt0 mb0">🚜 新建房间配置</h3>
+        <h3 class="mt0 mb0">🚜 创建房间</h3>
         <button class="btn ghost small" id="roomCfgClose" type="button">取消</button>
       </div>
-      <p class="muted" style="margin-top:0">每间房间可启用不同的 DLC。本房间启用后，<b>玩家端</b>会出现 DLC 规则入口。</p>
+      <p class="muted" style="margin-top:0">选择这局要玩的扩展。加入房间的玩家都使用同一套规则。</p>
       <div class="dlc-grid mt8">
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgOcc">
           <div>
             <div class="dlc-title">🎴 自定义职业 + 小发展卡</div>
-            <div class="muted" style="font-size:12px">开局每位玩家从 7 张随机职业中精选 1 张就任；项目内置 88 张自定义职业，场上抽 1 张小发展卡供争抢。</div>
+            <div class="muted" style="font-size:12px">开局从随机抽出的 7 张职业卡中选 1 张。游戏内有 88 张自定义职业卡；行动板上还会出现 1 张可争取的小发展卡。</div>
           </div>
         </label>
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgMoor">
           <div>
-            <div class="dlc-title">🌲 沼泽农夫 · III 级</div>
-            <div class="muted" style="font-size:12px">每人随机抽取一张起始卡，放置 5 片森林和 3 片沼泽；特殊行动不占工人，新增马匹、燃料取暖、医务所与 14 张重大改进。III 级启用职业与全部 117 张沼泽小发展卡，开局可换牌。</div>
+            <div class="dlc-title">🌲 沼泽农夫</div>
+            <div class="muted" style="font-size:12px">每人按随机起始卡在农场放置 5 片森林和 3 片沼泽。新增不占工人的特殊行动，以及马匹、燃料取暖、医务所、职业卡和沼泽发展卡。每人开局获得 7 张小发展卡，可以换掉不想留的牌。</div>
           </div>
         </label>
         <label class="dlc-opt">
           <input type="checkbox" id="roomCfgSeasons">
           <div>
             <div class="dlc-title">📅 节气轮转（四季扩展）</div>
-            <div class="muted" style="font-size:12px">每一轮代表一个季节（春→夏→秋→冬循环轮转）：季节改变资源产量与部分行动（冬季犁地要 1 食物、鱼塘封冻；春季建栅栏享免费段；夏季建房送马厩、度假得分；秋季建大改进减 1 建材），并新增一个「节气行动」格。与其他 DLC 自由叠加。</div>
+            <div class="muted" style="font-size:12px">每轮进入一个新季节，按春、夏、秋、冬循环。季节会改变部分资源和行动，行动板上也会增加一个「节气行动」格。</div>
           </div>
         </label>
       </div>
       <div class="row spread mt16" style="align-items:center">
-        <span class="muted" style="font-size:12px">建立房间后，DLC 配置将无法更改</span>
+        <span class="muted" style="font-size:12px">房间创建后不能更改扩展设置</span>
         <div class="row" style="gap:8px">
           <button class="btn ghost" id="roomCfgCancel" type="button">取消</button>
           <button class="btn big gold" id="roomCfgConfirm" type="button">✓ 创建房间</button>
@@ -245,10 +245,8 @@ async function createRoom(opts) {
         toast(data.msg || "创建失败", true);
         throw new Error("create_failed");
       }
-      const tag = dlc.occupations || dlc.moor || dlc.seasons
-        ? `（${dlc.occupations ? "职业 DLC " : ""}${dlc.moor ? "沼泽农夫 " : ""}${dlc.seasons ? "节气轮转" : ""}）`
-        : "";
-      toast(`已创建房间 ${data.roomCode}${tag}`.replace(/\s+/g, " "));
+      const enabled = [!dlc.moor && dlc.occupations ? "职业与小发展卡" : "", dlc.moor ? "沼泽农夫" : "", dlc.seasons ? "节气轮转" : ""].filter(Boolean);
+      toast(`已创建房间 ${data.roomCode}${enabled.length ? `（${enabled.join("、")}）` : ""}`);
       await refresh();
       openManage(data.roomCode);
     });

@@ -99,6 +99,8 @@ html[data-theme="dark"] .code-display { background: linear-gradient(160deg, #3b6
 html[data-theme="dark"] .code-display[style*="background:linear-gradient"] { background: linear-gradient(160deg, #426b86, #263f59) !important; }
 html[data-theme="dark"] .dlc-opt { background: #27362b; border-color: #5f7158; }
 html[data-theme="dark"] .dlc-opt:has(input:checked) { background: #31563b; border-color: #a4c58b; }
+html[data-theme="dark"] .mulligan-tab { background: #29372d; color: var(--ink-2); border-color: var(--line); }
+html[data-theme="dark"] .mulligan-tab.active { background: #426846; color: #fff; border-color: #93ba83; }
 
 /* 对局桌面与行动格 */
 html[data-theme="dark"] .col-card,
@@ -115,8 +117,10 @@ html[data-theme="dark"] .action-tabs { background: #253329; border-color: var(--
 html[data-theme="dark"] .action-tab-btn { color: var(--ink-2); }
 html[data-theme="dark"] .action-tab-btn:hover { background: #3a4d3e; color: var(--ink); }
 html[data-theme="dark"] .action-tab-btn.active { color: #fff; }
-html[data-theme="dark"] .action-tab-btn.active .action-tab-count:not(:empty) { background: #264b31; color: #fff; }
-html[data-theme="dark"] .action-tab-btn:not(.active) .action-tab-count:not(:empty) { background: #40533f; color: #dcecc7; }
+/* Moor tab 暗色（专属金棕，区别于基础 tab 的叶绿） */
+html[data-theme="dark"] .action-tab-btn[data-act-tab="moor"] { color: #c3a06b; }
+html[data-theme="dark"] .action-tab-btn[data-act-tab="moor"]:hover { background: rgba(195, 160, 107, 0.15); color: #e1c08a; }
+html[data-theme="dark"] .action-tab-btn[data-act-tab="moor"].active { background: linear-gradient(180deg, #a07845, #6e4a25); color: #fff; box-shadow: 0 2px 6px rgba(195, 160, 107, 0.3); }
 html[data-theme="dark"] .space { background: linear-gradient(150deg, #354237, #2b372f); border-color: #8b906d; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
 html[data-theme="dark"] .space:hover:not(.disabled) { background: #415443; border-color: #b8c995; }
 html[data-theme="dark"] .space.actable { border-color: #b79c64; box-shadow: 0 0 0 1px rgba(227,188,108,.15), 0 4px 12px rgba(0,0,0,.3); }

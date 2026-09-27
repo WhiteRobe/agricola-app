@@ -269,6 +269,31 @@ export function tokenSvg(kind, size = 26) {
   }
 }
 
+/** 农场地形：2D 显示俯视底板，2.5D 时树木和芦苇竖起。 */
+export function terrainModelSvg(kind, layers = 1) {
+  if (kind === "forest") {
+    const pine = (x, y, scale) => `<g transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="1" rx="15" ry="5" fill="#10281c" opacity=".35"/>
+      <path d="M-3-1V-30H3V-1Z" fill="#694624" stroke="#332512" stroke-width="1"/>
+      <path d="M0-63-18-28-11-28-22-14-14-13-26-2 0-7 26-2 14-13 22-14 11-28 18-28Z" fill="#173d2b" stroke="#0d271d" stroke-width="1.5"/>
+      <path d="M0-63-18-28-11-28-22-14-14-13-26-2 0-7Z" fill="#397550"/>
+      <path d="M0-63-11-34M-16-18-8-23M-20-7-11-12" fill="none" stroke="#83a976" stroke-width="2" stroke-linecap="round" opacity=".75"/>
+    </g>`;
+    return `<svg class="terrain-art terrain-art-forest" viewBox="0 0 120 95" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      ${pine(37, 75, .72)}${pine(82, 83, .82)}${pine(62, 85, layers > 1 ? .92 : .75)}
+    </svg>`;
+  }
+  return `<svg class="terrain-art terrain-art-moor" viewBox="0 0 120 95" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="60" cy="83" rx="43" ry="8" fill="#172a26" opacity=".4"/>
+    <path d="M20 68Q39 60 60 66T102 68L96 82Q65 91 24 82Z" fill="#302b25" stroke="#211d19" stroke-width="2"/>
+    <path d="M20 68Q39 59 60 65T102 68Q83 79 60 77T20 68Z" fill="#516b66" stroke="#8ba39b" stroke-width="2"/>
+    <path d="M28 68Q48 64 66 69M73 72Q84 70 92 68" fill="none" stroke="#a9c4af" stroke-width="2" opacity=".6"/>
+    <path d="M28 70Q22 51 19 43M33 68Q36 48 42 39M87 69Q92 50 99 42M91 73Q85 52 83 46" stroke="#799653" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M19 43V33M42 39V30M99 42V32M83 46V36" stroke="#6a4327" stroke-width="4" stroke-linecap="round"/>
+    <path d="M46 76L52 72 62 73 67 78 61 81 50 80Z" fill="#60452e" stroke="#2b241d" stroke-width="1.5"/>
+  </svg>`;
+}
+
 /**
  * 经典农家乐木制动物 Animeeple 矢量图（羊、野猪、黄牛）
  * 遵循实体德式木块剪影造型与顶部漫反射木纹高光

@@ -2116,9 +2116,14 @@ function openHandDrawer(tab = "occupation") {
   `).join("") : '<div class="muted p12">手里没有小发展卡了</div>';
 
   openModal("🎴 玩家私密手牌", `
-    <div class="row gap8 mb12">
-      <button class="btn small ${tab === "occupation" ? "" : "ghost"}" id="tabOcc">职业手牌 (${occs.length})</button>
-      <button class="btn small ${tab === "minor" ? "" : "ghost"}" id="tabMinor">小发展卡 (${minors.length})</button>
+    <div class="row gap8 mb12" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap">
+      <div class="row gap8">
+        <button class="btn small ${tab === "occupation" ? "" : "ghost"}" id="tabOcc">职业手牌 (${occs.length})</button>
+        <button class="btn small ${tab === "minor" ? "" : "ghost"}" id="tabMinor">小发展卡 (${minors.length})</button>
+      </div>
+      <button class="btn small ghost" id="btnHandDrawerGallery" style="margin-left:auto">
+        📖 ${tab === "occupation" ? "职业图鉴 (88)" : "小发展图鉴"}
+      </button>
     </div>
     <div id="drawerContent">
       ${tab === "occupation" ? occHtml : minorHtml}
@@ -2126,6 +2131,15 @@ function openHandDrawer(tab = "occupation") {
   `, (root) => {
     root.querySelector("#tabOcc").onclick = () => { closeModal(); openHandDrawer("occupation"); };
     root.querySelector("#tabMinor").onclick = () => { closeModal(); openHandDrawer("minor"); };
+    const btnGall = root.querySelector("#btnHandDrawerGallery");
+    if (btnGall) btnGall.onclick = () => {
+      closeModal();
+      if (tab === "occupation") {
+        import("/js/tutorial.js").then((m) => m.openOccupationGalleryDrawer());
+      } else {
+        import("/js/tutorial.js").then((m) => m.openMinorGalleryDrawer(_state?.game));
+      }
+    };
     root.querySelectorAll("[data-play-occ]").forEach(btn => btn.onclick = () => {
       sendAction({ type: "PlayOccupation", id: btn.dataset.playOcc });
       closeModal();
@@ -3807,6 +3821,8 @@ function ensureFab(g) {
   fab.id = "gameFab";
   fab.className = "fab" + (wasOpen ? " open" : "");
   const dlcOn = !!(g.dlc && (g.dlc.occupations || g.dlc.minorImprovements || g.dlc.moor || g.dlc.seasons));
+  const hasMinorDlc = !!(g.dlc && (g.dlc.minorImprovements || g.dlc.moor));
+  const minorCountLabel = g.dlc?.moor ? "117" : "29";
   fab.innerHTML = `
     <div class="fab-menu">
       <button class="fab-item" data-fab="leaderboard">
@@ -3822,6 +3838,10 @@ function ensureFab(g) {
         <span class="fab-ic">🎴</span>
         <span class="fab-txt">职业图鉴(88)</span>
       </button>
+      ${hasMinorDlc ? `<button class="fab-item" data-fab="minorGallery">
+        <span class="fab-ic">🃏</span>
+        <span class="fab-txt">小发展图鉴(${minorCountLabel})</span>
+      </button>` : ""}
       <button class="fab-item" data-fab="log">
         <span class="fab-ic">📜</span>
         <span class="fab-txt">动态日志</span>
@@ -3875,6 +3895,11 @@ function ensureFab(g) {
   const gallBtn = fab.querySelector('[data-fab="gallery"]');
   if (gallBtn) gallBtn.onclick = () => {
     import("/js/tutorial.js").then((m) => m.openOccupationGalleryDrawer());
+    fab.classList.remove("open");
+  };
+  const minorGallBtn = fab.querySelector('[data-fab="minorGallery"]');
+  if (minorGallBtn) minorGallBtn.onclick = () => {
+    import("/js/tutorial.js").then((m) => m.openMinorGalleryDrawer(_state && _state.game));
     fab.classList.remove("open");
   };
   fab.querySelector('[data-fab="log"]').onclick = () => {

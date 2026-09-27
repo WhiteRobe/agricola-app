@@ -2320,8 +2320,145 @@ body[data-season="winter"]::before {
   padding-top: 5px;
 }
 
+/* ============================================================
+   小发展卡全图鉴抽屉（146 张小发展卡）
+   ============================================================ */
+.minor-gallery-drawer {
+  width: min(840px, 95vw);
+}
+
+.minor-gallery-card {
+  display: flex;
+  flex-direction: column;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background-color: var(--panel);
+  background-image:
+    radial-gradient(rgba(80, 140, 70, 0.05) 1px, transparent 0),
+    radial-gradient(rgba(80, 140, 70, 0.05) 1px, transparent 0);
+  background-position: 0 0, 3px 3px;
+  background-size: 6px 6px;
+  border: 1px solid var(--line);
+  border-top: 3.5px solid #3c7d42;
+  box-shadow: 0 2px 6px rgba(35, 45, 20, 0.07);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.minor-gallery-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(35, 45, 20, 0.13);
+  border-color: var(--leaf);
+  border-top-color: #3c7d42;
+  background-color: #fffefb;
+}
+
+.minor-gallery-card .gc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.minor-gallery-card .gc-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.minor-gallery-card .gc-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.minor-gallery-card .gc-deck-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.minor-gallery-card .gc-deck-tag.tag-moor {
+  background: rgba(46, 125, 50, 0.15);
+  color: #1e5922;
+}
+
+.minor-gallery-card .gc-deck-tag.tag-classic {
+  background: rgba(180, 110, 40, 0.15);
+  color: #8c4a0f;
+}
+
+.minor-gallery-card .gc-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 7px;
+}
+
+.minor-gallery-card .gc-badge {
+  font-size: 11px;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.minor-gallery-card .gc-cost {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.minor-gallery-card .gc-free {
+  background: rgba(46, 125, 50, 0.1);
+  color: #1e5922;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.minor-gallery-card .gc-prereq {
+  background: rgba(180, 110, 40, 0.1);
+  color: #8c4a0f;
+  border: 1px solid rgba(180, 110, 40, 0.2);
+}
+
+.minor-gallery-card .gc-vp {
+  background: rgba(212, 175, 55, 0.16);
+  color: #8a6414;
+  font-weight: 700;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.minor-gallery-card .gc-oneshot {
+  background: rgba(80, 120, 200, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(80, 120, 200, 0.25);
+}
+
+.minor-gallery-card .gc-effect {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  flex: 1;
+}
+
+.minor-gallery-card .res-pill {
+  display: inline-block;
+  padding: 1px 4px;
+  margin: 0 1px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  background: rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 @media (max-width: 600px) {
-  .occ-gallery-drawer {
+  .occ-gallery-drawer,
+  .minor-gallery-drawer {
     width: 100vw;
   }
   .gallery-cards-grid {

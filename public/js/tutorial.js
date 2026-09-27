@@ -2,7 +2,7 @@
 // 教程抽屉（右侧滑出，可被任意页面调用）
 // ============================================================
 
-import { OCCUPATIONS } from "./dlc-data.js";
+import { OCCUPATIONS, MINOR_IMPROVEMENTS, MOOR_MINOR_IMPROVEMENTS } from "./dlc-data.js";
 
 const TUT_HTML = `
 <div class="toc">
@@ -398,12 +398,20 @@ export function openDlcDrawer(dlc) {
         <p class="muted" style="font-size:12px;margin-top:8px">
           由本房间主持人在创建房间时勾选。
         </p>
+        <div class="row gap8 mt8" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+          ${occupations ? '<button class="btn small ghost" id="btnDlcOccGallery">📖 浏览职业图鉴 (88)</button>' : ''}
+          ${minorImprovements || moor ? `<button class="btn small ghost" id="btnDlcMinorGallery">📖 浏览小发展卡图鉴 (${moor ? "117" : "29"})</button>` : ''}
+        </div>
       </div>
       ${sections.join("")}
     </div>
   `;
   document.body.appendChild(_dlcDrawerEl);
   _dlcDrawerEl.querySelector("#dlcClose").onclick = closeDlcDrawer;
+  const btnOcc = _dlcDrawerEl.querySelector("#btnDlcOccGallery");
+  if (btnOcc) btnOcc.onclick = () => { closeDlcDrawer(); openOccupationGalleryDrawer(); };
+  const btnMin = _dlcDrawerEl.querySelector("#btnDlcMinorGallery");
+  if (btnMin) btnMin.onclick = () => { closeDlcDrawer(); openMinorGalleryDrawer(dlc); };
 
   requestAnimationFrame(() => {
     _dlcBackdropEl.classList.add("show");
@@ -889,6 +897,312 @@ export function closeOccupationGalleryDrawer() {
     setTimeout(() => { _occBackdropEl?.remove(); _occBackdropEl = null; }, 280);
   }
   document.removeEventListener("keydown", onOccEscClose);
+}
+
+// ============================================================
+// 小发展卡全图鉴抽屉（沼泽 117 张 + 经典 29 张，支持牌库筛选、流派分类与实时搜索）
+// ============================================================
+
+let _minorDrawerEl = null;
+let _minorBackdropEl = null;
+let _curMinorDeck = "all";
+let _curMinorCat = "all";
+let _minorSearchKey = "";
+
+const MINOR_DECKS = [
+  { id: "all", name: "全部", count: 146, icon: "📋" },
+  { id: "moor", name: "沼泽扩展", count: 117, icon: "🌲" },
+  { id: "classic", name: "经典小发展", count: 29, icon: "🎴" },
+];
+
+const MINOR_CATEGORIES = [
+  { id: "all", name: "全部", icon: "🃏" },
+  { id: "terrain", name: "地形开拓", icon: "🌲" },
+  { id: "fuel", name: "燃料供暖", icon: "🔥" },
+  { id: "farm", name: "农耕作物", icon: "🌾" },
+  { id: "animal", name: "牲畜马匹", icon: "🐴" },
+  { id: "building", name: "建造发展", icon: "🏠" },
+  { id: "resource", name: "物资工具", icon: "🧰" },
+  { id: "scoring", name: "奖励计分", icon: "🏆" },
+];
+
+function getMinorCardCategory(card) {
+  const name = card.name || "";
+  const eff = card.effect || "";
+  const icon = card.icon || "";
+  const text = name + " " + eff;
+  if (icon === "🔥" || /燃料|供暖|取暖|泥炭|取暖炉|瓷砖烤炉/.test(text)) return "fuel";
+  if (icon === "🌲" || /森林|树木|造林|伐木/.test(text)) return "terrain";
+  if (icon === "🌾" || icon === "🌱" || /农田|田地|播种|谷物|蔬菜|免耕|深犁|休耕|作物/.test(text)) return "farm";
+  if (icon === "🐴" || icon === "🐏" || icon === "🐖" || icon === "🐄" || icon === "🐑" || /马|动物|羊|猪|牛|牧场|圈舍|畜|小驹|鞍/.test(text)) return "animal";
+  if (icon === "🏠" || icon === "🛖" || /房间|木屋|翻修|主要发展|工匠|工坊|教堂/.test(text)) return "building";
+  if (/点奖励|终局计分|奖励分|额外价值/.test(text)) return "scoring";
+  return "resource";
+}
+
+function formatMinorCardCost(card) {
+  if (card.costText) return card.costText;
+  if (card.cost) {
+    const nameMap = { wood: "木材", clay: "陶土", reed: "芦苇", stone: "石材", grain: "谷物", vegetable: "蔬菜", food: "食物", fuel: "燃料", horse: "马", sheep: "羊", boar: "猪", cattle: "牛" };
+    const parts = Object.entries(card.cost).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${nameMap[k] || k}`);
+    if (parts.length > 0) return parts.join(" + ");
+  }
+  return "免费";
+}
+
+function formatMinorCardPrereq(card) {
+  if (card.prereqText) return card.prereqText;
+  if (card.prereq) {
+    const p = card.prereq;
+    if (p.minOccupations) return `至少 ${p.minOccupations} 张职业卡`;
+    if (p.minRooms) return `至少 ${p.minRooms} 间房间`;
+    if (p.minPastures) return `至少 ${p.minPastures} 处牧场`;
+  }
+  return "";
+}
+
+function formatCardEffectHtml(effectStr) {
+  let s = escapeHtml(effectStr || "");
+  const repl = [
+    [/\[燃料\]/g, '<span class="res-pill chip-fuel">🔥 燃料</span>'],
+    [/\[木材\]/g, '<span class="res-pill chip-wood">🪵 木材</span>'],
+    [/\[砖\]/g, '<span class="res-pill chip-clay">🧱 陶土</span>'],
+    [/\[芦苇\]/g, '<span class="res-pill chip-reed">🎋 芦苇</span>'],
+    [/\[石头\]/g, '<span class="res-pill chip-stone">⛏ 石材</span>'],
+    [/\[谷物\]/g, '<span class="res-pill chip-grain">🌾 谷物</span>'],
+    [/\[蔬菜\]/g, '<span class="res-pill chip-veg">🥕 蔬菜</span>'],
+    [/\[羊\]/g, '<span class="res-pill chip-sheep">🐑 羊</span>'],
+    [/\[猪\]/g, '<span class="res-pill chip-boar">🐗 猪</span>'],
+    [/\[牛\]/g, '<span class="res-pill chip-cattle">🐄 牛</span>'],
+    [/\[马\]/g, '<span class="res-pill chip-horse">🐴 马</span>'],
+    [/\[食物\]/g, '<span class="res-pill chip-food">🍞 食物</span>'],
+    [/->/g, '➔'],
+  ];
+  for (const [re, to] of repl) {
+    s = s.replace(re, to);
+  }
+  return s;
+}
+
+function getAllMinorCards() {
+  const moor = MOOR_MINOR_IMPROVEMENTS.map((c) => ({
+    ...c,
+    deck: "moor",
+    deckName: "沼泽扩展",
+    category: getMinorCardCategory(c),
+    costDisplay: formatMinorCardCost(c),
+    prereqDisplay: formatMinorCardPrereq(c),
+  }));
+  const classic = MINOR_IMPROVEMENTS.map((c) => ({
+    ...c,
+    deck: "classic",
+    deckName: "经典小发展",
+    category: getMinorCardCategory(c),
+    costDisplay: formatMinorCardCost(c),
+    prereqDisplay: formatMinorCardPrereq(c),
+  }));
+  return [...moor, ...classic];
+}
+
+export function openMinorGalleryDrawer(gameOrDlc, defaultDeck, defaultCat = "all") {
+  if (_minorDrawerEl) {
+    if (defaultDeck) switchMinorDeckTab(defaultDeck);
+    if (defaultCat) switchMinorCatTab(defaultCat);
+    return;
+  }
+  const dlc = gameOrDlc?.dlc || gameOrDlc || {};
+  if (!defaultDeck) {
+    if (dlc.moor) _curMinorDeck = "moor";
+    else if (dlc.minorImprovements) _curMinorDeck = "classic";
+    else _curMinorDeck = "all";
+  } else {
+    _curMinorDeck = defaultDeck;
+  }
+  _curMinorCat = defaultCat;
+  _minorSearchKey = "";
+
+  _minorBackdropEl = document.createElement("div");
+  _minorBackdropEl.className = "tut-backdrop";
+  _minorBackdropEl.onclick = closeMinorGalleryDrawer;
+  document.body.appendChild(_minorBackdropEl);
+
+  _minorDrawerEl = document.createElement("aside");
+  _minorDrawerEl.className = "tut-drawer occ-gallery-drawer minor-gallery-drawer";
+  _minorDrawerEl.innerHTML = `
+    <div class="tut-drawer-head">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🃏</span>
+        <h2 class="mt0 mb0" style="font-size:16px;margin:0">小发展卡全图鉴 (146 张)</h2>
+      </div>
+      <button class="btn ghost small" id="minorGalleryClose">关闭 ×</button>
+    </div>
+    <div class="tut-drawer-body">
+      <!-- 规则说明提示框 -->
+      <div class="tip-box" style="margin-bottom:14px;font-size:13px;line-height:1.6">
+        <b>💡 小发展卡（次要发展卡）说明：</b><br>
+        包括 <b>沼泽农夫扩展 117 张（M015～M131）</b> 与 <b>经典基础 29 张</b>。小发展卡通常需要满足前置条件（如房间数、职业数、已有发展卡或特定地形），并支付建材后打出。在沼泽 III 级对局中，每位玩家开局分发 7 张小发展卡手牌，通过「重大/小发展」行动打出。
+      </div>
+
+      <!-- 搜索栏 -->
+      <div class="gallery-search-wrap" style="margin-bottom:10px">
+        <input type="search" id="minorSearchInput" class="gallery-search-input" placeholder="🔍 实时搜索：名称、卡号（如 M015）、效果说明、费用或前置条件..." />
+      </div>
+
+      <!-- 牌库 Tab 栏 -->
+      <div class="strat-tabs" id="minorDeckTabList" style="margin-bottom:8px">
+        ${MINOR_DECKS.map((d) => `
+          <button class="strat-tab-btn ${d.id === _curMinorDeck ? "active" : ""}" data-deck="${d.id}" type="button">
+            ${d.icon} ${d.name} (${d.count})
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- 流派分类 Tab 栏 -->
+      <div class="strat-tabs" id="minorCatTabList" style="margin-bottom:10px">
+        ${MINOR_CATEGORIES.map((c) => `
+          <button class="strat-tab-btn ${c.id === _curMinorCat ? "active" : ""}" data-cat="${c.id}" type="button">
+            ${c.icon} ${c.name}
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- 筛选统计信息 -->
+      <div id="minorGalleryMeta" style="font-size:12.5px;color:var(--ink-2);margin-bottom:10px;font-weight:600"></div>
+
+      <!-- 卡牌网格展示区 -->
+      <div id="minorGalleryGrid" class="gallery-cards-grid"></div>
+    </div>
+  `;
+  document.body.appendChild(_minorDrawerEl);
+  _minorDrawerEl.querySelector("#minorGalleryClose").onclick = closeMinorGalleryDrawer;
+
+  // 绑定牌库 Tab
+  _minorDrawerEl.querySelectorAll("#minorDeckTabList .strat-tab-btn").forEach((btn) => {
+    btn.onclick = () => switchMinorDeckTab(btn.dataset.deck);
+  });
+
+  // 绑定分类 Tab
+  _minorDrawerEl.querySelectorAll("#minorCatTabList .strat-tab-btn").forEach((btn) => {
+    btn.onclick = () => switchMinorCatTab(btn.dataset.cat);
+  });
+
+  // 绑定搜索输入
+  const searchInput = _minorDrawerEl.querySelector("#minorSearchInput");
+  if (searchInput) {
+    searchInput.oninput = (e) => {
+      _minorSearchKey = (e.target.value || "").trim().toLowerCase();
+      renderMinorGalleryCards();
+    };
+  }
+
+  renderMinorGalleryCards();
+
+  requestAnimationFrame(() => {
+    _minorBackdropEl.classList.add("show");
+    _minorDrawerEl.classList.add("show");
+  });
+  document.addEventListener("keydown", onMinorEscClose);
+}
+
+function switchMinorDeckTab(deck) {
+  _curMinorDeck = deck;
+  if (!_minorDrawerEl) return;
+  _minorDrawerEl.querySelectorAll("#minorDeckTabList .strat-tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.deck === deck);
+  });
+  renderMinorGalleryCards();
+}
+
+function switchMinorCatTab(cat) {
+  _curMinorCat = cat;
+  if (!_minorDrawerEl) return;
+  _minorDrawerEl.querySelectorAll("#minorCatTabList .strat-tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.cat === cat);
+  });
+  renderMinorGalleryCards();
+}
+
+function renderMinorGalleryCards() {
+  if (!_minorDrawerEl) return;
+  const grid = _minorDrawerEl.querySelector("#minorGalleryGrid");
+  const meta = _minorDrawerEl.querySelector("#minorGalleryMeta");
+  if (!grid) return;
+
+  const allCards = getAllMinorCards();
+  const filtered = allCards.filter((c) => {
+    if (_curMinorDeck !== "all" && c.deck !== _curMinorDeck) return false;
+    if (_curMinorCat !== "all" && c.category !== _curMinorCat) return false;
+    if (_minorSearchKey) {
+      const text = `${c.id} ${c.name} ${c.effect} ${c.costDisplay} ${c.prereqDisplay} ${c.deckName}`.toLowerCase();
+      if (!text.includes(_minorSearchKey)) return false;
+    }
+    return true;
+  });
+
+  if (meta) {
+    const deckLabel = MINOR_DECKS.find((d) => d.id === _curMinorDeck)?.name || "全部";
+    const catLabel = MINOR_CATEGORIES.find((c) => c.id === _curMinorCat)?.name || "全部";
+    meta.innerHTML = `展示 <b>${filtered.length}</b> / ${allCards.length} 张小发展卡（${deckLabel} · ${catLabel}）${_minorSearchKey ? ` · 关键词 "${escapeHtml(_minorSearchKey)}"` : ""}`;
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-hint" style="grid-column:1/-1;text-align:center;padding:36px 12px;color:var(--ink-2)">
+        <div style="font-size:28px;margin-bottom:8px">🔍</div>
+        <div>没有找到匹配 "${escapeHtml(_minorSearchKey)}" 的小发展卡</div>
+        <button class="btn btn-outline small" style="margin-top:10px" id="btnResetMinorSearch">清空搜索与筛选</button>
+      </div>
+    `;
+    const resetBtn = grid.querySelector("#btnResetMinorSearch");
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        _minorSearchKey = "";
+        _curMinorCat = "all";
+        _curMinorDeck = "all";
+        const input = _minorDrawerEl.querySelector("#minorSearchInput");
+        if (input) input.value = "";
+        _minorDrawerEl.querySelectorAll("#minorDeckTabList .strat-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.deck === "all"));
+        _minorDrawerEl.querySelectorAll("#minorCatTabList .strat-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.cat === "all"));
+        renderMinorGalleryCards();
+      };
+    }
+    return;
+  }
+
+  grid.innerHTML = filtered.map((c) => `
+    <div class="gallery-card minor-gallery-card">
+      <div class="gc-head">
+        <span class="gc-icon">${c.icon || "🃏"}</span>
+        <span class="gc-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</span>
+        <span class="gc-deck-tag ${c.deck === "moor" ? "tag-moor" : "tag-classic"}">${c.deck === "moor" ? escapeHtml(c.id) : "经典"}</span>
+      </div>
+      <div class="gc-meta-row">
+        ${c.costDisplay === "免费"
+          ? '<span class="gc-badge gc-free">免费</span>'
+          : `<span class="gc-badge gc-cost">🏷️ ${escapeHtml(c.costDisplay)}</span>`}
+        ${c.prereqDisplay ? `<span class="gc-badge gc-prereq">⚠️ ${escapeHtml(c.prereqDisplay)}</span>` : ""}
+        ${c.vp ? `<span class="gc-badge gc-vp">🏆 ${c.vp} 分</span>` : ""}
+        ${c.oneShot ? '<span class="gc-badge gc-oneshot">⚡ 一次性</span>' : ""}
+      </div>
+      <div class="gc-effect">${formatCardEffectHtml(c.effect)}</div>
+    </div>
+  `).join("");
+}
+
+function onMinorEscClose(e) {
+  if (e.key === "Escape") closeMinorGalleryDrawer();
+}
+
+export function closeMinorGalleryDrawer() {
+  if (_minorDrawerEl) {
+    _minorDrawerEl.classList.remove("show");
+    setTimeout(() => { _minorDrawerEl?.remove(); _minorDrawerEl = null; }, 280);
+  }
+  if (_minorBackdropEl) {
+    _minorBackdropEl.classList.remove("show");
+    setTimeout(() => { _minorBackdropEl?.remove(); _minorBackdropEl = null; }, 280);
+  }
+  document.removeEventListener("keydown", onMinorEscClose);
 }
 
 function escapeHtml(str) {

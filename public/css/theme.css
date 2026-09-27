@@ -196,12 +196,27 @@ html[data-theme="dark"] .score-table tr { background: var(--panel-2); color: var
 html[data-theme="dark"] .strat-tab-btn { background: #2c3b31; color: var(--ink); }
 html[data-theme="dark"] .strat-tab-btn:hover,
 html[data-theme="dark"] .occ-gallery-card:hover,
+html[data-theme="dark"] .minor-gallery-card:hover,
 html[data-theme="dark"] .occ-card:hover,
 html[data-theme="dark"] .minor-card.actable:hover { background: #35473a; color: var(--ink); }
 html[data-theme="dark"] .strat-tab-btn.active { background: #426846; color: #fff; }
 html[data-theme="dark"] .strat-box.pro { background: #25412e; color: #d6efd1; border-color: #598b62; }
 html[data-theme="dark"] .strat-box.con { background: #4b302b; color: #f5c6b7; border-color: #9c6659; }
 html[data-theme="dark"] .occ-gallery-card .gc-cat { color: #f2d28b; background: #493d28; }
+html[data-theme="dark"] .minor-gallery-card {
+  border-top-color: #529659;
+}
+html[data-theme="dark"] .minor-gallery-card .gc-deck-tag.tag-moor {
+  background: rgba(82, 150, 89, 0.25);
+  color: #a8e0ad;
+}
+html[data-theme="dark"] .minor-gallery-card .gc-deck-tag.tag-classic {
+  background: rgba(220, 140, 60, 0.25);
+  color: #f5c28e;
+}
+html[data-theme="dark"] .minor-gallery-card .res-pill {
+  background: rgba(255, 255, 255, 0.08);
+}
 html[data-theme="dark"] .fab-item { background: #26352b; border-color: #77866c; color: var(--ink); }
 html[data-theme="dark"] .fab-item:hover { background: #354a39; }
 html[data-theme="dark"] .fab-item.on { background: #426846; }

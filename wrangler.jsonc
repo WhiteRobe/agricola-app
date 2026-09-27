@@ -4,9 +4,6 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"],
-  "routes": [
-    { "pattern": "farm.whiterobe.top", "custom_domain": true }
-  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
